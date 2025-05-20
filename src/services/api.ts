@@ -1,0 +1,616 @@
+import axios from 'axios';
+import { getToken } from './tokenService';
+import { User } from './user';
+import { Plan } from './Plan';
+import { Subscription } from './Subscription';
+import { ActivityLog, ActivityLogType } from './ActivityLog';
+import { ApiKey } from './ApiKey';
+
+const api = axios.create({
+  baseURL: 'http://localhost:3000',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+interface SignInResponse {
+  token: string;
+  user: User;
+}
+
+interface ApiResponse<T = any> {
+  status?: number;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+interface ForgotPasswordResponse {
+  message: string;
+  success: boolean;
+}
+
+interface ChangePasswordResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface DeleteAccountResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface ActivityLogResponse {
+  data: ActivityLog[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+interface FailedAttemptsResponse {
+  count: number;
+  hours: number;
+}
+
+interface ApiKeyWithToken extends ApiKey {
+  key: string;
+}
+
+interface ApiKeyListResponse {
+  data: ApiKey[];
+  total: number;
+}
+
+api.interceptors.request.use(config => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const config = error.config;
+    if (error.code === 'ERR_NETWORK' && !config._retry) {
+      config._retry = true;
+
+      await new Promise(res => setTimeout(res, 2 ** config._retryCount * 1000 || 1000));
+      return api(config);
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authService = {
+  signIn: (credentials: { email: string; password: string; rememberMe: boolean }) =>
+    api.post<{ token: string; user: User; requires2FA?: boolean; tempToken?: string }>('/users/sign-in', credentials),
+
+  logout: () => api.post('/users/logout'),
+
+  getCurrentUser: () => api.get('/users/me').then(res => res.data),
+
+  signUp: (data: { name: string; email: string; password: string; recaptchaToken: string }) =>
+    api.post('/users/sign-up', data),
+
+  forgotPassword: (email: string): Promise<ApiResponse<ForgotPasswordResponse>> =>
+    api.post('/password/forgot-password', { email }),
+
+  resetPassword: (data: { token: string; newPassword: string }) =>
+    api.post('/password/reset-password', data),
+
+  updateUser: (formData: FormData)=>
+    api.put('/users/me', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then(res => res.data),
+
+  authenticateWithGoogle: (): void => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/google`;
+  },
+
+  handleGoogleCallback: async (): Promise<ApiResponse<SignInResponse>> => {
+    const response = await fetch(`http://localhost:3000/auth/google/callback`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error('Google authentication failed');
+    }
+
+    return response.json();
+  },
+
+  changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<ChangePasswordResponse>> =>
+    api.post('/users/change-password', data).then(res => res.data),
+
+  getTwoFactorStatus: () =>
+    api.get('/users/two-factor/status'),
+
+  generateTwoFactorSecret: () =>
+    api.post('/users/two-factor/generate'),
+
+  verifyAndEnableTwoFactor: (data: { token: string }) =>
+    api.post('/users/two-factor/verify', data),
+
+  disableTwoFactor: () =>
+    api.post('/users/two-factor/disable'),
+
+  verify2FALogin: (data: { token: string, tempToken: string }) =>
+    api.post('/users/two-factor/login', data),
+
+  deleteAccount: (data: { password: string }): Promise<ApiResponse<DeleteAccountResponse>> =>
+    api.delete('/users/me', { data }).then(res => res.data),
+};
+
+export const vcardService = {
+  create: async (data: { name: string; description: string; userId: number }) => {
+    try {
+      const response = await api.post('/vcard', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating vcard:', error);
+      throw error;
+    }
+  },
+
+  getAll: async (userId: string) => {
+    try {
+      const response = await api.get(`/vcard?userId=${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting all vcards:', error);
+      throw error;
+    }
+  },
+
+  getById: async (id: string) => {
+    try {
+      const response = await api.get(`/vcard/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting vcard with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  getByUrl: async (url: string) => {
+    try {
+      const response = await api.get(`/vcard/url/${url}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting vcard with url ${url}:`, error);
+      throw error;
+    }
+  },
+
+  update: async (id: string, formData: FormData) => {
+    try {
+      const response = await api.put(`/vcard/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating vcard with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  delete: async (id: string) => {
+    try {
+      const response = await api.delete(`/vcard/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting vcard with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  registerView: async (id: string) => {
+    try {
+      const response = await api.post<{
+        views: number;
+        isNewView: boolean;
+        isOwner?: boolean;
+      }>(`/vcard/${id}/views`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error registering view for vcard with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  checkLimit: async () => {
+    try {
+      const response = await api.get<{ current: number; max: number }>('/vcard/limits');
+      return response.data;
+    } catch (error) {
+      console.error('API Limit Check Error:', error);
+      return { current: 0, max: 1 };
+    }
+  },
+};
+
+export const blockService = {
+  create: (data: {
+    type_block: string;
+    name: string;
+    description?: string;
+    status?: boolean;
+    vcardId: number;
+  }) => api.post('/block', data),
+
+  getAll: () => api.get('/block'),
+
+  getByVcardId: (vcardId: string) =>
+    api.get(`/block?vcardId=${vcardId}`),
+
+  getById: (id: string) => api.get(`/block/${id}`),
+
+  update: (id: string, data: {
+    type_block?: string;
+    name?: string;
+    description?: string;
+    status?: boolean;
+    vcardId?: number;
+  }) => api.put(`/block/${id}`, data),
+
+  delete: (id: string) => api.delete(`/block/${id}`),
+
+  searchBlocks: (vcardId: string, query: string) =>
+    api.get(`/block/search?vcardId=${vcardId}&q=${encodeURIComponent(query)}`),
+
+};
+
+export const activityLogService = {
+  getUserActivities: (params?: {
+    limit?: number;
+    offset?: number;
+    type?: ActivityLogType;
+    days?: number;
+    deviceType?: string;
+    browser?: string;
+    userId?: number;
+  }): Promise<ApiResponse<ActivityLogResponse>> =>
+    api.get('/activity-logs', { params }).then(res => res.data),
+
+  getFailedAttempts: (hours: number = 1): Promise<ApiResponse<FailedAttemptsResponse>> =>
+    api.get('/activity-logs/failed-attempts', { params: { hours } }).then(res => res.data),
+
+  getRecentActivities: (limit: number = 5): Promise<ApiResponse<ActivityLog[]>> =>
+    api.get('/activity-logs/recent', { params: { limit } }).then(res => res.data),
+
+  getActivityDetails: (id: number): Promise<ApiResponse<ActivityLog>> =>
+    api.get(`/activity-logs/${id}`).then(res => res.data),
+
+  exportData: (format: 'csv' | 'json' = 'json'): Promise<Blob> =>
+    api.get('/activity-logs/export', {
+      params: { format },
+      responseType: 'blob'
+    }).then(res => res.data),
+};
+
+export const ApiKeyService = {
+  createApiKey: (data: {
+    name: string;
+    expiresAt?: string;
+    scopes?: string[];
+  }): Promise<ApiResponse<ApiKeyWithToken>> =>
+    api.post('/apikey', data).then(res => res.data),
+
+  listApiKeys: (): Promise<ApiResponse<ApiKeyListResponse>> =>
+    api.get('/apikey').then(res => res.data),
+
+  revokeApiKey: (id: number): Promise<ApiResponse<{ success: boolean }>> =>
+    api.delete(`/apikey/${id}`).then(res => res.data),
+};
+
+export const planService = {
+  getAllPlans: (): Promise<ApiResponse<Plan[]>> =>
+    api.get('/plans').then(res => res.data),
+
+  searchPlans: (query: string): Promise<ApiResponse<Plan[]>> =>
+    api.get('/plans/search', { params: { q: query } }).then(res => res.data),
+
+  getPlanById: (id: number): Promise<ApiResponse<Plan>> =>
+    api.get(`/plans/${id}`).then(res => res.data),
+
+  getFreePlan: (): Promise<ApiResponse<Plan>> =>
+    api.get('/plans/free').then(res => res.data),
+
+  createPlan: (data: Partial<Plan>): Promise<ApiResponse<Plan>> =>
+    api.post('/plans', data).then(res => res.data),
+
+  updatePlan: (id: string, data: Partial<Plan>): Promise<ApiResponse<Plan>> =>
+    api.put(`/plans/${id}`, data).then(res => res.data),
+
+  deletePlan: (id: string): Promise<ApiResponse<{ message: string }>> =>
+    api.delete(`/plans/${id}`).then(res => res.data),
+
+  togglePlanStatus: (id: string): Promise<ApiResponse<Plan>> =>
+    api.patch(`/plans/${id}/toggle-status`).then(res => res.data),
+};
+
+export const paymentService = {
+  createPaymentIntent: async (planId: number, userId: string, months: number, paymentMethod: string) => {
+    try {
+      const response = await api.post('/payment/create-payment-intent', {
+        planId,
+        userId,
+        months,
+        paymentMethod
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      throw error;
+    }
+  },
+
+  confirmPayment: async (paymentId: string) => {
+    try {
+      const response = await api.post('/payment/confirm', { paymentId });
+      return response.data;
+    } catch (error) {
+      console.error(`Error confirming payment ${paymentId}:`, error);
+      throw error;
+    }
+  },
+
+  getPaymentHistory: async () => {
+    try {
+      const response = await api.get('/payment/history');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      throw error;
+    }
+  },
+
+  getPaymentDetails: async (paymentId: number) => {
+    try {
+      const response = await api.get(`/payment/${paymentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment details:', error);
+      throw error;
+    }
+  }
+};
+
+export const subscriptionService = {
+  getCurrentSubscription: async (userId: number): Promise<ApiResponse<Subscription>> => {
+    try {
+      const response = await api.get('/subscription/current', {
+        params: { userId }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting current subscription for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  cancelSubscription: async (userId: string): Promise<ApiResponse<{ message: string }>> => {
+    try {
+      const response = await api.post('/subscription/cancel', { userId });
+      return response.data;
+    } catch (error) {
+      console.error(`Error cancelling subscription for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  getUserSubscriptions: async (userId: number): Promise<ApiResponse<Subscription>> => {
+    try {
+      const response = await api.get('/subscription/history', {
+        params: { userId }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting subscription history for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  getSubscriptionStatus: async (userId: number): Promise<ApiResponse<{
+    subscription: Subscription;
+    days_left: number;
+    should_notify: boolean;
+    notification_message?: string;
+  }>> => {
+    try {
+      const response = await api.get('/subscription/status', {
+        params: { userId }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting subscription status for user ${userId}:`, error);
+      throw error;
+    }
+  }
+};
+
+export const notificationService = {
+  getNotifications: async (params?: {
+    userId?: string;
+    limit?: number;
+    offset?: number;
+    unreadOnly?: boolean;
+  }) => {
+    try {
+      const response = await api.get('/notification', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
+  },
+
+  markAsRead: async (notificationId: number) => {
+    try {
+      const response = await api.patch(`/notification/${notificationId}/read`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error marking notification ${notificationId} as read:`, error);
+      throw error;
+    }
+  },
+
+  markAllAsRead: async (userId: string) => {
+    try {
+      const response = await api.patch('/notification/mark-all-read', { userId });
+      return response.data;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  },
+
+  deleteNotification: async (notificationId: number) => {
+    try {
+      const response = await api.delete(`/notification/${notificationId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting notification ${notificationId}:`, error);
+      throw error;
+    }
+  },
+
+  checkStatus: async () => {
+    try {
+      const response = await api.get('/notification/status');
+      return response.data;
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+      throw error;
+    }
+  },
+};
+
+export const webhookService = {
+  handleStripeWebhook: async (event: any) => {
+    try {
+      const response = await api.post('/payment/webhook/stripe', event);
+      return response.data;
+    } catch (error) {
+      console.error('Error handling Stripe webhook:', error);
+      throw error;
+    }
+  },
+};
+
+export const projectService = {
+  createProject: async (formData: FormData) => {
+    try {
+      const response = await api.post('/project', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
+  },
+
+  getUserProjects: async (userId: number) => {
+    try {
+      const response = await api.get('/project/user', { params: { userId } });
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting projects for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  updateProject: async (id: string, formData: FormData) => {
+    try {
+      const response = await api.put(`/project/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating project ${id}:`, error);
+      throw error;
+    }
+  },
+
+  deleteProject: async (id: string) => {
+    try {
+      const response = await api.delete(`/project/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting project ${id}:`, error);
+      throw error;
+    }
+  },
+
+  getProjectById: async (id: string) => {
+    try {
+      const response = await api.get(`/project/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting project with id ${id}:`, error);
+      throw error;
+    }
+  },
+};
+
+export const limitService = {
+  checkVcardLimit: async () => {
+    try {
+      const response = await api.get<{ current: number; max: number }>('/limits/vcard');
+      return response.data;
+    } catch (error) {
+      console.error('API Limit Check Error:', error);
+      return { current: 0, max: 1 };
+    }
+  },
+
+  checkBlockLimit: async (vcardId: string) => {
+    try {
+      const response = await api.get<{ current: number; max: number }>('/limits/blocks', { params: { vcardId } });
+      return response.data;
+    } catch (error) {
+      console.error('API Limit Check Error:', error);
+      return { current: 0, max: 10 };
+    }
+  },
+
+  checkApiKeyLimits: async () => {
+    try {
+      const response = await api.get<{ current: number; max: number }>('/limits/api-keys');
+      return response.data;
+    } catch (error) {
+      console.error('API Key Limit Check Error:', error);
+      return { current: 0, max: 1 };
+    }
+  },
+
+  get2FAAccess: async () => {
+    try {
+      return await api.get('/limits/2fa-access');
+    } catch (error) {
+      console.error('2FA Access Check Error:', error);
+      return { data: { has2FA: false } };
+    }
+  },
+
+  checkProjectLimit: async () => {
+    try {
+      const response = await api.get<{ current: number; max: number }>('/limits/project');
+      return response.data;
+    } catch (error) {
+      console.error('API Limit Check Error:', error);
+      return { current: 0, max: 1 };
+    }
+  },
+};

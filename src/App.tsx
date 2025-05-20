@@ -1,0 +1,86 @@
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import './App.css';
+import Home from './pages/Home';
+import SignUp from './authentification/SignUp';
+import SignIn from './authentification/SignIn';
+import Spinner from './Loading/Spinner';
+import ForgotPassword from './authentification/ForgotPassword';
+import CheckEmail from './authentification/CheckEmail';
+import NewPassword from './authentification/NewPassword';
+import TermsAndConditions from './termsAndPolicy/TermsAndConditions';
+import PrivatePolicy from './termsAndPolicy/PrivatePolicy';
+import Dashboard from './pages/Dashboard';
+import Layout from './Layout';
+import VCardPage from './pages/Vcards/VCardPage';
+import CreateVCard from './pages/Vcards/CreateVcard';
+import EditVCard from './pages/Vcards/EditVcard';
+import BlocksPage from './pages/Blocks/BlocksPage';
+import AddBlocksPage from './pages/Blocks/AddBlocksPage';
+import VCardViewPage from './pages/Vcards/VCardViewPage';
+import ProtectedRoute from './context/ProtectedRoute';
+import { useAuth } from './context/AuthContext';
+import AccountLayout from './pages/Account/AccountLayout';
+import Settings from './pages/Account/Settings';
+import ActivityLogs from './pages/Account/ActivityLogs';
+import AddPlanForm from './pages/Account/AddPlanForm';
+import ApiKeyManager from './pages/Account/ApiKeyManager';
+import AccountPlans from './pages/Account/AccountPlan';
+import NotificationsPage from './pages/Notification/NotificationPage';
+import UserProfilePage from './pages/Account/UserProfilePage';
+import ProjectPage from './pages/Projects/ProjectPage';
+import ProjectForm from './pages/Projects/ProjectForm';
+
+function App() {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return <Spinner />;
+  }
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/sign-up" element={<SignUp />} />
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/check-email" element={<CheckEmail />} />
+        <Route path="/reset-password" element={<NewPassword />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/privacy-policy" element={<PrivatePolicy />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route path="/admin" element={<Layout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard">
+              <Route index element={<Dashboard />} />
+              <Route path="profile" element={<UserProfilePage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+            </Route>
+            <Route path="vcard" element={<VCardPage />} />
+            <Route path="vcard/create-vcard" element={<CreateVCard />} />
+            <Route path="vcard/edit-vcard/:id" element={<EditVCard />} />
+            <Route path="vcard/edit-vcard/:id/blocks" element={<BlocksPage />} />
+            <Route path="vcard/edit-vcard/:id/blocks/add-blocks" element={<AddBlocksPage />} />
+            <Route path="account" element={<AccountLayout />}>
+              <Route path="settings" element={<Settings />} />
+              <Route path="activityLogs" element={<ActivityLogs />} />
+              <Route path="plan" element={<AccountPlans />} />
+              <Route path="api" element={<ApiKeyManager />} />
+            </Route>
+            <Route path="project">
+              <Route index element={<ProjectPage />} />
+              <Route path="create" element={<ProjectForm />} />
+              <Route path="edit/:id" element={<ProjectForm />} />
+            </Route>
+            <Route path="plan/add-plan" element={<AddPlanForm />} />
+          </Route>
+        </Route>
+        <Route path="/vcard/:url" element={<VCardViewPage />} />
+        <Route path="*" element={<div>Page not found</div>} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
