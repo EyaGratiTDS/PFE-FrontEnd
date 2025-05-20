@@ -123,7 +123,7 @@ const EditVCard: React.FC = () => {
     const fetchFonts = async () => {
       try {
         const response = await fetch(
-          "https://www.googleapis.com/webfonts/v1/webfonts?key=AIzaSyCgYGG8ASuWmKr2niZ6o4-y9IfjsDXbqjo"
+          `	https://www.googleapis.com/webfonts/v1/webfonts?key=${import.meta.env.GOOGLE_API_KEY}}`
         );
         const data = await response.json();
 
