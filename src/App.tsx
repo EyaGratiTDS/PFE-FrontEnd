@@ -29,6 +29,7 @@ import NotificationsPage from './pages/Notification/NotificationPage';
 import UserProfilePage from './pages/Account/UserProfilePage';
 import ProjectPage from './pages/Projects/ProjectPage';
 import ProjectForm from './pages/Projects/ProjectForm';
+import ProjectVCardsPage from './pages/Projects/ProjectVCardsPage';
 
 function App() {
   const { isLoading } = useAuth();
@@ -72,6 +73,7 @@ function App() {
               <Route index element={<ProjectPage />} />
               <Route path="create" element={<ProjectForm />} />
               <Route path="edit/:id" element={<ProjectForm />} />
+              <Route path=":id/vcards" element={<ProjectVCardsPage />} />
             </Route>
             <Route path="plan/add-plan" element={<AddPlanForm />} />
           </Route>

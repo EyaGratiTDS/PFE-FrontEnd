@@ -24,6 +24,7 @@ export interface Block {
     url: string;
     qr_code: string | null;
     views: number;
+    projectId: number;
     opengraph?: string; 
     search_engine_visibility: boolean; 
     remove_branding: boolean; 

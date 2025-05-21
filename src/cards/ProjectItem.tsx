@@ -3,7 +3,8 @@ import {
   FaEllipsisV, 
   FaEdit,
   FaTrash,
-  FaLock
+  FaLock,
+  FaAddressCard 
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/api';
@@ -42,6 +43,11 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
     navigate(`/admin/project/edit/${project.id}`);
   };
 
+  const handleVCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/admin/project/${project.id}/vcards`);
+  };
+
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteModal(true);
@@ -53,9 +59,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
     try {
       await projectService.deleteProject(project.id);
       toast.success(`Project "${project.name}" deleted successfully`);
-      if (onDeleteSuccess) {
-        onDeleteSuccess();
-      }
+      onDeleteSuccess?.();
     } catch (error) {
       console.error('Error deleting Project:', error);
       toast.error(`Failed to delete Project "${project.name}"`);
@@ -148,6 +152,14 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
             </div>
 
             <div className="flex items-center space-x-2">
+              <button
+                onClick={handleVCardClick}
+                className="p-1.5 rounded-full hover:bg-white/20 transition text-white"
+                title="View associated vCards"
+              >
+                <FaAddressCard className="w-4 h-4" />
+              </button>
+
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={toggleDropdown}

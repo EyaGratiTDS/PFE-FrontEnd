@@ -139,20 +139,15 @@ const ViewVCard: React.FC = () => {
           await vcardService.registerView(vcardData.id);
 
           const blocksData = await blockService.getByVcardId(vcardData.id);
-          const activeBlocks = blocksData.data.filter((block: Block) => block.status);
-          const maxBlocksAllowed = (vcardData as any).maxBlocksAllowed;
-          const maxBlocks = maxBlocksAllowed === Infinity || maxBlocksAllowed === undefined
-            ? activeBlocks.length
-            : maxBlocksAllowed;
 
-      setBlocks(activeBlocks.slice(0, maxBlocks));
+          setBlocks(blocksData.data);
         }
       } catch (error:any) {
         if (error.response?.data?.isNotActive) {
-        setVcardActive(true);
-      } else {
-        toast.error("Error loading data");
-      }
+          setVcardActive(true);
+        } else {
+          toast.error("Error loading data");
+        }
         console.error(error);
       } finally {
         setLoading(false);

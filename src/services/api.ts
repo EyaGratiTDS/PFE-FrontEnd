@@ -562,6 +562,16 @@ export const projectService = {
       throw error;
     }
   },
+
+  getVCardsByProject: async (id: string) => {
+    try {
+      const response = await api.get(`/project/${id}/vcards`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting vCards for project ${id}:`, error);
+      throw error;
+    }
+  },
 };
 
 export const limitService = {

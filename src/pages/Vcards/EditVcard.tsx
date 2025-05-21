@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { vcardService } from "../../services/api";
+import { vcardService, authService, projectService } from "../../services/api";
 import { FaCopy, FaCube } from "react-icons/fa";
 import LogoUploader from "../../atoms/uploads/LogoUploader";
 import FaviconUploader from "../../atoms/uploads/FaviconUploader";
@@ -13,6 +13,7 @@ import { Breadcrumb } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { FaSyncAlt } from "react-icons/fa";
 import { VCard } from "../../services/vcard";
+// Pas besoin d'importer User car on ne l'utilise pas directement
 
 interface GoogleFont {
   family: string;
@@ -100,6 +101,7 @@ const EditVCard: React.FC = () => {
     remove_branding: false,
     qr_code: "",
     views: 0,
+    projectId: 0,
     is_share: true,
     is_downloaded: true,
     is_active: true,
@@ -118,26 +120,46 @@ const EditVCard: React.FC = () => {
   const [selectedGradient, setSelectedGradient] = useState<string | null>(null);
   const [fonts, setFonts] = useState<GoogleFont[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     const fetchFonts = async () => {
       try {
         const response = await fetch(
-          `	https://www.googleapis.com/webfonts/v1/webfonts?key=${import.meta.env.GOOGLE_API_KEY}}`
+          `https://www.googleapis.com/webfonts/v1/webfonts?key=${import.meta.env.VITE_GOOGLE_API_KEY}`
         );
         const data = await response.json();
 
-        const filteredFonts = data.items
-          .filter((font: GoogleFont) => popularFonts.includes(font.family))
-          .map((font: GoogleFont) => ({ family: font.family }));
+        const filteredFonts = data?.items
+        ?.filter((font: GoogleFont) => popularFonts.includes(font.family))
+        ?.map((font: GoogleFont) => ({ family: font.family })) || [];
 
-        setFonts(filteredFonts);
+          setFonts(filteredFonts);
+        } catch (error) {
+          console.error("Error loading fonts:", error);
+          setFonts([]);
+        }
+      };
+
+    fetchFonts();
+  }, []);
+
+  useEffect(() => {
+    const loadUserAndProjects = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (user?.data.id) {
+          const projectsData = await projectService.getUserProjects(user.data.id);
+          const activeProjects = projectsData.filter((project: any) => project.status === 'active');
+          setProjects(activeProjects || []);
+        }
       } catch (error) {
-        console.error("Error loading fonts:", error);
+        console.error("Error loading user/projects:", error);
+        toast.error("Failed to load projects");
       }
     };
 
-    fetchFonts();
+    loadUserAndProjects();
   }, []);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -154,7 +176,9 @@ const EditVCard: React.FC = () => {
     const fetchVCard = async () => {
       try {
         const data = await vcardService.getById(id);
-        setVCard(data);
+        setVCard({
+          ...data
+        });
         if (data.background_type === "gradient-preset") {
           setSelectedGradient(data.background_value);
         } else if (data.background_type === "color") {
@@ -269,7 +293,7 @@ const EditVCard: React.FC = () => {
       background_value: preset,
     });
   };
-  
+
   const handleBlocks = () => {
     navigate(`/admin/vcard/edit-vcard/${vcard.id}/blocks`)
   }
@@ -298,7 +322,7 @@ const EditVCard: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const formData = new FormData();
       formData.append("name", vcard.name);
@@ -312,6 +336,7 @@ const EditVCard: React.FC = () => {
       formData.append("background_value", vcard.background_value);
       formData.append("font_family", vcard.font_family);
       formData.append("font_size", (vcard.font_size || 16).toString());
+      formData.append("projectId", vcard.projectId?.toString() || "");
 
       if (logoFile) {
         formData.append("logoFile", logoFile);
@@ -344,13 +369,13 @@ const EditVCard: React.FC = () => {
   return (
     <div className="pt-4 pb-8 px-0 sm:px-4 lg:px-8">
       <ToastContainer position="top-right" autoClose={5000} />
-      
+
       <div className="mb-6 w-full max-w-6xl mx-auto px-4 sm:px-6">
         <Breadcrumb className="mb-6">
           {breadcrumbLinks.map((link, index) => (
-            <Breadcrumb.Item 
-              key={index} 
-              linkAs={Link} 
+            <Breadcrumb.Item
+              key={index}
+              linkAs={Link}
               linkProps={{ to: link.path }}
               active={index === breadcrumbLinks.length - 1}
               className={`text-sm font-medium ${index === breadcrumbLinks.length - 1 ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
@@ -368,9 +393,9 @@ const EditVCard: React.FC = () => {
         </Breadcrumb>
       </div>
 
-      <div className="w-full flex flex-col bg-gray-50 dark:bg-gray-900 mx-auto max-w-6xl rounded-lg shadow-sm px-4 py-6 sm:p-6"> 
+      <div className="w-full flex flex-col bg-gray-50 dark:bg-gray-900 mx-auto max-w-6xl rounded-lg shadow-sm px-4 py-6 sm:p-6">
         <div className="flex flex-col items-center justify-center">
-          <div className="w-full"> 
+          <div className="w-full">
             <div className="text-center mb-6 w-full px-2 sm:px-0">
               <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Edit {vcard.name} vCard</h3>
               <div className="flex justify-center items-center gap-2 flex-wrap">
@@ -392,7 +417,7 @@ const EditVCard: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="w-full px-2 sm:px-0">
               <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-2">
@@ -461,6 +486,46 @@ const EditVCard: React.FC = () => {
                   setVCard={setVCard}
                 />
 
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Associated Project
+                  </label>
+                  <div className="inputForm-vcard bg-gray-100 dark:bg-gray-800">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9.76c0 .41-.34.75-.75.75H12v1.75c0 .41-.34.75-.75.75s-.75-.34-.75-.75V13.5h-1.5c-.41 0-.75-.34-.75-.75s.34-.75.75-.75h1.5v-1.5c0-.41.34-.75.75-.75s.75.34.75.75v1.5h1.25c.41 0 .75.34.75.75zM18 11v6H6v-6h12z"/>
+                      </svg>
+                    </div>
+                    <select
+                      name="projectId"
+                      className="input-vcard pl-10 pr-8 bg-transparent dark:bg-gray-800 dark:text-white w-full"
+                      value={vcard.projectId || ""}
+                      onChange={handleSelectChange}
+                      required
+                    >
+                      <option value="" className="dark:bg-gray-800 dark:text-white">Select a project</option>
+                      {projects.map((project) => (
+                        <option
+                          key={project.id}
+                          value={project.id}
+                          className="dark:bg-gray-800 dark:text-white"
+                        >
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Don't have a project?{' '}
+                    <Link 
+                      to="/admin/project" 
+                      className="text-primary hover:text-purple-400 font-medium"
+                    >
+                      Create one
+                    </Link>
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Font Family</label>
@@ -472,8 +537,8 @@ const EditVCard: React.FC = () => {
                         className="input-vcard pl-3 pr-8 bg-transparent dark:bg-gray-800 dark:text-white w-full"
                       >
                         {fonts.map((font) => (
-                          <option 
-                            key={font.family} 
+                          <option
+                            key={font.family}
                             value={font.family}
                             className="dark:bg-gray-800 dark:text-white"
                           >
@@ -501,7 +566,7 @@ const EditVCard: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2"> 
+                  <div className="space-y-2">
                     <Checkbox
                       name="is_share"
                       checked={vcard.is_share}
@@ -547,7 +612,7 @@ const EditVCard: React.FC = () => {
                     <FaCube className="mr-2" />
                     Settings Blocks
                   </button>
-                  
+
                   <button
                     type="submit"
                     className="flex justify-center items-center py-3 px-6 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary hover:bg-purple-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors w-full"
