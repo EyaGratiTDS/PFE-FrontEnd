@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { vcardService, blockService } from '../../services/api';
+import { vcardService, blockService, projectService } from '../../services/api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -20,7 +20,7 @@ import { VCard, Block, BlockIconConfig } from './../../services/vcard';
 import VCardHeader from './VCardHeader';
 import ContactBlock from './../../cards/ContactBlock';
 import FloatingButtons from './../../atoms/buttons/FloatingButtons';
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ViewVCard: React.FC = () => {
   const { url } = useParams<{ url: string }>();
@@ -29,7 +29,13 @@ const ViewVCard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [vcardActive, setVcardActive] = useState(false);
-
+  const [project, setProject] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    color: string;
+    status: 'active' | 'archived' | 'pending';
+  } | null>(null);
   const blockIcons: Record<string, BlockIconConfig> = {
     'Phone': {
       icon: FaPhone,
@@ -135,7 +141,22 @@ const ViewVCard: React.FC = () => {
         setVCard(vcardData);
 
         if (vcardData.id) {
-
+          if (vcardData.projectId) {
+            try {
+              const projectData = await projectService.getProjectById(vcardData.projectId);
+              if (projectData.status === 'active') {
+                setProject({
+                  id: projectData.id,
+                  name: projectData.name,
+                  description: projectData.description,
+                  color: projectData.color,
+                  status: projectData.status
+                });
+              }
+            } catch (error) {
+              console.error("Error loading project:", error);
+            }
+          }
           await vcardService.registerView(vcardData.id);
 
           const blocksData = await blockService.getByVcardId(vcardData.id);
@@ -349,8 +370,11 @@ END:VCARD`;
   }
 
   return (
-    <div
-      className="min-h-screen p-4 md:p-8 bg-gray-50 relative"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen relative overflow-hidden"
       style={{
         ...getBackgroundStyle(),
         fontFamily: vcard.font_family || 'sans-serif',
@@ -376,56 +400,173 @@ END:VCARD`;
       </Helmet>
 
       {vcard.background_type === 'custom-image' && (
-        <div className="fixed inset-0 bg-black/10 z-0"></div>
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-0"></div>
       )}
 
-      <div className="relative z-10 max-w-4xl mx-auto">
-        <VCardHeader vcard={vcard} />
+      <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full filter blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full filter blur-3xl transform -translate-x-1/2 translate-y-1/2"></div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="relative z-10 max-w-4xl mx-auto p-4 md:p-8">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <VCardHeader vcard={vcard} />
+        </motion.div>
+
+        {project && project.status === 'active' && (
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="my-8"
+          >
+            <div className="relative overflow-hidden rounded-xl shadow-lg bg-white dark:bg-gray-800 backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80 p-6 border border-gray-100 dark:border-gray-700">
+              <div
+                className="absolute top-0 left-0 w-full h-1"
+                style={{ backgroundColor: project.color || '#4f46e5' }}
+              ></div>
+
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-lg flex items-center justify-center shadow-lg"
+                  style={{
+                    backgroundColor: project.color || '#4f46e5',
+                    color: '#ffffff'
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Associated Project</span>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">{project.name}</h3>
+                    </div>
+
+                    <div
+                      className="mt-2 md:mt-0 px-3 py-1 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: `${project.color}20` || '#4f46e520',
+                        color: project.color || '#4f46e5'
+                      }}
+                    >
+                      {project.status === 'active' ? 'Actif' : project.status === 'pending' ? 'En attente' : 'Archivé'}
+                    </div>
+                  </div>
+
+                  {project.description && (
+                    <p className="mt-2 text-gray-600 dark:text-gray-300 text-sm">
+                      {project.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Grille de blocs avec animation */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.1
+              }
+            }
+          }}
+          initial="hidden"
+          animate="show"
+        >
           {blocks.filter((block: Block) => block.status).map((block) => {
             const iconConfig = blockIcons[block.type_block as keyof typeof blockIcons] || blockIcons.default;
             return (
-              <ContactBlock
+              <motion.div
                 key={block.id}
-                block={block}
-                iconConfig={iconConfig}
-                onClick={() => handleBlockAction(block.type_block, block.description)}
-              />
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                <ContactBlock
+                  block={block}
+                  iconConfig={iconConfig}
+                  onClick={() => handleBlockAction(block.type_block, block.description)}
+                />
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
-        <FloatingButtons
-          qrCodeUrl={vcard.qr_code}
-          isShareEnabled={vcard.is_share}
-          onCopy={copyToClipboard}
-          onShare={shareOnSocial}
-          onDownloadVcf={handleDownloadVcf}
-          vcard={{
-            name: vcard.name,
-            url: vcard.url
-          }}
-        />
+        {/* Boutons flottants avec animation */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-8"
+        >
+          <FloatingButtons
+            qrCodeUrl={vcard.qr_code}
+            isShareEnabled={vcard.is_share}
+            onCopy={copyToClipboard}
+            onShare={shareOnSocial}
+            onDownloadVcf={handleDownloadVcf}
+            vcard={{
+              name: vcard.name,
+              url: vcard.url
+            }}
+          />
+        </motion.div>
 
-        {copied && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed bottom-6 left-6 bg-gray-800 text-white px-4 py-2 rounded text-sm shadow z-50"
-          >
-            Link copied!
-          </motion.div>
-        )}
+        {/* Notification de copie */}
+        <AnimatePresence>
+          {copied && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 left-6 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50"
+            >
+              <div className="flex items-center">
+                <svg className="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Link copied!
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Pied de page subtil */}
+      {!vcard.remove_branding && (
+        <div className="absolute bottom-2 w-full text-center text-xs text-gray-500 dark:text-gray-400 opacity-70 z-10">
+          <p>Powered by Digital Business Card</p>
+        </div>
+      )}
 
       <ToastContainer
         position="top-right"
         autoClose={3000}
-        toastClassName="rounded shadow font-medium"
+        toastClassName="rounded-lg shadow-lg font-medium"
         hideProgressBar
+        closeButton={false}
       />
-    </div>
+    </motion.div>
   );
 };
 
