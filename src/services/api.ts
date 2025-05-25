@@ -574,6 +574,74 @@ export const projectService = {
   },
 };
 
+
+export const pixelService = {
+  create: async (data: { vcardId: number; name?: string }) => {
+    try {
+      const response = await api.post('/pixel', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating pixel:', error);
+      throw error;
+    }
+  },
+
+  update: async (pixelId: string, data: { name?: string; vcardId?: number; is_active?: boolean }) => {
+    try {
+      const response = await api.put(`/pixel/${pixelId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating pixel:', error);
+      throw error;
+    }
+  },
+
+  delete: async (pixelId: string) => {
+    try {
+      const response = await api.delete(`/pixel/${pixelId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting pixel:', error);
+      throw error;
+    }
+  },
+
+  getUserPixels: async (userId: number) => {
+    try {
+      const response = await api.get('/pixel/user', { params: { userId } });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user pixels:', error);
+      throw error;
+    }
+  },
+
+  getPixelById: async (id: string) => {
+    try {
+      const response = await api.get(`/pixel/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting pixel with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  trackEvent: async (pixelId: string, params?: { 
+    eventType?: string;
+    blockId?: string;
+    duration?: number;
+    metadata?: object;
+  }) => {
+    try {
+      const response = await api.get(`/pixel/track/${pixelId}`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error tracking pixel event:', error);
+      throw error;
+    }
+  }
+};
+
 export const limitService = {
   checkVcardLimit: async () => {
     try {

@@ -30,6 +30,8 @@ import UserProfilePage from './pages/Account/UserProfilePage';
 import ProjectPage from './pages/Projects/ProjectPage';
 import ProjectForm from './pages/Projects/ProjectForm';
 import ProjectVCardsPage from './pages/Projects/ProjectVCardsPage';
+import PixelPage from './pages/Pixels/PixelPage';
+import PixelForm from './pages/Pixels/PixelForm';
 
 function App() {
   const { isLoading } = useAuth();
@@ -73,6 +75,12 @@ function App() {
               <Route index element={<ProjectPage />} />
               <Route path="create" element={<ProjectForm />} />
               <Route path="edit/:id" element={<ProjectForm />} />
+              <Route path=":id/vcards" element={<ProjectVCardsPage />} />
+            </Route>
+            <Route path="pixel">
+              <Route index element={<PixelPage />} />
+              <Route path="create" element={<PixelForm />} />
+              <Route path="edit/:id" element={<PixelForm />} />
               <Route path=":id/vcards" element={<ProjectVCardsPage />} />
             </Route>
             <Route path="plan/add-plan" element={<AddPlanForm />} />

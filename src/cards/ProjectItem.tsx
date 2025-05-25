@@ -122,9 +122,9 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
               />
             ) : (
               <div 
-                className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center bg-gray-100 border-2 border-white"
+                className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-2 border-white" //probleme 
               >
-                <span className='text-white text-xl font-bold'>{project.name.charAt(0)}</span>
+                <span className='text-gray-600 dark:text-gray-100 text-xl font-bold'>{project.name.charAt(0)}</span>
               </div>
             )}
           </div>
