@@ -163,7 +163,7 @@ const CreateVCard: React.FC = () => {
                 <div className="pt-4">
                   <button
                     type="submit"
-                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-50 hover:bg-purple-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-purple-500 hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                     disabled={!name || !userId || isSubmitting}
                   >
                     {isSubmitting ? "Creating..." : "Create VCard"}

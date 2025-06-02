@@ -1,3 +1,5 @@
+import { Pixel } from "./Pixel";
+
 export interface Block {
     id: string;
     name: string;
@@ -28,6 +30,7 @@ export interface Block {
     opengraph?: string; 
     search_engine_visibility: boolean; 
     remove_branding: boolean; 
+    pixels?: Pixel[];
     isDisabled?: boolean;
     createdAt?: Date; 
     updatedAt?: Date;

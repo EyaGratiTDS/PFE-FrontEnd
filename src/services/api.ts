@@ -5,6 +5,7 @@ import { Plan } from './Plan';
 import { Subscription } from './Subscription';
 import { ActivityLog, ActivityLogType } from './ActivityLog';
 import { ApiKey } from './ApiKey';
+import { PixelEventParams } from './Pixel';
 
 const api = axios.create({
   baseURL: 'http://localhost:3000',
@@ -625,18 +626,23 @@ export const pixelService = {
       throw error;
     }
   },
-
-  trackEvent: async (pixelId: string, params?: { 
-    eventType?: string;
-    blockId?: string;
-    duration?: number;
-    metadata?: object;
-  }) => {
+  
+   trackEvent: async (pixelId: string, data?: PixelEventParams) => {
     try {
-      const response = await api.get(`/pixel/track/${pixelId}`, { params });
+      const response = await api.post(`/pixel/${pixelId}/track`, data);
       return response.data;
     } catch (error) {
       console.error('Error tracking pixel event:', error);
+      throw error;
+    }
+  },
+
+  getPixelsByVCard: async (vcardId: string) => {
+    try {
+      const response = await api.get(`/pixel/vcard/${vcardId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching pixels for vCard:', error);
       throw error;
     }
   }
@@ -691,4 +697,14 @@ export const limitService = {
       return { current: 0, max: 1 };
     }
   },
+
+checkPixelLimit: async () => {
+  try {
+    const response = await api.get<{ current: number; max: number }>('/limits/pixel');
+    return response.data;
+  } catch (error) {
+    console.error('API Limit Check Error:', error);
+    return { current: 0, max: 0 };
+  }
+},
 };

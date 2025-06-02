@@ -41,7 +41,7 @@ const PixelForm: React.FC = () => {
 
         if (isEditMode && id) {
             const response = await pixelService.getPixelById(id);
-            
+
             // Correction ici : utiliser directement response.pixel au lieu de response.pixels
             if (!response?.pixel) {
             toast.error("Pixel not found");
@@ -68,7 +68,6 @@ const PixelForm: React.FC = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.vcardId) newErrors.vcardId = "vCard selection is required";
     if (!userId) newErrors.user = "User not authenticated";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -203,7 +202,7 @@ const PixelForm: React.FC = () => {
                               border-gray-300 dark:border-gray-600 rounded-lg focus:border-transparent
                               dark:[color-scheme:dark]"
                   >
-                    <option value="">Select a vCard</option>
+                    <option value="" className="dark:bg-gray-800 dark:text-gray-300">Select a vCard</option>
                     {vcards.map(vcard => (
                       <option
                         key={vcard.id}

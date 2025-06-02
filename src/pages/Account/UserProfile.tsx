@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../../services/user';
 import { API_BASE_URL } from '../../config/constants';
-import useColorMode from '../../context/useColorMode';
+import useColorMode from '../../hooks/useColorMode';
 import {
   User as UserIcon,
   Mail,

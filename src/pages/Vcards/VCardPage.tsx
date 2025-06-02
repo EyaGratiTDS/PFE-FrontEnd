@@ -498,8 +498,8 @@ const VCardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="w-full md:w-auto flex flex-col sm:flex-row items-end sm:items-center gap-3 sm:gap-4">
-          <div className="relative w-full sm:w-48 md:w-64">
+        <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FiSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
             </div>

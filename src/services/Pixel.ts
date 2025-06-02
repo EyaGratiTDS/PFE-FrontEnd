@@ -3,6 +3,8 @@ export interface Pixel {
   name: string;
   is_active: boolean;
   created_at: string;
+  trackingUrl: string;
+  metaPixelId?: string | null;
   isDisabled?: boolean; 
   vcard?: {
     id: string;
@@ -23,7 +25,21 @@ export interface EventTracking {
   region: string | null;
   blockId: number | null;
   city: string | null;
+  deviceType: string | null;
+  os: string | null;
+  browser: string | null;
+  language: string | null;
   pixelId: string;
   created_at: string;
   updated_at: string;
+  source?: 'meta_pixel' | 'internal_tracking' | 'google_analytics';
+}
+
+export interface PixelEventParams {
+  eventType?: string;
+  blockId?: string;
+  duration?: number;
+  metadata?: object;
+  value?: number;
+  currency?: string;
 }

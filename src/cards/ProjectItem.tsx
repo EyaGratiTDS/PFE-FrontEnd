@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  FaEllipsisV, 
+import {
+  FaEllipsisV,
   FaEdit,
   FaTrash,
   FaLock,
-  FaAddressCard 
+  FaAddressCard
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/api';
@@ -90,12 +90,12 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
 
   return (
     <>
-      <div 
+      <div
         className="bg-white dark:bg-gray-700 relative rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-72 w-64 cursor-pointer"
         style={{ backgroundColor: project.color || '#4f46e5' }}
         onDoubleClick={handleDoubleClick}
       >
-        {project.isDisabled && ( 
+        {project.isDisabled && (
           <div className="absolute inset-0 bg-black/30 dark:bg-gray-900/50 flex items-center justify-center rounded-xl z-10">
             <div className="text-center p-4">
               <FaLock className="text-white text-2xl mb-2 mx-auto" />
@@ -103,7 +103,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
                 Upgrade plan to activate
               </div>
               <button
-                onClick={() => navigate('/account/plan')}
+                onClick={() => navigate('/admin/account/plan')}
                 className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs transition-colors"
               >
                 Upgrade Now
@@ -121,10 +121,10 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
                 className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-gray-200"
               />
             ) : (
-              <div 
-                className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-2 border-white" //probleme 
+              <div
+                className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center border-2 border-white"
               >
-                <span className='text-gray-600 dark:text-gray-100 text-xl font-bold'>{project.name.charAt(0)}</span>
+                <span className='text-white text-xl font-bold'>{project.name.charAt(0)}</span>
               </div>
             )}
           </div>
@@ -134,7 +134,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
               {project.name}
             </h2>
             {project.description && (
-              <p 
+              <p
                 className="text-sm mb-4 line-clamp-3 text-white/90"
               >
                 {project.description}
@@ -144,7 +144,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
 
           <div className="flex justify-between items-center pt-3 border-t border-white/20">
             <div className="flex items-center space-x-2">
-              <span 
+              <span
                 className={`px-2 py-1 rounded-full text-xs text-white ${getStatusColor()}`}
               >
                 {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
@@ -161,22 +161,23 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
               </button>
 
               <div className="relative" ref={dropdownRef}>
-                <button 
+                <button
                   onClick={toggleDropdown}
                   className="p-1 rounded-full hover:bg-white/20 transition text-white"
                   disabled={isDeleting}
                 >
                   <FaEllipsisV size={14} />
                 </button>
-                
+
                 {showDropdown && (
                   <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-xl z-[1000] border border-gray-200 dark:border-gray-700">
                     <button
-                      onClick={handleEditClick}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <FaEdit className="mr-2" /> Edit
-                    </button>
+                    onClick={handleEditClick}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FaEdit className="mr-3 text-blue-500" />
+                    Edit
+                  </button>
                     <button
                       onClick={handleDeleteClick}
                       disabled={isDeleting}

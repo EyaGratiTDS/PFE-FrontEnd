@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import useColorMode from '../context/useColorMode';
+import useColorMode from '../hooks/useColorMode';
 import pdp1 from '../assets/styleTemplate/img/pdp1.png';
 import { authService } from '../services/api';
 import { User } from '../services/user';
 import NotificationCard from '../cards/NotificationCard';
-import { useNotifications } from '../context/useNotifications';
+import { useNotifications } from '../hooks/useNotifications';
 import { API_BASE_URL } from '../config/constants';
 import { Notification } from '../services/Notification';
 import { Link, useNavigate } from 'react-router-dom';

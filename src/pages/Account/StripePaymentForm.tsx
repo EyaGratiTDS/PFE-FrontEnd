@@ -9,7 +9,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 import { useAuth } from '../../context/AuthContext';
-import useColorMode from '../../context/useColorMode';
+import useColorMode from '../../hooks/useColorMode';
 import { paymentService } from '../../services/api';
 import { Plan } from '../../services/Plan';
 

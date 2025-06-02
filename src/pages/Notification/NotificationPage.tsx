@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNotifications } from '../../context/useNotifications';
+import { useNotifications } from '../../hooks/useNotifications';
 import NotificationCard from '../../cards/NotificationCard';
 import { authService } from '../../services/api';
 import { User } from '../../services/user';

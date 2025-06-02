@@ -46,10 +46,10 @@ const PixelItem: React.FC<PixelItemProps> = ({ pixel, onDelete }) => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     setIsDeleting(true);
     try {
-      await onDelete(pixel.id);
+      onDelete(pixel.id);
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -80,19 +80,17 @@ const PixelItem: React.FC<PixelItemProps> = ({ pixel, onDelete }) => {
         onDoubleClick={handleDoubleClick}
       >
         {pixel.isDisabled && (
-          <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10">
-            <div className="text-center p-6">
-              <div className="w-12 h-12 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <FaLock className="text-gray-500 dark:text-gray-400 text-lg" />
+          <div className="absolute inset-0 bg-black/30 dark:bg-gray-900/50 flex items-center justify-center rounded-2xl z-10">
+            <div className="text-center p-4">
+              <FaLock className="text-white text-2xl mb-2 mx-auto" />
+              <div className="text-white text-sm font-medium mb-2">
+                Upgrade plan to activate
               </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-3">
-                Upgrade to activate
-              </p>
               <button
                 onClick={() => navigate('/admin/account/plan')}
-                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium transition-all shadow-lg"
+                className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs transition-colors"
               >
-                Upgrade Plan
+                Upgrade Now
               </button>
             </div>
           </div>

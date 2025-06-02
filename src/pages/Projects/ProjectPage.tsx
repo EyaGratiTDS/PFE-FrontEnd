@@ -115,16 +115,19 @@ const ProjectPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchPlanLimit = async () => {
+    const fetchPlanLimits = async () => {
       try {
-        const { max } = await limitService.checkProjectLimit();
-        setCurrentPlanLimit(max === -1 ? Infinity : max);
+        const projectLimit = await limitService.checkProjectLimit();
+
+        setCurrentPlanLimit(projectLimit.max === -1 ? Infinity : projectLimit.max);
       } catch (error) {
         console.error('Error fetching plan limits:', error);
       }
     };
-    fetchPlanLimit();
+    fetchPlanLimits();
   }, []);
+
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -327,8 +330,8 @@ const ProjectPage: React.FC = () => {
         Description: project.description || '',
         Status: project.status.charAt(0).toUpperCase() + project.status.slice(1),
         Color: project.color,
-        'Created Date': project.createdAt 
-          ? new Date(project.createdAt).toLocaleDateString() 
+        'Created Date': project.createdAt
+          ? new Date(project.createdAt).toLocaleDateString()
           : 'N/A'
       }));
 
@@ -431,9 +434,8 @@ const ProjectPage: React.FC = () => {
             Manage and organize your development projects
           </p>
         </div>
-
-        <div className="w-full md:w-auto flex flex-col sm:flex-row items-end sm:items-center gap-3 sm:gap-4">
-          <div className="relative w-full sm:w-48 md:w-64">
+        <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FiSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
             </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -7,7 +8,10 @@ import {
   FaEllipsisV, 
   FaEdit,
   FaTrash,
-  FaLock
+  FaLock,
+  FaIdCard,
+  FaTh,
+  FaChartLine
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { vcardService } from '../services/api';
@@ -70,6 +74,20 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
     navigate(`/admin/vcard/edit-vcard/${vcard.id}`);
   };
 
+  const handleViewVCard = () => {
+    if (vcard.url) {
+      navigate(`/vcard/${vcard.url}`);
+    }
+  };
+
+  const handleBlocksClick = () => {
+    navigate(`/admin/vcard/edit-vcard/${vcard.id}/blocks`);
+  };
+
+  const handleStatsClick = () => {
+    navigate(`/admin/vcard/stats/${vcard.id}`);
+  };
+
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteModal(true);
@@ -81,9 +99,7 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
     try {
       await vcardService.delete(vcard.id);
       toast.success(`VCard "${vcard.name}" deleted successfully`);
-      if (onDeleteSuccess) {
-        onDeleteSuccess();
-      }
+      onDeleteSuccess?.();
     } catch (error) {
       console.error('Error deleting VCard:', error);
       toast.error(`Failed to delete VCard "${vcard.name}"`);
@@ -99,7 +115,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    e.preventDefault();
     setShowDropdown(!showDropdown);
   };
 
@@ -236,23 +251,50 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
                   <FaEllipsisV size={14} />
                 </button>
                 
-                {showDropdown && (
-                  <div className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-xl z-[1000] border border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={handleEditClick}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <FaEdit className="mr-2" /> Edit
-                    </button>
-                    <button
-                      onClick={handleDeleteClick}
-                      disabled={isDeleting}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      <FaTrash className="mr-2" /> Delete
-                    </button>
-                  </div>
-                )}
+{showDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                >
+                  <button
+                    onClick={handleViewVCard}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FaIdCard className="mr-3 text-blue-500" />
+                    View VCard
+                  </button>
+                  <button
+                    onClick={handleBlocksClick}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FaTh className="mr-3 text-green-500" />
+                    VCard Blocks
+                  </button>
+                  <button
+                    onClick={handleStatsClick}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FaChartLine className="mr-3 text-purple-500" />
+                    Stats
+                  </button>
+                  <button
+                    onClick={handleEditClick}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FaEdit className="mr-3 text-blue-500" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDeleteClick}
+                    disabled={isDeleting}
+                    className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    <FaTrash className="mr-3" />
+                    Delete
+                  </button>
+                </motion.div>
+              )}
               </div>
             </div>
           </div>

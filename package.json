@@ -39,6 +39,7 @@
     "react-country-flag": "^3.1.0",
     "react-datepicker": "^8.3.0",
     "react-dom": "^19.0.0",
+    "react-facebook-pixel": "^1.0.4",
     "react-google-recaptcha": "^3.1.0",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.54.2",

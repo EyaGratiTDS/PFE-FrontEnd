@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { vcardService, blockService, projectService } from '../../services/api';
+import { vcardService, blockService, projectService, limitService, pixelService } from '../../services/api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -14,21 +14,29 @@ import {
   FaSpotify,
   FaTiktok,
   FaYoutube,
-  FaInstagram
+  FaInstagram,
+  FaGithub,
+  FaFacebookMessenger
 } from 'react-icons/fa';
 import { VCard, Block, BlockIconConfig } from './../../services/vcard';
 import VCardHeader from './VCardHeader';
 import ContactBlock from './../../cards/ContactBlock';
 import FloatingButtons from './../../atoms/buttons/FloatingButtons';
 import { motion, AnimatePresence } from "framer-motion";
+import usePixelTracker from '../../hooks/usePixelTracker';
+import { Pixel } from '../../services/Pixel';
 
 const ViewVCard: React.FC = () => {
   const { url } = useParams<{ url: string }>();
   const [vcard, setVCard] = useState<VCard | null>(null);
+  const [vcardPixel, setVcardPixel] = useState<Pixel | null>(null);
+  const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [vcardActive, setVcardActive] = useState(false);
+  const hoverStartTime = useRef<number | null>(null);
+  const currentHoveredBlock = useRef<string | null>(null);
   const [project, setProject] = useState<{
     id: string;
     name: string;
@@ -36,6 +44,7 @@ const ViewVCard: React.FC = () => {
     color: string;
     status: 'active' | 'archived' | 'pending';
   } | null>(null);
+  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(1);
   const blockIcons: Record<string, BlockIconConfig> = {
     'Phone': {
       icon: FaPhone,
@@ -127,6 +136,16 @@ const ViewVCard: React.FC = () => {
       gradient: 'from-orange-500 to-orange-600',
       shadow: 'shadow-orange-500/20'
     },
+    'GitHub': {
+      icon: FaGithub,
+      gradient: 'from-gray-700 to-gray-800',
+      shadow: 'shadow-gray-700/20'
+    },
+    'Messenger': {
+      icon: FaFacebookMessenger,
+      gradient: 'from-blue-500 to-blue-600',
+      shadow: 'shadow-blue-500/20'
+    },
     'default': {
       icon: FaLink,
       gradient: 'from-gray-500 to-gray-600',
@@ -135,32 +154,76 @@ const ViewVCard: React.FC = () => {
   };
 
   useEffect(() => {
+    const fetchPlanLimits = async () => {
+      try {
+        const projectLimit = await limitService.checkProjectLimit();
+        setCurrentPlanLimit(projectLimit.max === -1 ? Infinity : projectLimit.max);
+      } catch (error) {
+        console.error('Error fetching plan limits:', error);
+      }
+    };
+    fetchPlanLimits();
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const vcardData = await vcardService.getByUrl(url || '');
         setVCard(vcardData);
 
         if (vcardData.id) {
+          try {
+            const response = await pixelService.getUserPixels(vcardData.userId);
+            const foundPixel = response.data?.find(
+              (p: Pixel) => p.vcard?.id === vcardData.id
+            );
+            setVcardPixel(foundPixel || null);
+          } catch (error) {
+            console.error("Error loading pixel:", error);
+          }
+          
           if (vcardData.projectId) {
             try {
               const projectData = await projectService.getProjectById(vcardData.projectId);
+
               if (projectData.status === 'active') {
-                setProject({
-                  id: projectData.id,
-                  name: projectData.name,
-                  description: projectData.description,
-                  color: projectData.color,
-                  status: projectData.status
-                });
+                try {
+                  const allProjects = await projectService.getUserProjects(projectData.userId);
+                  const sortedProjects = allProjects.sort((a: any, b: any) =>
+                    new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
+                  );
+
+                  const projectIndex = sortedProjects.findIndex((p: any) => p.id === projectData.id);
+
+                  const isWithinPlanLimit = currentPlanLimit === Infinity || projectIndex < currentPlanLimit;
+
+                  if (isWithinPlanLimit) {
+                    setProject({
+                      id: projectData.id,
+                      name: projectData.name,
+                      description: projectData.description,
+                      color: projectData.color,
+                      status: projectData.status
+                    });
+                  }
+                } catch (limitError) {
+                  console.error("Error checking project limits:", limitError);
+                  setProject({
+                    id: projectData.id,
+                    name: projectData.name,
+                    description: projectData.description,
+                    color: projectData.color,
+                    status: projectData.status
+                  });
+                }
               }
             } catch (error) {
               console.error("Error loading project:", error);
             }
           }
+          
           await vcardService.registerView(vcardData.id);
-
           const blocksData = await blockService.getByVcardId(vcardData.id);
-
           setBlocks(blocksData.data);
         }
       } catch (error:any) {
@@ -176,7 +239,7 @@ const ViewVCard: React.FC = () => {
     };
 
     fetchData();
-  }, [url]);
+  }, [url, currentPlanLimit]);
 
   useEffect(() => {
     if (vcard?.favicon) {
@@ -192,6 +255,14 @@ const ViewVCard: React.FC = () => {
       document.head.appendChild(link);
     }
   }, [vcard]);
+
+  // Cleanup des timers au démontage du composant
+  useEffect(() => {
+    return () => {
+      hoverStartTime.current = null;
+      currentHoveredBlock.current = null;
+    };
+  }, []);
 
   const currentUrl = window.location.href;
   const pageTitle = vcard?.name || 'Digital Business Card';
@@ -229,7 +300,40 @@ const ViewVCard: React.FC = () => {
     toast.success("Link copied to clipboard!");
   };
 
-  const handleBlockAction = (type: string, value: string) => {
+  const handleBlockHover = useCallback((blockId: string) => {
+    // Enregistrer le temps de début du survol
+    hoverStartTime.current = Date.now();
+    currentHoveredBlock.current = blockId;
+  }, []);
+
+  const handleBlockLeave = useCallback((blockId: string) => {
+    if (hoverStartTime.current && currentHoveredBlock.current === blockId) {
+      // Calculer la durée du survol
+      const duration = Math.floor((Date.now() - hoverStartTime.current) / 1000);
+
+      // Envoyer l'événement uniquement si le survol a duré plus de 500ms
+      if (duration > 0.5) {
+        trackEvent({
+          eventType: 'hover',
+          blockId,
+          metadata: { duration }
+        });
+      }
+
+      hoverStartTime.current = null;
+      currentHoveredBlock.current = null;
+    }
+  }, [trackEvent]);
+
+  const handleBlockAction = (type: string, value: string, blockId?: string) => {
+    if (blockId) {
+      trackEvent({
+        eventType: 'click',
+        blockId,
+        metadata: { action: type, target: value }
+      });
+    }
+
     switch (type) {
       case 'Phone':
         window.location.href = `tel:${value}`;
@@ -249,13 +353,15 @@ const ViewVCard: React.FC = () => {
   const handleDownloadVcf = () => {
     if (!vcard) return;
 
+    trackEvent({ eventType: 'download' });
+
     const vCardData = `BEGIN:VCARD
-VERSION:3.0
-FN:${vcard.name}
-N:;${vcard.name};;;
-URL:${currentUrl}
-NOTE:${vcard.description || ''}
-END:VCARD`;
+      VERSION:3.0
+      FN:${vcard.name}
+      N:;${vcard.name};;;
+      URL:${currentUrl}
+      NOTE:${vcard.description || ''}
+      END:VCARD`;
 
     const blob = new Blob([vCardData], { type: 'text/vcard' });
     const url = URL.createObjectURL(blob);
@@ -271,6 +377,11 @@ END:VCARD`;
   };
 
   const shareOnSocial = (platform: string) => {
+    trackEvent({
+      eventType: 'share',
+      metadata: { platform }
+    });
+
     const shareUrl = encodeURIComponent(currentUrl);
     const title = encodeURIComponent(pageTitle);
     const description = encodeURIComponent(pageDescription);
@@ -424,7 +535,7 @@ END:VCARD`;
             transition={{ duration: 0.5, delay: 0.3 }}
             className="my-8"
           >
-            <div className="relative overflow-hidden rounded-xl shadow-lg bg-white dark:bg-gray-800 backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80 p-6 border border-gray-100 dark:border-gray-700">
+            <div className="relative overflow-hidden rounded-xl shadow-lg bg-white backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80 p-6 border border-gray-100">
               <div
                 className="absolute top-0 left-0 w-full h-1"
                 style={{ backgroundColor: project.color || '#4f46e5' }}
@@ -446,8 +557,8 @@ END:VCARD`;
                 <div className="flex-1 text-center md:text-left">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div>
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Associated Project</span>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">{project.name}</h3>
+                      <span className="text-sm font-medium text-gray-500">Associated Project</span>
+                      <h3 className="text-xl font-bold text-gray-900 ">{project.name}</h3>
                     </div>
 
                     <div
@@ -462,7 +573,7 @@ END:VCARD`;
                   </div>
 
                   {project.description && (
-                    <p className="mt-2 text-gray-600 dark:text-gray-300 text-sm">
+                    <p className="mt-2 text-gray-600 text-sm">
                       {project.description}
                     </p>
                   )}
@@ -472,7 +583,6 @@ END:VCARD`;
           </motion.div>
         )}
 
-        {/* Grille de blocs avec animation */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8"
           variants={{
@@ -501,18 +611,19 @@ END:VCARD`;
                   boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
                 }}
                 transition={{ duration: 0.2 }}
+                onMouseEnter={() => handleBlockHover(block.id)}
+                onMouseLeave={() => handleBlockLeave(block.id)}
               >
                 <ContactBlock
                   block={block}
                   iconConfig={iconConfig}
-                  onClick={() => handleBlockAction(block.type_block, block.description)}
+                  onClick={() => handleBlockAction(block.type_block, block.description, block.id)}
                 />
               </motion.div>
             );
           })}
         </motion.div>
 
-        {/* Boutons flottants avec animation */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -532,7 +643,6 @@ END:VCARD`;
           />
         </motion.div>
 
-        {/* Notification de copie */}
         <AnimatePresence>
           {copied && (
             <motion.div
@@ -552,7 +662,6 @@ END:VCARD`;
         </AnimatePresence>
       </div>
 
-      {/* Pied de page subtil */}
       {!vcard.remove_branding && (
         <div className="absolute bottom-2 w-full text-center text-xs text-gray-500 dark:text-gray-400 opacity-70 z-10">
           <p>Powered by Digital Business Card</p>

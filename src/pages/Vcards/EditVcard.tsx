@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { vcardService, authService, projectService } from "../../services/api";
+import { vcardService, authService, projectService} from "../../services/api";
 import { FaCopy, FaCube } from "react-icons/fa";
 import LogoUploader from "../../atoms/uploads/LogoUploader";
 import FaviconUploader from "../../atoms/uploads/FaviconUploader";
@@ -13,7 +13,6 @@ import { Breadcrumb } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { FaSyncAlt } from "react-icons/fa";
 import { VCard } from "../../services/vcard";
-// Pas besoin d'importer User car on ne l'utilise pas directement
 
 interface GoogleFont {
   family: string;
@@ -121,6 +120,8 @@ const EditVCard: React.FC = () => {
   const [fonts, setFonts] = useState<GoogleFont[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+ // const [availablePixels, setAvailablePixels] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedPixelId, setSelectedPixelId] = useState<string>("");
 
   useEffect(() => {
     const fetchFonts = async () => {
@@ -152,6 +153,12 @@ const EditVCard: React.FC = () => {
           const projectsData = await projectService.getUserProjects(user.data.id);
           const activeProjects = projectsData.filter((project: any) => project.status === 'active');
           setProjects(activeProjects || []);
+
+           /*const pixelsData = await pixelService.getUserPixels(user.data.id);
+         const unassociatedPixels = pixelsData.pixels.filter((pixel: any) =>
+            !pixel.vcard || pixel.vcard.id === id
+          );
+          setAvailablePixels(unassociatedPixels || []);*/
         }
       } catch (error) {
         console.error("Error loading user/projects:", error);
@@ -160,12 +167,16 @@ const EditVCard: React.FC = () => {
     };
 
     loadUserAndProjects();
-  }, []);
+  }, [id]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setVCard({ ...vcard, [name]: value });
   };
+
+  /*const handlePixelSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPixelId(e.target.value);
+  };*/
 
   useEffect(() => {
     if (!id) {
@@ -179,6 +190,11 @@ const EditVCard: React.FC = () => {
         setVCard({
           ...data
         });
+
+        if (data.pixel?.id) {
+          setSelectedPixelId(data.pixel.id);
+        }
+
         if (data.background_type === "gradient-preset") {
           setSelectedGradient(data.background_value);
         } else if (data.background_type === "color") {
@@ -337,6 +353,7 @@ const EditVCard: React.FC = () => {
       formData.append("font_family", vcard.font_family);
       formData.append("font_size", (vcard.font_size || 16).toString());
       formData.append("projectId", vcard.projectId?.toString() || "");
+      formData.append("pixelId", selectedPixelId || "");
 
       if (logoFile) {
         formData.append("logoFile", logoFile);
@@ -517,14 +534,53 @@ const EditVCard: React.FC = () => {
                   </div>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     Don't have a project?{' '}
-                    <Link 
-                      to="/admin/project" 
+                    <Link
+                      to="/admin/project"
                       className="text-primary hover:text-purple-400 font-medium"
                     >
                       Create one
                     </Link>
                   </p>
                 </div>
+
+               {/* <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Associated Pixel
+                  </label>
+                  <div className="inputForm-vcard bg-gray-100 dark:bg-gray-800">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                      </svg>
+                    </div>
+                    <select
+                      name="pixelId"
+                      className="input-vcard pl-10 pr-8 bg-transparent dark:bg-gray-800 dark:text-white w-full"
+                      value={selectedPixelId}
+                      onChange={handlePixelSelectChange}
+                    >
+                      <option value="" className="dark:bg-gray-800 dark:text-white">No pixel selected</option>
+                      {availablePixels.map((pixel) => (
+                        <option
+                          key={pixel.id}
+                          value={pixel.id}
+                          className="dark:bg-gray-800 dark:text-white"
+                        >
+                          {pixel.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Don't have a pixel?{' '}
+                    <Link
+                      to="/admin/pixel"
+                      className="text-primary hover:text-purple-400 font-medium"
+                    >
+                      Create one
+                    </Link>
+                  </p>
+                </div>*/}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
