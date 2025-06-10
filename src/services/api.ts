@@ -5,7 +5,7 @@ import { Plan } from './Plan';
 import { Subscription } from './Subscription';
 import { ActivityLog, ActivityLogType } from './ActivityLog';
 import { ApiKey } from './ApiKey';
-import { PixelEventParams } from './Pixel';
+import { Pixel, PixelEventParams } from './Pixel';
 
 const api = axios.create({
   baseURL: 'http://localhost:3000',
@@ -577,29 +577,45 @@ export const projectService = {
 
 
 export const pixelService = {
-  create: async (data: { vcardId: number; name?: string }) => {
+
+  create: async (data: {
+    vcardId: number;
+    name?: string;
+    userId?: number;
+    metaAccountId?: string;
+    metaAccessToken?: string;
+  }): Promise<Pixel> => {
     try {
-      const response = await api.post('/pixel', data);
-      return response.data;
+      const response = await api.post<{ success: boolean; pixel: Pixel }>('/pixel', data);
+      return response.data.pixel;
     } catch (error) {
       console.error('Error creating pixel:', error);
       throw error;
     }
   },
 
-  update: async (pixelId: string, data: { name?: string; vcardId?: number; is_active?: boolean }) => {
+  update: async (
+    pixelId: string,
+    data: {
+      name?: string;
+      vcardId?: number;
+      is_active?: boolean;
+      metaAccountId?: string;
+      metaAccessToken?: string;
+    }
+  ): Promise<Pixel> => {
     try {
-      const response = await api.put(`/pixel/${pixelId}`, data);
-      return response.data;
+      const response = await api.put<{ success: boolean; pixel: Pixel }>(`/pixel/${pixelId}`, data);
+      return response.data.pixel;
     } catch (error) {
       console.error('Error updating pixel:', error);
       throw error;
     }
   },
 
-  delete: async (pixelId: string) => {
+  delete: async (pixelId: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const response = await api.delete(`/pixel/${pixelId}`);
+      const response = await api.delete<{ success: boolean; message: string }>(`/pixel/${pixelId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting pixel:', error);
@@ -607,40 +623,41 @@ export const pixelService = {
     }
   },
 
-  getUserPixels: async (userId: number) => {
+  getUserPixels: async (userId: number): Promise<Pixel[]> => {
     try {
-      const response = await api.get('/pixel/user', { params: { userId } });
-      return response.data;
+      const response = await api.get<{ success: boolean; pixels: Pixel[] }>('/pixel/user', {
+        params: { userId }
+      });
+      return response.data.pixels;
     } catch (error) {
       console.error('Error fetching user pixels:', error);
       throw error;
     }
   },
 
-  getPixelById: async (id: string) => {
+  getPixelById: async (id: string): Promise<Pixel> => {
     try {
-      const response = await api.get(`/pixel/${id}`);
-      return response.data;
+      const response = await api.get<{ success: boolean; pixel: Pixel }>(`/pixel/${id}`);
+      return response.data.pixel;
     } catch (error) {
       console.error(`Error getting pixel with id ${id}:`, error);
       throw error;
     }
   },
-  
-   trackEvent: async (pixelId: string, data?: PixelEventParams) => {
+
+  trackEvent: async (pixelId: string, data?: PixelEventParams): Promise<void> => {
     try {
-      const response = await api.post(`/pixel/${pixelId}/track`, data);
-      return response.data;
+      await api.post(`/pixel/${pixelId}/track`, data);
     } catch (error) {
       console.error('Error tracking pixel event:', error);
       throw error;
     }
   },
 
-  getPixelsByVCard: async (vcardId: string) => {
+  getPixelsByVCard: async (vcardId: string): Promise<Pixel[]> => {
     try {
-      const response = await api.get(`/pixel/vcard/${vcardId}`);
-      return response.data;
+      const response = await api.get<{ success: boolean; pixels: Pixel[] }>(`/pixel/vcard/${vcardId}`);
+      return response.data.pixels;
     } catch (error) {
       console.error('Error fetching pixels for vCard:', error);
       throw error;

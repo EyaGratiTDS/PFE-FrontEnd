@@ -633,7 +633,7 @@ const VCardPage: React.FC = () => {
       >
         {filteredVCards.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6">
               <AnimatePresence>
                 {currentCards.map((vcard) => (
                   <motion.div

@@ -25,12 +25,14 @@ import FloatingButtons from './../../atoms/buttons/FloatingButtons';
 import { motion, AnimatePresence } from "framer-motion";
 import usePixelTracker from '../../hooks/usePixelTracker';
 import { Pixel } from '../../services/Pixel';
+import { initMetaPixel } from '../../utils/metaPixel';
+
 
 const ViewVCard: React.FC = () => {
   const { url } = useParams<{ url: string }>();
   const [vcard, setVCard] = useState<VCard | null>(null);
   const [vcardPixel, setVcardPixel] = useState<Pixel | null>(null);
-  const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active);
+  const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active, vcardPixel?.metaPixelId || null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -173,15 +175,20 @@ const ViewVCard: React.FC = () => {
 
         if (vcardData.id) {
           try {
-            const response = await pixelService.getUserPixels(vcardData.userId);
-            const foundPixel = response.data?.find(
+            const pixels = await pixelService.getUserPixels(vcardData.userId);
+            const foundPixel = pixels.find(
               (p: Pixel) => p.vcard?.id === vcardData.id
             );
-            setVcardPixel(foundPixel || null);
+            if (foundPixel) {
+              setVcardPixel(foundPixel);
+
+              if (foundPixel.is_active && foundPixel.metaPixelId) {
+                initMetaPixel(foundPixel.metaPixelId);
+              }
+            }
           } catch (error) {
             console.error("Error loading pixel:", error);
           }
-          
           if (vcardData.projectId) {
             try {
               const projectData = await projectService.getProjectById(vcardData.projectId);
@@ -221,9 +228,10 @@ const ViewVCard: React.FC = () => {
               console.error("Error loading project:", error);
             }
           }
-          
           await vcardService.registerView(vcardData.id);
+
           const blocksData = await blockService.getByVcardId(vcardData.id);
+
           setBlocks(blocksData.data);
         }
       } catch (error:any) {
@@ -242,6 +250,10 @@ const ViewVCard: React.FC = () => {
   }, [url, currentPlanLimit]);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [url]);
+
+  useEffect(() => {
     if (vcard?.favicon) {
       const existingLinks = document.querySelectorAll("link[rel~='icon']");
       existingLinks.forEach(link => {
@@ -256,7 +268,6 @@ const ViewVCard: React.FC = () => {
     }
   }, [vcard]);
 
-  // Cleanup des timers au démontage du composant
   useEffect(() => {
     return () => {
       hoverStartTime.current = null;
@@ -301,17 +312,14 @@ const ViewVCard: React.FC = () => {
   };
 
   const handleBlockHover = useCallback((blockId: string) => {
-    // Enregistrer le temps de début du survol
     hoverStartTime.current = Date.now();
     currentHoveredBlock.current = blockId;
   }, []);
 
   const handleBlockLeave = useCallback((blockId: string) => {
     if (hoverStartTime.current && currentHoveredBlock.current === blockId) {
-      // Calculer la durée du survol
       const duration = Math.floor((Date.now() - hoverStartTime.current) / 1000);
 
-      // Envoyer l'événement uniquement si le survol a duré plus de 500ms
       if (duration > 0.5) {
         trackEvent({
           eventType: 'hover',
@@ -326,6 +334,7 @@ const ViewVCard: React.FC = () => {
   }, [trackEvent]);
 
   const handleBlockAction = (type: string, value: string, blockId?: string) => {
+
     if (blockId) {
       trackEvent({
         eventType: 'click',
@@ -377,6 +386,7 @@ const ViewVCard: React.FC = () => {
   };
 
   const shareOnSocial = (platform: string) => {
+
     trackEvent({
       eventType: 'share',
       metadata: { platform }

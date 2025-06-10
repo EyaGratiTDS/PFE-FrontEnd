@@ -5,6 +5,8 @@ export interface Pixel {
   created_at: string;
   trackingUrl: string;
   metaPixelId?: string | null;
+  metaAccountId?: string;  
+  metaAccessToken?: string;
   isDisabled?: boolean; 
   vcard?: {
     id: string;
@@ -18,7 +20,6 @@ export interface EventTracking {
             'mouse_move' | 'scroll' | 'hover' | 'suspicious_activity' | 
             'preference_updated' | 'attention_event';
   metadata: Record<string, unknown> | null;
-  duration: number | null;
   userAgent: string | null;
   ipAddress: string | null;
   country: string | null;

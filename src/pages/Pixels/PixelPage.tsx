@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FaPlus,
   FaFilter,
@@ -102,6 +102,8 @@ const PixelPage: React.FC = () => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -125,9 +127,14 @@ const PixelPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await pixelService.getUserPixels(currentUser.id);
+      const pixels = await pixelService.getUserPixels(currentUser.id);
 
-      const sortedPixels = response.pixels.sort((a: Pixel, b: Pixel) =>
+      // Vérifier si la réponse est valide
+      if (!Array.isArray(pixels)) {
+        throw new Error('Invalid response format');
+      }
+
+      const sortedPixels = pixels.sort((a: Pixel, b: Pixel) =>
         new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
       );
 
@@ -138,9 +145,10 @@ const PixelPage: React.FC = () => {
 
       setPixels(formattedPixels);
       setFilteredPixels(formattedPixels);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching pixels:', err);
-      toast.error('Failed to load pixels');
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load pixels';
+      toast.error(errorMessage);
       setPixels([]);
       setFilteredPixels([]);
     } finally {
@@ -152,7 +160,7 @@ const PixelPage: React.FC = () => {
     fetchPixels();
   }, [currentUser, refreshTrigger, currentPlanLimit]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...pixels];
 
     filtered = filtered.filter(pixel =>
@@ -177,29 +185,29 @@ const PixelPage: React.FC = () => {
 
     setFilteredPixels(filtered);
     setCurrentPage(1);
-  };
+  }, [pixels, searchTerm, activeFilters]);
 
   useEffect(() => {
     applyFilters();
   }, [searchTerm, pixels, activeFilters]);
 
-  const handleFilterChange = (filterType: string, value: any) => {
+  const handleFilterChange = useCallback((filterType: string, value: any) => {
     setActiveFilters(prev => ({ ...prev, [filterType]: value }));
-  };
+  }, []);
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setActiveFilters({
       status: 'all',
       dateRange: { start: undefined, end: undefined }
     });
     setSearchTerm('');
-  };
+  }, []);
 
-  const hasActiveFilters = () => {
+  const hasActiveFilters = useCallback(() => {
     return activeFilters.status !== 'all' ||
            activeFilters.dateRange.start !== undefined ||
            activeFilters.dateRange.end !== undefined;
-  };
+  }, [activeFilters]);
 
   const indexOfLastCard = currentPage * cardsPerPage;
   const indexOfFirstCard = indexOfLastCard - cardsPerPage;
@@ -226,11 +234,17 @@ const PixelPage: React.FC = () => {
 
   const handleDeletePixel = async (pixelId: string) => {
     try {
-      await pixelService.delete(pixelId);
-      toast.success('Pixel deleted successfully');
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      toast.error('Failed to delete pixel');
+      const result = await pixelService.delete(pixelId);
+      if (result && result.success) {
+        toast.success('Pixel deleted successfully');
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        throw new Error('Delete operation failed');
+      }
+    } catch (error: any) {
+      console.error('Error deleting pixel:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete pixel';
+      toast.error(errorMessage);
     }
   };
 
@@ -271,6 +285,7 @@ const PixelPage: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Fermer le menu d'export
       if (
         exportMenuRef.current &&
         exportButtonRef.current &&
@@ -278,6 +293,16 @@ const PixelPage: React.FC = () => {
         !exportButtonRef.current.contains(event.target as Node)
       ) {
         setShowExportMenu(false);
+      }
+
+      // Fermer le menu de filtres
+      if (
+        filterMenuRef.current &&
+        filterButtonRef.current &&
+        !filterMenuRef.current.contains(event.target as Node) &&
+        !filterButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowFilterMenu(false);
       }
     };
 
@@ -366,6 +391,7 @@ const PixelPage: React.FC = () => {
 
             <div className="relative">
               <button
+                ref={filterButtonRef}
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border ${
                   hasActiveFilters()
                     ? 'border-red-500'
@@ -381,7 +407,10 @@ const PixelPage: React.FC = () => {
               </button>
 
               {showFilterMenu && (
-                <div className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 w-72 p-4">
+                <div
+                  ref={filterMenuRef}
+                  className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 w-72 p-4"
+                >
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filters</h3>
                     <button
@@ -499,7 +528,7 @@ const PixelPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+        className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
       >
         <AnimatePresence>
           {currentCards.map(pixel => (
