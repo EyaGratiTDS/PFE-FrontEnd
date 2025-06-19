@@ -518,7 +518,6 @@ const EditVCard: React.FC = () => {
                       className="input-vcard pl-10 pr-8 bg-transparent dark:bg-gray-800 dark:text-white w-full"
                       value={vcard.projectId || ""}
                       onChange={handleSelectChange}
-                      required
                     >
                       <option value="" className="dark:bg-gray-800 dark:text-white">Select a project</option>
                       {projects.map((project) => (

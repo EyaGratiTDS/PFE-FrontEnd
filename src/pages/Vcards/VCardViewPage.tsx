@@ -25,20 +25,50 @@ import FloatingButtons from './../../atoms/buttons/FloatingButtons';
 import { motion, AnimatePresence } from "framer-motion";
 import usePixelTracker from '../../hooks/usePixelTracker';
 import { Pixel } from '../../services/Pixel';
-import { initMetaPixel } from '../../utils/metaPixel';
 
+// Interface pour les événements de tracking
+interface TrackingEvent {
+  eventType: 'click' | 'mousemove' | 'hover' | 'scroll' | 'focus' | 'blur';
+  elementType?: string;
+  elementId?: string;
+  blockId?: string;
+  coordinates?: {
+    x: number;
+    y: number;
+    pageX: number;
+    pageY: number;
+    clientX: number;
+    clientY: number;
+  };
+  timestamp: number;
+  metadata?: any;
+  sessionId?: string;
+  userAgent?: string;
+  viewport?: {
+    width: number;
+    height: number;
+  };
+}
 
 const ViewVCard: React.FC = () => {
   const { url } = useParams<{ url: string }>();
   const [vcard, setVCard] = useState<VCard | null>(null);
   const [vcardPixel, setVcardPixel] = useState<Pixel | null>(null);
-  const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active, vcardPixel?.metaPixelId || null);
+  const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [vcardActive, setVcardActive] = useState(false);
   const hoverStartTime = useRef<number | null>(null);
   const currentHoveredBlock = useRef<string | null>(null);
+
+  // États pour le tracking avancé
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`);
+  const [isTracking, setIsTracking] = useState(true);
+  const lastMouseMoveTime = useRef<number>(0);
+  const mouseMoveThrottle = 100; // Envoyer un événement toutes les 100ms maximum
+  const trackingBuffer = useRef<TrackingEvent[]>([]);
+  const bufferFlushInterval = useRef<NodeJS.Timeout | null>(null);
   const [project, setProject] = useState<{
     id: string;
     name: string;
@@ -175,20 +205,42 @@ const ViewVCard: React.FC = () => {
 
         if (vcardData.id) {
           try {
-            const pixels = await pixelService.getUserPixels(vcardData.userId);
-            const foundPixel = pixels.find(
-              (p: Pixel) => p.vcard?.id === vcardData.id
-            );
-            if (foundPixel) {
-              setVcardPixel(foundPixel);
+            const response = await pixelService.getUserPixels(vcardData.userId);
 
-              if (foundPixel.is_active && foundPixel.metaPixelId) {
-                initMetaPixel(foundPixel.metaPixelId);
+            // Gérer différents formats de réponse
+            let pixels: Pixel[] = [];
+            if (Array.isArray(response)) {
+              pixels = response;
+            } else if (response && Array.isArray(response.data)) {
+              pixels = response.data;
+            } else if (response && Array.isArray(response.pixels)) {
+              pixels = response.pixels;
+            } else {
+              console.warn('Unexpected pixel response format:', response);
+              pixels = [];
+            }
+
+            const activePixel = pixels.find((p: Pixel) => p.is_active) || null;
+            setVcardPixel(activePixel);
+
+            // Debug: Log le pixel trouvé
+            console.log('Active pixel found:', activePixel);
+
+            // Initialiser Meta Pixel si disponible
+            if (activePixel && activePixel.metaPixelId) {
+              try {
+                const { initMetaPixel } = await import('../../utils/metaPixel');
+                initMetaPixel(activePixel.metaPixelId);
+                console.log('Meta Pixel initialized:', activePixel.metaPixelId);
+              } catch (metaError) {
+                console.error('Error initializing Meta Pixel:', metaError);
               }
             }
           } catch (error) {
             console.error("Error loading pixel:", error);
+            setVcardPixel(null);
           }
+          
           if (vcardData.projectId) {
             try {
               const projectData = await projectService.getProjectById(vcardData.projectId);
@@ -228,10 +280,9 @@ const ViewVCard: React.FC = () => {
               console.error("Error loading project:", error);
             }
           }
+          
           await vcardService.registerView(vcardData.id);
-
           const blocksData = await blockService.getByVcardId(vcardData.id);
-
           setBlocks(blocksData.data);
         }
       } catch (error:any) {
@@ -249,6 +300,7 @@ const ViewVCard: React.FC = () => {
     fetchData();
   }, [url, currentPlanLimit]);
 
+  // Scroll vers le haut lors du chargement de la page
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [url]);
@@ -304,6 +356,109 @@ const ViewVCard: React.FC = () => {
     }
   };
 
+  // Fonction pour créer un événement de tracking
+  const createTrackingEvent = useCallback((
+    eventType: TrackingEvent['eventType'],
+    event?: MouseEvent | Event,
+    additionalData?: Partial<TrackingEvent>
+  ): TrackingEvent => {
+    const mouseEvent = event as MouseEvent;
+    const coordinates = mouseEvent ? {
+      x: mouseEvent.offsetX || 0,
+      y: mouseEvent.offsetY || 0,
+      pageX: mouseEvent.pageX || 0,
+      pageY: mouseEvent.pageY || 0,
+      clientX: mouseEvent.clientX || 0,
+      clientY: mouseEvent.clientY || 0,
+    } : undefined;
+
+    return {
+      eventType,
+      coordinates,
+      timestamp: Date.now(),
+      sessionId,
+      userAgent: navigator.userAgent,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      ...additionalData,
+    };
+  }, [sessionId]);
+
+  // Fonction pour envoyer les événements de tracking au backend
+  const sendTrackingEvent = useCallback(async (event: TrackingEvent) => {
+    if (!vcardPixel?.is_active || !isTracking) return;
+
+    try {
+      // Envoyer directement au backend via pixelService
+      if (vcardPixel?.id) {
+        const eventData = {
+          eventType: event.eventType,
+          blockId: event.blockId,
+          metadata: {
+            ...event.metadata,
+            coordinates: event.coordinates,
+            sessionId: event.sessionId,
+            userAgent: event.userAgent,
+            viewport: event.viewport,
+            timestamp: event.timestamp,
+            elementType: event.elementType,
+            elementId: event.elementId,
+          }
+        };
+
+        // Debug: Log l'événement envoyé
+        console.log('Sending tracking event to backend:', {
+          pixelId: vcardPixel.id,
+          eventData
+        });
+
+        await pixelService.trackEvent(vcardPixel.id, eventData);
+      }
+
+      // Utiliser aussi le système de tracking existant pour Meta Pixel
+      trackEvent({
+        eventType: event.eventType,
+        blockId: event.blockId,
+        metadata: {
+          ...event.metadata,
+          coordinates: event.coordinates,
+          sessionId: event.sessionId,
+          userAgent: event.userAgent,
+          viewport: event.viewport,
+          timestamp: event.timestamp,
+          elementType: event.elementType,
+          elementId: event.elementId,
+        }
+      });
+    } catch (error) {
+      console.error('Error sending tracking event:', error);
+    }
+  }, [vcardPixel?.is_active, vcardPixel?.id, isTracking, trackEvent]);
+
+  // Fonction pour vider le buffer de tracking
+  const flushTrackingBuffer = useCallback(async () => {
+    if (trackingBuffer.current.length === 0) return;
+
+    const eventsToSend = [...trackingBuffer.current];
+    trackingBuffer.current = [];
+
+    for (const event of eventsToSend) {
+      await sendTrackingEvent(event);
+    }
+  }, [sendTrackingEvent]);
+
+  // Fonction pour ajouter un événement au buffer
+  const addToTrackingBuffer = useCallback((event: TrackingEvent) => {
+    trackingBuffer.current.push(event);
+
+    // Vider le buffer s'il devient trop grand
+    if (trackingBuffer.current.length >= 10) {
+      flushTrackingBuffer();
+    }
+  }, [flushTrackingBuffer]);
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(currentUrl);
     setCopied(true);
@@ -311,15 +466,101 @@ const ViewVCard: React.FC = () => {
     toast.success("Link copied to clipboard!");
   };
 
+  // Gestionnaire pour les mouvements de souris
+  const handleMouseMove = useCallback((event: MouseEvent) => {
+    if (!isTracking || !vcardPixel?.is_active) return;
+
+    const now = Date.now();
+    if (now - lastMouseMoveTime.current < mouseMoveThrottle) return;
+
+    lastMouseMoveTime.current = now;
+
+    const trackingEvent = createTrackingEvent('mousemove', event, {
+      elementType: (event.target as HTMLElement)?.tagName?.toLowerCase(),
+      elementId: (event.target as HTMLElement)?.id,
+      metadata: {
+        movementSpeed: Math.sqrt(
+          Math.pow(event.movementX || 0, 2) + Math.pow(event.movementY || 0, 2)
+        ),
+        scrollPosition: {
+          x: window.scrollX,
+          y: window.scrollY,
+        },
+      },
+    });
+
+    addToTrackingBuffer(trackingEvent);
+  }, [isTracking, vcardPixel?.is_active, mouseMoveThrottle, createTrackingEvent, addToTrackingBuffer]);
+
+  // Gestionnaire pour les clics
+  const handleClick = useCallback((event: MouseEvent) => {
+    if (!isTracking || !vcardPixel?.is_active) return;
+
+    const target = event.target as HTMLElement;
+    const blockElement = target.closest('[data-block-id]');
+    const blockId = blockElement?.getAttribute('data-block-id') || undefined;
+
+    const trackingEvent = createTrackingEvent('click', event, {
+      elementType: target.tagName?.toLowerCase(),
+      elementId: target.id,
+      blockId,
+      metadata: {
+        button: event.button, // 0: left, 1: middle, 2: right
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        detail: event.detail, // Number of clicks
+        scrollPosition: {
+          x: window.scrollX,
+          y: window.scrollY,
+        },
+      },
+    });
+
+    sendTrackingEvent(trackingEvent);
+  }, [isTracking, vcardPixel?.is_active, createTrackingEvent, sendTrackingEvent]);
+
+  // Gestionnaire pour le scroll
+  const handleScroll = useCallback(() => {
+    if (!isTracking || !vcardPixel?.is_active) return;
+
+    const trackingEvent = createTrackingEvent('scroll', undefined, {
+      metadata: {
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        scrollHeight: document.documentElement.scrollHeight,
+        clientHeight: document.documentElement.clientHeight,
+        scrollPercentage: Math.round(
+          (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+        ),
+      },
+    });
+
+    addToTrackingBuffer(trackingEvent);
+  }, [isTracking, vcardPixel?.is_active, createTrackingEvent, addToTrackingBuffer]);
+
   const handleBlockHover = useCallback((blockId: string) => {
     hoverStartTime.current = Date.now();
     currentHoveredBlock.current = blockId;
-  }, []);
+
+    // Tracking de l'événement hover
+    if (isTracking && vcardPixel?.is_active) {
+      const trackingEvent = createTrackingEvent('hover', undefined, {
+        blockId,
+        metadata: {
+          hoverStart: true,
+        },
+      });
+      sendTrackingEvent(trackingEvent);
+    }
+  }, [isTracking, vcardPixel?.is_active, createTrackingEvent, sendTrackingEvent]);
 
   const handleBlockLeave = useCallback((blockId: string) => {
     if (hoverStartTime.current && currentHoveredBlock.current === blockId) {
+      // Calculer la durée du survol
       const duration = Math.floor((Date.now() - hoverStartTime.current) / 1000);
 
+      // Envoyer l'événement uniquement si le survol a duré plus de 500ms
       if (duration > 0.5) {
         trackEvent({
           eventType: 'hover',
@@ -334,8 +575,7 @@ const ViewVCard: React.FC = () => {
   }, [trackEvent]);
 
   const handleBlockAction = (type: string, value: string, blockId?: string) => {
-
-    if (blockId) {
+    if (blockId && vcardPixel?.is_active) {
       trackEvent({
         eventType: 'click',
         blockId,
@@ -386,7 +626,6 @@ const ViewVCard: React.FC = () => {
   };
 
   const shareOnSocial = (platform: string) => {
-
     trackEvent({
       eventType: 'share',
       metadata: { platform }
@@ -464,6 +703,63 @@ const ViewVCard: React.FC = () => {
         break;
     }
   };
+
+  // useEffect pour attacher les gestionnaires d'événements de tracking
+  useEffect(() => {
+    if (!isTracking || !vcardPixel?.is_active) return;
+
+    // Attacher les gestionnaires d'événements
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('click', handleClick);
+    window.addEventListener('scroll', handleScroll);
+
+    // Configurer le flush automatique du buffer
+    bufferFlushInterval.current = setInterval(flushTrackingBuffer, 5000); // Flush toutes les 5 secondes
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('click', handleClick);
+      window.removeEventListener('scroll', handleScroll);
+
+      if (bufferFlushInterval.current) {
+        clearInterval(bufferFlushInterval.current);
+      }
+
+      // Flush final du buffer
+      flushTrackingBuffer();
+    };
+  }, [isTracking, vcardPixel?.is_active, handleMouseMove, handleClick, handleScroll, flushTrackingBuffer]);
+
+  // useEffect pour le scroll automatique vers le haut
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [url]);
+
+  // useEffect pour le tracking de la visibilité de la page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page devient invisible, flush le buffer
+        flushTrackingBuffer();
+        setIsTracking(false);
+      } else {
+        // Page devient visible, reprendre le tracking
+        setIsTracking(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Cleanup final du tracking
+      if (bufferFlushInterval.current) {
+        clearInterval(bufferFlushInterval.current);
+      }
+      flushTrackingBuffer();
+    };
+  }, [flushTrackingBuffer, setIsTracking]);
 
   if (loading) {
     return (
@@ -623,6 +919,7 @@ const ViewVCard: React.FC = () => {
                 transition={{ duration: 0.2 }}
                 onMouseEnter={() => handleBlockHover(block.id)}
                 onMouseLeave={() => handleBlockLeave(block.id)}
+                data-block-id={block.id}
               >
                 <ContactBlock
                   block={block}

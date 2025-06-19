@@ -127,11 +127,21 @@ const PixelPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const pixels = await pixelService.getUserPixels(currentUser.id);
+      const response = await pixelService.getUserPixels(currentUser.id);
 
-      // Vérifier si la réponse est valide
-      if (!Array.isArray(pixels)) {
-        throw new Error('Invalid response format');
+      // Gérer différents formats de réponse
+      let pixels: Pixel[] = [];
+      if (Array.isArray(response)) {
+        pixels = response;
+      } else if (response && Array.isArray(response.data)) {
+        pixels = response.data;
+      } else if (response && Array.isArray(response.pixels)) {
+        pixels = response.pixels;
+      } else if (response === null || response === undefined) {
+        pixels = [];
+      } else {
+        console.warn('Unexpected response format:', response);
+        pixels = [];
       }
 
       const sortedPixels = pixels.sort((a: Pixel, b: Pixel) =>
