@@ -26,7 +26,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import usePixelTracker from '../../hooks/usePixelTracker';
 import { Pixel } from '../../services/Pixel';
 
-// Interface pour les événements de tracking
 interface TrackingEvent {
   eventType: 'click' | 'mousemove' | 'hover' | 'scroll' | 'focus' | 'blur';
   elementType?: string;
@@ -62,11 +61,10 @@ const ViewVCard: React.FC = () => {
   const hoverStartTime = useRef<number | null>(null);
   const currentHoveredBlock = useRef<string | null>(null);
 
-  // États pour le tracking avancé
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`);
   const [isTracking, setIsTracking] = useState(true);
   const lastMouseMoveTime = useRef<number>(0);
-  const mouseMoveThrottle = 100; // Envoyer un événement toutes les 100ms maximum
+  const mouseMoveThrottle = 100; 
   const trackingBuffer = useRef<TrackingEvent[]>([]);
   const bufferFlushInterval = useRef<NodeJS.Timeout | null>(null);
   const [project, setProject] = useState<{
@@ -207,7 +205,6 @@ const ViewVCard: React.FC = () => {
           try {
             const response = await pixelService.getUserPixels(vcardData.userId);
 
-            // Gérer différents formats de réponse
             let pixels: Pixel[] = [];
             if (Array.isArray(response)) {
               pixels = response;
@@ -223,10 +220,8 @@ const ViewVCard: React.FC = () => {
             const activePixel = pixels.find((p: Pixel) => p.is_active) || null;
             setVcardPixel(activePixel);
 
-            // Debug: Log le pixel trouvé
             console.log('Active pixel found:', activePixel);
 
-            // Initialiser Meta Pixel si disponible
             if (activePixel && activePixel.metaPixelId) {
               try {
                 const { initMetaPixel } = await import('../../utils/metaPixel');
@@ -300,7 +295,6 @@ const ViewVCard: React.FC = () => {
     fetchData();
   }, [url, currentPlanLimit]);
 
-  // Scroll vers le haut lors du chargement de la page
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [url]);
@@ -356,7 +350,6 @@ const ViewVCard: React.FC = () => {
     }
   };
 
-  // Fonction pour créer un événement de tracking
   const createTrackingEvent = useCallback((
     eventType: TrackingEvent['eventType'],
     event?: MouseEvent | Event,
@@ -386,12 +379,10 @@ const ViewVCard: React.FC = () => {
     };
   }, [sessionId]);
 
-  // Fonction pour envoyer les événements de tracking au backend
   const sendTrackingEvent = useCallback(async (event: TrackingEvent) => {
     if (!vcardPixel?.is_active || !isTracking) return;
 
     try {
-      // Envoyer directement au backend via pixelService
       if (vcardPixel?.id) {
         const eventData = {
           eventType: event.eventType,
@@ -408,7 +399,6 @@ const ViewVCard: React.FC = () => {
           }
         };
 
-        // Debug: Log l'événement envoyé
         console.log('Sending tracking event to backend:', {
           pixelId: vcardPixel.id,
           eventData
@@ -417,7 +407,6 @@ const ViewVCard: React.FC = () => {
         await pixelService.trackEvent(vcardPixel.id, eventData);
       }
 
-      // Utiliser aussi le système de tracking existant pour Meta Pixel
       trackEvent({
         eventType: event.eventType,
         blockId: event.blockId,
@@ -437,7 +426,6 @@ const ViewVCard: React.FC = () => {
     }
   }, [vcardPixel?.is_active, vcardPixel?.id, isTracking, trackEvent]);
 
-  // Fonction pour vider le buffer de tracking
   const flushTrackingBuffer = useCallback(async () => {
     if (trackingBuffer.current.length === 0) return;
 
@@ -449,11 +437,9 @@ const ViewVCard: React.FC = () => {
     }
   }, [sendTrackingEvent]);
 
-  // Fonction pour ajouter un événement au buffer
   const addToTrackingBuffer = useCallback((event: TrackingEvent) => {
     trackingBuffer.current.push(event);
 
-    // Vider le buffer s'il devient trop grand
     if (trackingBuffer.current.length >= 10) {
       flushTrackingBuffer();
     }
@@ -466,7 +452,6 @@ const ViewVCard: React.FC = () => {
     toast.success("Link copied to clipboard!");
   };
 
-  // Gestionnaire pour les mouvements de souris
   const handleMouseMove = useCallback((event: MouseEvent) => {
     if (!isTracking || !vcardPixel?.is_active) return;
 
@@ -492,7 +477,6 @@ const ViewVCard: React.FC = () => {
     addToTrackingBuffer(trackingEvent);
   }, [isTracking, vcardPixel?.is_active, mouseMoveThrottle, createTrackingEvent, addToTrackingBuffer]);
 
-  // Gestionnaire pour les clics
   const handleClick = useCallback((event: MouseEvent) => {
     if (!isTracking || !vcardPixel?.is_active) return;
 
@@ -505,11 +489,11 @@ const ViewVCard: React.FC = () => {
       elementId: target.id,
       blockId,
       metadata: {
-        button: event.button, // 0: left, 1: middle, 2: right
+        button: event.button, 
         ctrlKey: event.ctrlKey,
         shiftKey: event.shiftKey,
         altKey: event.altKey,
-        detail: event.detail, // Number of clicks
+        detail: event.detail, 
         scrollPosition: {
           x: window.scrollX,
           y: window.scrollY,

@@ -25,7 +25,6 @@ import { Pixel } from '../../services/Pixel';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-// Fonctions d'export
 const downloadFile = (blob: Blob, fileName: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -129,7 +128,6 @@ const PixelPage: React.FC = () => {
       setLoading(true);
       const response = await pixelService.getUserPixels(currentUser.id);
 
-      // Gérer différents formats de réponse
       let pixels: Pixel[] = [];
       if (Array.isArray(response)) {
         pixels = response;
@@ -295,7 +293,6 @@ const PixelPage: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Fermer le menu d'export
       if (
         exportMenuRef.current &&
         exportButtonRef.current &&
@@ -305,7 +302,6 @@ const PixelPage: React.FC = () => {
         setShowExportMenu(false);
       }
 
-      // Fermer le menu de filtres
       if (
         filterMenuRef.current &&
         filterButtonRef.current &&

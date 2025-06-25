@@ -39,7 +39,6 @@ const PixelForm: React.FC = () => {
         const vcardsResponse = await vcardService.getAll(user.id.toString());
         setVcards(vcardsResponse);
 
-        // Vérifier s'il y a des vCards disponibles pour la création
         if (!isEditMode && (!vcardsResponse || vcardsResponse.length === 0)) {
           toast.warning('You need to create at least one vCard before creating a pixel.');
           navigate('/admin/vcard/create');
@@ -57,7 +56,7 @@ const PixelForm: React.FC = () => {
 
             setFormData({
             name: pixel.name,
-            vcardId: pixel.vcard?.id?.toString() || '', // Accès sécurisé à la vcard associée
+            vcardId: pixel.vcard?.id?.toString() || '', 
             is_active: pixel.is_active
             });
         }
@@ -71,7 +70,6 @@ const PixelForm: React.FC = () => {
     loadUserAndData();
     }, [id, isEditMode, navigate]);
 
-  // Scroll vers le haut lors du chargement
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -79,7 +77,6 @@ const PixelForm: React.FC = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    // Validation du nom
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     } else if (formData.name.trim().length < 2) {
@@ -88,12 +85,10 @@ const PixelForm: React.FC = () => {
       newErrors.name = "Name must be less than 50 characters";
     }
 
-    // Validation de la vCard
     if (!formData.vcardId) {
       newErrors.vcardId = "vCard selection is required";
     }
 
-    // Validation de l'utilisateur
     if (!userId) {
       newErrors.user = "User not authenticated";
     }

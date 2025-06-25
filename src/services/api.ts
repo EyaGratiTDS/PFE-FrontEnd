@@ -6,6 +6,8 @@ import { Subscription } from './Subscription';
 import { ActivityLog, ActivityLogType } from './ActivityLog';
 import { ApiKey } from './ApiKey';
 import { PixelEventParams } from './Pixel';
+import { CustomDomain, DNSInstructions } from './CustomDomain';
+import { VCard } from './vcard';
 
 const api = axios.create({
   baseURL: 'http://localhost:3000',
@@ -645,6 +647,126 @@ export const pixelService = {
       }
   },
 
+};
+
+export const customDomainService = {
+  create: async (data: { 
+    domain: string; 
+    custom_index_url?: string; 
+    custom_not_found_url?: string 
+  }): Promise<ApiResponse<CustomDomain>> => {
+    try {
+      const response = await api.post('/custom-domain', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating custom domain:', error);
+      throw error;
+    }
+  },
+
+  getUserDomains: async (): Promise<CustomDomain[]> => { 
+    try {
+      const response = await api.get('/custom-domain');
+      return response.data.domains; 
+    } catch (error) {
+      console.error('Error fetching user domains:', error);
+      throw error;
+    }
+  },
+
+  getDomainById: async (id: number): Promise<ApiResponse<CustomDomain>> => {
+    try {
+      const response = await api.get(`/custom-domain/${id}`);
+      return response.data; 
+    } catch (error) {
+      console.error(`Error fetching custom domain ${id}:`, error);
+      throw error;
+    }
+  },
+
+   update: async (id: number, data: { 
+    domain?: string; 
+    custom_index_url?: string; 
+    custom_not_found_url?: string;
+    vcardId?: number | null; 
+  }): Promise<ApiResponse<CustomDomain>> => {
+    try {
+      const response = await api.put(`/custom-domain/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating custom domain ${id}:`, error);
+      throw error;
+    }
+  },
+
+  delete: async (id: number): Promise<ApiResponse<{ message: string }>> => {
+    try {
+      const response = await api.delete(`/custom-domain/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting custom domain ${id}:`, error);
+      throw error;
+    }
+  },
+
+  verify: async (id: number): Promise<ApiResponse<CustomDomain>> => {
+    try {
+      const response = await api.post(`/custom-domain/${id}/verify`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error verifying custom domain ${id}:`, error);
+      throw error;
+    }
+  },
+
+  getDNSInstructions: async (id: number): Promise<ApiResponse<DNSInstructions>> => {
+    try {
+      const response = await api.get(`/custom-domains/${id}/dns-instructions`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting DNS instructions for domain ${id}:`, error);
+      throw error;
+    }
+  },
+
+  linkToVCard: async (domainId: number, vcardId: number): Promise<ApiResponse<{
+    domain: CustomDomain;
+    vcard: VCard;
+  }>> => {
+    try {
+      const response = await api.post('/custom-domain/link-to-vcard', {
+        domainId,
+        vcardId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error linking domain to vCard:', error);
+      throw error;
+    }
+  },
+
+  unlinkFromVCard: async (domainId: number): Promise<ApiResponse<CustomDomain>> => {
+    try {
+      const response = await api.post(`/custom-domain/${domainId}/unlink`);
+      return response.data;
+    } catch (error) {
+      console.error('Error unlinking domain from vCard:', error);
+      throw error;
+    }
+  },
+
+  handleDomainRequest: async (domain: string, path: string): Promise<ApiResponse<{ 
+    action: 'redirect' | 'display', 
+    url?: string 
+  }>> => {
+    try {
+      const response = await api.post('/custom-domain/handle-request', { domain, path });
+      return response.data;
+    } catch (error) {
+      console.error(`Error handling domain request for ${domain}:`, error);
+      throw error;
+    }
+  }
 };
 
 export const limitService = {

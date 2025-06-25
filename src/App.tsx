@@ -32,6 +32,8 @@ import ProjectForm from './pages/Projects/ProjectForm';
 import ProjectVCardsPage from './pages/Projects/ProjectVCardsPage';
 import PixelPage from './pages/Pixels/PixelPage';
 import PixelForm from './pages/Pixels/PixelForm';
+import CustomDomainsPage from './pages/CustomDomain/CustomDomainsPage';
+import CustomDomainForm from './pages/CustomDomain/CustomDomainForm';
 
 function App() {
   const { isLoading } = useAuth();
@@ -82,6 +84,11 @@ function App() {
               <Route path="create" element={<PixelForm />} />
               <Route path="edit/:id" element={<PixelForm />} />
               <Route path=":id/vcards" element={<ProjectVCardsPage />} />
+            </Route>
+            <Route path="custom-domains">
+              <Route index element={<CustomDomainsPage />} />
+              <Route path="create" element={<CustomDomainForm />} />
+              <Route path="edit/:id" element={<CustomDomainForm />} />
             </Route>
             <Route path="plan/add-plan" element={<AddPlanForm />} />
           </Route>
