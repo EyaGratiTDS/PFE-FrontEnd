@@ -191,32 +191,26 @@ const NavBar: React.FC<NavBarProps> = ({ toggleSideMenu, isSideMenuOpen }) => {
 
           <div className="flex items-center flex-1">
             {currentUser?.name && (
-              <h1 className="mr-20 text-xl font-medium text-gray-700 dark:text-gray-200 hidden md:block">
-                Hi {currentUser.name}
-              </h1>
-            )}
-            <div className="relative w-full max-w-xl ml-10 mr-6 focus-within:text-blue-50">
-              <div className="absolute inset-y-0 flex items-center pl-2">
-                <svg
-                  className="w-4 h-4"
-                  aria-hidden="true"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+              <div className="hidden md:flex items-center mr-20 bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-2 rounded-lg">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-6 w-6 mr-2 text-purple-500 dark:text-purple-300"
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" 
                   />
                 </svg>
+                <h1 className="text-xl font-medium text-gray-700 dark:text-gray-200">
+                  Hi {currentUser.name}
+                </h1>
               </div>
-              <input
-                className="w-full pl-8 pr-2 text-sm text-gray-700 placeholder-gray-600 bg-gray-100 border-0 rounded-md dark:placeholder-gray-500 dark:focus:shadow-outline-gray dark:focus:placeholder-gray-400 dark:bg-gray-700 dark:text-gray-200 focus:placeholder-gray-500 focus:bg-white focus:border-blue-50 focus:outline-none focus:shadow-outline-blue-50 form-input"
-                type="text"
-                placeholder="Rechercher des projets"
-                aria-label="Recherche"
-              />
-            </div>
+            )}
           </div>
 
           <ul className="flex items-center flex-shrink-0 space-x-6">

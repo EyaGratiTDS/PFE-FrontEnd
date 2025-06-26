@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, forwardRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FaPlus,
   FaTimes,
@@ -15,13 +15,14 @@ import { FiSearch, FiChevronRight } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { customDomainService } from '../../services/api';
+import { customDomainService, limitService } from '../../services/api';
 import { CustomDomain } from '../../services/CustomDomain';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Breadcrumb } from 'react-bootstrap';
 import LoadingSpinner from '../../Loading/LoadingSpinner';
 import EmptyState from '../../cards/EmptyState';
 import CustomDomainCard from '../../cards/CustomDomainCard';
+import CustomFilterCard from '../../cards/CustomFilterCard';
 
 const downloadFile = (blob: Blob, fileName: string) => {
   const url = URL.createObjectURL(blob);
@@ -76,111 +77,6 @@ const exportToJSON = (data: any[], fileName: string) => {
   }
 };
 
-interface FilterCardProps {
-  statusFilter: string;
-  setStatusFilter: (value: string) => void;
-  createdAtStart: string;
-  setCreatedAtStart: (value: string) => void;
-  createdAtEnd: string;
-  setCreatedAtEnd: (value: string) => void;
-  resetFilters: () => void;
-  onClose: () => void;
-  statusOptions: Array<{ value: string; label: string }>;
-}
-
-const FilterCard = forwardRef<HTMLDivElement, FilterCardProps>(
-  (
-    {
-      statusFilter,
-      setStatusFilter,
-      createdAtStart,
-      setCreatedAtStart,
-      createdAtEnd,
-      setCreatedAtEnd,
-      resetFilters,
-      onClose,
-      statusOptions
-    },
-    ref
-  ) => {
-    return (
-      <div 
-        ref={ref}
-        className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 w-72 p-4"
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filters</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <FaTimes className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Status
-            </label>
-            <select
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:[color-scheme:dark]"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              {statusOptions.map(option => (
-                <option key={option.value} value={option.value} className="dark:bg-gray-800 dark:text-gray-300">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 items-center">
-              <FaCalendarAlt className="mr-2" /> Created At
-            </label>
-            <div className="grid grid-cols-1 gap-2">
-              <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">From</label>
-                <input
-                  type="date"
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  value={createdAtStart}
-                  onChange={(e) => setCreatedAtStart(e.target.value)}
-                  max={createdAtEnd || new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">To</label>
-                <input
-                  type="date"
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  value={createdAtEnd}
-                  onChange={(e) => setCreatedAtEnd(e.target.value)}
-                  min={createdAtStart}
-                  max={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={resetFilters}
-              className="w-full bg-red-100 dark:bg-gray-700 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center"
-            >
-              <FaTimes className="mr-2" /> Reset Filters
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
-
-FilterCard.displayName = "FilterCard";
-
 const CustomDomainsPage: React.FC = () => {
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +86,8 @@ const CustomDomainsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [createdAtStart, setCreatedAtStart] = useState<string>('');
   const [createdAtEnd, setCreatedAtEnd] = useState<string>('');
+  const [orderBy, setOrderBy] = useState<string>('asc');
+  const [currentPlanLimit, setCurrentPlanLimit] = useState(1);
   const navigate = useNavigate();
   const domainsPerPage = 12;
   const [exporting, setExporting] = useState(false);
@@ -208,11 +106,41 @@ const CustomDomainsPage: React.FC = () => {
     { value: 'disabled', label: 'Disabled' }
   ];
 
+  // Récupérer la limite du plan
+  useEffect(() => {
+    const fetchPlanLimit = async () => {
+      try {
+        const { max } = await limitService.checkCustomDomainLimit();
+        setCurrentPlanLimit(max === -1 ? Infinity : max);
+      } catch (error) {
+        console.error('Error fetching plan limits:', error);
+        toast.error('Failed to load subscription limits');
+      }
+    };
+    fetchPlanLimit();
+  }, []);
+
   const fetchCustomDomains = async () => {
     try {
       setLoading(true);
       const domainsData = await customDomainService.getUserDomains();
-      setDomains(domainsData);
+      
+      // Trier par date de création (du plus ancien au plus récent)
+      const sortedByDate = [...domainsData].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      // Trouver l'index du plus ancien domaine
+      const oldestDomainIndex = sortedByDate.length > 0 ? 0 : -1;
+
+      // Marquer les domaines au-delà de la limite, sauf le plus ancien
+      const domainsWithDisabled = sortedByDate.map((domain, index) => ({
+        ...domain,
+        // Désactiver tous sauf le plus ancien si la limite est atteinte
+        isDisabled: index !== oldestDomainIndex && index >= currentPlanLimit
+      }));
+
+      setDomains(domainsWithDisabled);
     } catch (error) {
       console.error('Error fetching custom domains:', error);
       toast.error('Error loading domains');
@@ -224,7 +152,7 @@ const CustomDomainsPage: React.FC = () => {
 
   useEffect(() => {
     fetchCustomDomains();
-  }, []);
+  }, [currentPlanLimit]);
 
   useEffect(() => {
     let result = domains;
@@ -256,9 +184,16 @@ const CustomDomainsPage: React.FC = () => {
       });
     }
     
+    // Appliquer le tri
+    result = [...result].sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return orderBy === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+    
     setFilteredDomains(result);
     setCurrentPage(1);
-  }, [domains, searchTerm, statusFilter, createdAtStart, createdAtEnd]);
+  }, [domains, searchTerm, statusFilter, createdAtStart, createdAtEnd, orderBy]);
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this domain?')) {
@@ -296,13 +231,30 @@ const CustomDomainsPage: React.FC = () => {
     setStatusFilter('all');
     setCreatedAtStart('');
     setCreatedAtEnd('');
+    setOrderBy('asc');
   };
 
-  const hasActiveFilters = searchTerm || statusFilter !== 'all' || createdAtStart || createdAtEnd;
+  const hasActiveFilters = searchTerm || statusFilter !== 'all' || createdAtStart || createdAtEnd || orderBy !== 'asc';
 
   const breadcrumbLinks = [
     { name: "Custom Domains", path: "/admin/custom-domains" },
   ];
+
+  // Gestion de la création avec vérification de limite
+  const handleCreateClick = async () => {
+    try {
+      const { current, max } = await limitService.checkCustomDomainLimit();
+
+      if (max !== -1 && current >= max) {
+        toast.warning(`You've reached the maximum of ${max} custom domains. Upgrade your plan to create more.`);
+      } else {
+        navigate('/admin/custom-domains/create');
+      }
+    } catch (error) {
+      console.error('Error checking domain limits:', error);
+      toast.error('Error checking plan limits. Please try again.');
+    }
+  };
 
   const handleExport = async (format: 'csv' | 'json') => {
     if (filteredDomains.length === 0) {
@@ -484,7 +436,7 @@ const CustomDomainsPage: React.FC = () => {
               </button>
 
               {showFilterMenu && (
-                <FilterCard
+                <CustomFilterCard
                   ref={filterCardRef}
                   statusFilter={statusFilter}
                   setStatusFilter={setStatusFilter}
@@ -495,12 +447,14 @@ const CustomDomainsPage: React.FC = () => {
                   resetFilters={resetAllFilters}
                   onClose={() => setShowFilterMenu(false)}
                   statusOptions={statusOptions}
+                  orderBy={orderBy}
+                  setOrderBy={setOrderBy}
                 />
               )}
             </div>
 
             <button
-              onClick={() => navigate('/admin/custom-domains/create')}
+              onClick={handleCreateClick}
               className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base relative"
             >
               <FaPlus className="absolute left-1/2 transform -translate-x-1/2 sm:static sm:transform-none sm:mr-2 w-10" />
@@ -531,6 +485,11 @@ const CustomDomainsPage: React.FC = () => {
           {createdAtEnd && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
               <FaCalendarAlt className="mr-1" /> To: {new Date(createdAtEnd).toLocaleDateString()}
+            </span>
+          )}
+          {orderBy !== 'asc' && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+              Order: {orderBy === 'asc' ? 'Ascending' : 'Descending'}
             </span>
           )}
           <button

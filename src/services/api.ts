@@ -828,4 +828,14 @@ checkPixelLimit: async () => {
     return { current: 0, max: 0 };
   }
 },
+
+checkCustomDomainLimit: async () => {
+  try {
+    const response = await api.get<{ current: number; max: number }>('/limits/custom-domain');
+    return response.data;
+  } catch (error) {
+    console.error('API Limit Check Error:', error);
+    return { current: 0, max: 0 };
+  }
+},
 };

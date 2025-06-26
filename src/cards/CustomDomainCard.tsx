@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { FaGlobe, FaTrash, FaSync, FaLink, FaUnlink, FaEdit } from 'react-icons/fa';
+import { FaGlobe, FaTrash, FaSync, FaEdit, FaLock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import StatusBadge from './../atoms/Badge/StatusBadge';
 import { CustomDomain } from '../services/CustomDomain';
 import { customDomainService } from '../services/api';
-import DeleteConfirmationModal from '../modals/DeleteConfirmationModal'; 
+import DeleteConfirmationModal from '../modals/DeleteConfirmationModal';
 
 interface CustomDomainCardProps {
   domain: CustomDomain;
@@ -24,20 +24,14 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleEdit = () => {
-    navigate(`/admin/custom-domains/edit/${domain.id}`);
-  };
-
-  const handleLink = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (domain.id) {
-      navigate(`/admin/custom-domains/link/${domain.id}`);
+    if (!domain.isDisabled) {
+      navigate(`/admin/custom-domains/edit/${domain.id}`);
     }
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation(); // Ajouté pour empêcher la propagation
+    e.stopPropagation();
     setIsDeleteModalOpen(true);
   };
 
@@ -45,9 +39,8 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
     setIsDeleting(true);
     try {
       if (domain.id) {
-        // Appel direct au service sans confirmation supplémentaire
         await customDomainService.delete(domain.id);
-        onRefresh(); // Rafraîchir la liste après suppression
+        onRefresh();
       }
     } catch (error) {
       console.error("Error deleting domain:", error);
@@ -68,8 +61,25 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -5 }}
         transition={{ duration: 0.3 }}
-        className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700"
+        className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700 relative"
       >
+        {domain.isDisabled && (
+          <div className="absolute inset-0 bg-black/30 dark:bg-gray-900/50 flex items-center justify-center rounded-xl z-10">
+            <div className="text-center p-4">
+              <FaLock className="text-white text-2xl mb-2 mx-auto" />
+              <div className="text-white text-sm font-medium mb-2">
+                Upgrade plan to activate
+              </div>
+              <button
+                onClick={() => navigate('/admin/account/plan')}
+                className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs transition-colors"
+              >
+                Upgrade Now
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="p-6">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -121,7 +131,7 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
-            {domain.status === 'pending' && (
+            {domain.status === 'pending' && !domain.isDisabled && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -140,40 +150,26 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
               <button
                 type="button"
                 onClick={handleEdit}
-                className="flex items-center justify-center flex-1 px-3 py-2 text-sm bg-gray-500/10 hover:bg-gray-500/20 text-gray-700 dark:text-gray-300 rounded-lg transition-all border border-gray-500/30"
+                disabled={domain.isDisabled}
+                className={`flex items-center justify-center flex-1 px-3 py-2 text-sm rounded-lg transition-all border ${
+                  domain.isDisabled
+                    ? 'bg-gray-300/10 text-gray-500 border-gray-500/20 cursor-not-allowed'
+                    : 'bg-gray-500/10 hover:bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30'
+                }`}
               >
                 <FaEdit className="mr-1.5" />
                 Edit
               </button>
 
-              {domain.vcardId ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    domain.id && customDomainService.unlinkFromVCard(domain.id).then(onRefresh);
-                  }}
-                  className="flex items-center justify-center flex-1 px-3 py-2 text-sm bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg transition-all border border-amber-500/30"
-                >
-                  <FaUnlink className="mr-1.5" />
-                  Unlink
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleLink}
-                  className="flex items-center justify-center flex-1 px-3 py-2 text-sm bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg transition-all border border-green-500/30"
-                >
-                  <FaLink className="mr-1.5" />
-                  Link
-                </button>
-              )}
-
               <button
                 type="button"
                 onClick={handleDeleteClick}
-                className="flex items-center justify-center flex-1 px-3 py-2 text-sm bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-all border border-red-500/30"
+                disabled={domain.isDisabled}
+                className={`flex items-center justify-center flex-1 px-3 py-2 text-sm rounded-lg transition-all border ${
+                  domain.isDisabled
+                    ? 'bg-gray-300/10 text-gray-500 border-gray-500/20 cursor-not-allowed'
+                    : 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30'
+                }`}
               >
                 <FaTrash className="mr-1.5" />
                 Delete

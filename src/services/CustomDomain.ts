@@ -14,6 +14,7 @@ export interface CustomDomain {
     url: string;
   };
   created_at: string;
+  isDisabled?: boolean;
 }
 
 export interface DNSInstructions {
