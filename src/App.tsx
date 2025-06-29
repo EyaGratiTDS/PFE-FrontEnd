@@ -11,6 +11,7 @@ import TermsAndConditions from './termsAndPolicy/TermsAndConditions';
 import PrivatePolicy from './termsAndPolicy/PrivatePolicy';
 import Dashboard from './pages/Dashboard';
 import Layout from './Layout';
+import LayoutSuperAdmin from './LayoutSuperAdmin';
 import VCardPage from './pages/Vcards/VCardPage';
 import CreateVCard from './pages/Vcards/CreateVcard';
 import EditVCard from './pages/Vcards/EditVcard';
@@ -34,6 +35,7 @@ import PixelPage from './pages/Pixels/PixelPage';
 import PixelForm from './pages/Pixels/PixelForm';
 import CustomDomainsPage from './pages/CustomDomain/CustomDomainsPage';
 import CustomDomainForm from './pages/CustomDomain/CustomDomainForm';
+import DashboardAdmin from './pagesSuperAdmin/DashboardAdmin';
 
 function App() {
   const { isLoading } = useAuth();
@@ -91,6 +93,14 @@ function App() {
               <Route path="edit/:id" element={<CustomDomainForm />} />
             </Route>
             <Route path="plan/add-plan" element={<AddPlanForm />} />
+          </Route>
+          <Route path="/super-admin" element={<LayoutSuperAdmin />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard">
+              <Route index element={<DashboardAdmin />} />
+              <Route path="profile" element={<UserProfilePage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+            </Route>
           </Route>
         </Route>
         <Route path="/vcard/:url" element={<VCardViewPage />} />

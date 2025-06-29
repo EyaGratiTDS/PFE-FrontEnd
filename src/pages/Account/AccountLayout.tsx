@@ -17,7 +17,9 @@ const AccountLayout = () => {
     id: '',
     name: '',
     email: '',
-    avatar: ''
+    avatar: '',
+    created_at:'',
+    updated_at:''
   });
   const [loading, setLoading] = useState(true);
   const [avatar, setAvatar] = useState<File | null>(null);

@@ -21,12 +21,12 @@ const SignIn: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-      const token = searchParams.get("token");
-      const user = searchParams.get("user");
-      if (token && user) {
-        handleGoogleCallback();
-      }
-    }, [searchParams]);
+    const token = searchParams.get("token");
+    const user = searchParams.get("user");
+    if (token && user) {
+      handleGoogleCallback();
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const rememberedEmail = localStorage.getItem("rememberedEmail");
@@ -38,6 +38,12 @@ const SignIn: React.FC = () => {
       setRememberMe(true);
     }
   }, []);
+
+  const getRedirectPath = (role: string | undefined) => {
+    if (role === 'superAdmin') return '/super-admin/dashboard';
+    if (role === 'admin') return '/admin/dashboard';
+    return '/';
+  };
 
   const renderToastMessage = (message: string, type: "success" | "error") => {
     toast(message, { type });
@@ -103,15 +109,16 @@ const SignIn: React.FC = () => {
         console.error("Error fetching subscription or plan:", error);
       }
 
-
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
         localStorage.setItem("rememberedPassword", password);
       }
 
       renderToastMessage("Login successful!", "success");
+      
+      const redirectPath = getRedirectPath(user.role);
       setTimeout(() => {
-        navigate("/admin/dashboard");
+        navigate(redirectPath);
       }, 2000);
     } catch (err: any) {
       let errorMessage = "Failed to log in. Please try again.";
@@ -166,12 +173,16 @@ const SignIn: React.FC = () => {
           console.error("Error fetching subscription or plan:", error);
         }
         await handleGoogleAuth(token, user);
-        navigate("/admin/dashboard");
-
-
+        
+        renderToastMessage("Login successful!", "success");
+        const redirectPath = getRedirectPath(user.role);
+        setTimeout(() => {
+          navigate(redirectPath);
+        }, 2000);
       }
     } catch (error) {
-      console.error("Erreur lors du traitement Google callback:");
+      console.error("Erreur lors du traitement Google callback:", error);
+      renderToastMessage("Failed to log in with Google. Please try again.", "error");
     }
   };
 
@@ -231,8 +242,11 @@ const SignIn: React.FC = () => {
       }
 
       renderToastMessage("Login successful!", "success");
+      
+      // Correction : Passer le rôle même s'il est undefined
+      const redirectPath = getRedirectPath(user.role);
       setTimeout(() => {
-        navigate("/admin/dashboard");
+        navigate(redirectPath);
       }, 2000);
     } catch (err: any) {
       let errorMessage = "Failed to verify 2FA code. Please try again.";
@@ -443,4 +457,4 @@ const SignIn: React.FC = () => {
   );
 };
 
-export default SignIn;
+export default SignIn; 
