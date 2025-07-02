@@ -11,7 +11,6 @@ import TermsAndConditions from './termsAndPolicy/TermsAndConditions';
 import PrivatePolicy from './termsAndPolicy/PrivatePolicy';
 import Dashboard from './pages/Dashboard';
 import Layout from './Layout';
-import LayoutSuperAdmin from './LayoutSuperAdmin';
 import VCardPage from './pages/Vcards/VCardPage';
 import CreateVCard from './pages/Vcards/CreateVcard';
 import EditVCard from './pages/Vcards/EditVcard';
@@ -38,7 +37,7 @@ import CustomDomainForm from './pages/CustomDomain/CustomDomainForm';
 import DashboardAdmin from './pagesSuperAdmin/DashboardAdmin';
 
 function App() {
-  const { isLoading } = useAuth();
+  const { isLoading, user } = useAuth(); 
 
   if (isLoading) {
     return <Spinner />;
@@ -57,52 +56,70 @@ function App() {
         <Route path="/privacy-policy" element={<PrivatePolicy />} />
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<Layout />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard">
-              <Route index element={<Dashboard />} />
-              <Route path="profile" element={<UserProfilePage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="/dashboard" element={
+            user?.role === 'superAdmin' 
+              ? <Navigate to="/super-admin/dashboard" replace /> 
+              : <Navigate to="/admin/dashboard" replace />
+          } />
+          
+          {user?.role === 'admin' && (
+            <Route path="/admin" element={<Layout role="admin" />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard">
+                <Route index element={<Dashboard />} />
+                <Route path="profile" element={<UserProfilePage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+              </Route>
+              <Route path="vcard" element={<VCardPage />} />
+              <Route path="vcard/create-vcard" element={<CreateVCard />} />
+              <Route path="vcard/edit-vcard/:id" element={<EditVCard />} />
+              <Route path="vcard/edit-vcard/:id/blocks" element={<BlocksPage />} />
+              <Route path="vcard/edit-vcard/:id/blocks/add-blocks" element={<AddBlocksPage />} />
+              
+              <Route path="account" element={<AccountLayout />}>
+                <Route path="settings" element={<Settings />} />
+                <Route path="activityLogs" element={<ActivityLogs />} />
+                <Route path="plan" element={<AccountPlans />} />
+                <Route path="api" element={<ApiKeyManager />} />
+              </Route>
+              
+              <Route path="project">
+                <Route index element={<ProjectPage />} />
+                <Route path="create" element={<ProjectForm />} />
+                <Route path="edit/:id" element={<ProjectForm />} />
+                <Route path=":id/vcards" element={<ProjectVCardsPage />} />
+              </Route>
+              <Route path="pixel">
+                <Route index element={<PixelPage />} />
+                <Route path="create" element={<PixelForm />} />
+                <Route path="edit/:id" element={<PixelForm />} />
+              </Route>
+              <Route path="custom-domains">
+                <Route index element={<CustomDomainsPage />} />
+                <Route path="create" element={<CustomDomainForm />} />
+                <Route path="edit/:id" element={<CustomDomainForm />} />
+              </Route>
+              <Route path="plan/add-plan" element={<AddPlanForm />} />
             </Route>
-            <Route path="vcard" element={<VCardPage />} />
-            <Route path="vcard/create-vcard" element={<CreateVCard />} />
-            <Route path="vcard/edit-vcard/:id" element={<EditVCard />} />
-            <Route path="vcard/edit-vcard/:id/blocks" element={<BlocksPage />} />
-            <Route path="vcard/edit-vcard/:id/blocks/add-blocks" element={<AddBlocksPage />} />
-            <Route path="account" element={<AccountLayout />}>
-              <Route path="settings" element={<Settings />} />
-              <Route path="activityLogs" element={<ActivityLogs />} />
-              <Route path="plan" element={<AccountPlans />} />
-              <Route path="api" element={<ApiKeyManager />} />
+          )}
+
+          {user?.role === 'superAdmin' && (
+            <Route path="/super-admin" element={<Layout role="superAdmin" />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard">
+                <Route index element={<DashboardAdmin />} />
+                <Route path="profile" element={<UserProfilePage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+              </Route>
+              
+              <Route path="account" element={<AccountLayout />}>
+                <Route path="settings" element={<Settings />} />
+                <Route path="activityLogs" element={<ActivityLogs />} />
+              </Route>
             </Route>
-            <Route path="project">
-              <Route index element={<ProjectPage />} />
-              <Route path="create" element={<ProjectForm />} />
-              <Route path="edit/:id" element={<ProjectForm />} />
-              <Route path=":id/vcards" element={<ProjectVCardsPage />} />
-            </Route>
-            <Route path="pixel">
-              <Route index element={<PixelPage />} />
-              <Route path="create" element={<PixelForm />} />
-              <Route path="edit/:id" element={<PixelForm />} />
-              <Route path=":id/vcards" element={<ProjectVCardsPage />} />
-            </Route>
-            <Route path="custom-domains">
-              <Route index element={<CustomDomainsPage />} />
-              <Route path="create" element={<CustomDomainForm />} />
-              <Route path="edit/:id" element={<CustomDomainForm />} />
-            </Route>
-            <Route path="plan/add-plan" element={<AddPlanForm />} />
-          </Route>
-          <Route path="/super-admin" element={<LayoutSuperAdmin />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard">
-              <Route index element={<DashboardAdmin />} />
-              <Route path="profile" element={<UserProfilePage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-            </Route>
-          </Route>
+          )}
         </Route>
+        
         <Route path="/vcard/:url" element={<VCardViewPage />} />
         <Route path="*" element={<div>Page not found</div>} />
       </Routes>

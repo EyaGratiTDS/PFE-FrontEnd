@@ -10,6 +10,7 @@ interface SidebarProps {
 const SidebarSuperAdmin: React.FC<SidebarProps> = ({ isSideMenuOpen, setIsSideMenuOpen }) => {
   const location = useLocation();
   const sidebarRef = useRef<HTMLDivElement>(null);
+  console.log("icii");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,20 +32,20 @@ const SidebarSuperAdmin: React.FC<SidebarProps> = ({ isSideMenuOpen, setIsSideMe
   }, [isSideMenuOpen, setIsSideMenuOpen]);
 
   const isActive = (path: string, exact = false) => {
-    if (path === '/admin/dashboard') {
-      return location.pathname.startsWith('/admin/dashboard');
+    if (path === '/super-admin/dashboard') {
+      return location.pathname.startsWith('/super-admin/dashboard');
     }
-    if (path === '/admin/account') {
-      return location.pathname.startsWith('/admin/account');
+    if (path === '/super-admin/account') {
+      return location.pathname.startsWith('/super-admin/account');
     }
-    if (path === '/admin/project') {
-      return location.pathname.startsWith('/admin/project');
+    if (path === '/super-admin/project') {
+      return location.pathname.startsWith('/super-admin/project');
     }
-    if (path === '/admin/pixel') {
-      return location.pathname.startsWith('/admin/pixel');
+    if (path === '/super-admin/pixel') {
+      return location.pathname.startsWith('/super-admin/pixel');
     }
-    if (path === '/admin/custom-domains') {
-      return location.pathname.startsWith('/admin/custom-domains');
+    if (path === '/super-admin/custom-domains') {
+      return location.pathname.startsWith('/super-admin/custom-domains');
     }
     return exact 
       ? location.pathname === path 

@@ -1,28 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { TabNavigation, Tab } from './TabNavigation';
+import TabNavigation, { getTabs } from './TabNavigation';
 import MobileTabMenu from './MobileTabMenu';
+import { authService } from '../../services/api';
+import { User } from '../../services/user';
 import AccountProfile from './AccountProfile';
-import { authService } from './../../services/api';
-import { User } from './../../services/user';
 
 const AccountLayout = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('account');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [avatar, setAvatar] = useState<File | null>(null);
   const [userData, setUserData] = useState<User>({
     id: '',
     name: '',
     email: '',
     avatar: '',
-    created_at:'',
-    updated_at:''
+    created_at: '',
+    updated_at: '',
+    role: 'user' 
   });
   const [loading, setLoading] = useState(true);
-  const [avatar, setAvatar] = useState<File | null>(null);
+
+  const basePath = userData.role === 'superAdmin' ? '/super-admin' : '/admin';
+
+  const filteredTabs = useMemo(() => {
+    if (!userData.role) return [];
+    
+    const tabs = getTabs(basePath);
+    
+    if (userData.role === 'superAdmin') {
+      return tabs
+        .filter(tab => ['account', 'settings', 'logs'].includes(tab.id))
+        .map(tab => {
+          if (tab.id === 'settings') {
+            return { ...tab, label: 'Security' };
+          }
+          return tab;
+        });
+    }
+    return tabs;
+  }, [userData.role, basePath]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -74,8 +95,24 @@ const AccountLayout = () => {
     }
   };
 
+  /*useEffect(() => {
+    if (loading || filteredTabs.length === 0) return;
+
+    const pathSegments = location.pathname.split('/');
+    const accountSegmentIndex = pathSegments.indexOf('account') + 1;
+    const currentTabId = pathSegments[accountSegmentIndex] || 'account';
+
+    const currentTab = filteredTabs.find(tab => tab.id === currentTabId);
+    
+    if (currentTab) {
+      setActiveTab(currentTab.id);
+    } else {
+      navigate(`${basePath}/account`, { replace: true });
+    }
+  }, [location.pathname, loading, filteredTabs, navigate, basePath]);*/
+
   useEffect(() => {
-    const currentTab = Tab.find(tab => location.pathname === tab.path);
+    const currentTab = filteredTabs.find(tab => location.pathname === tab.path);
     if (currentTab) {
       setActiveTab(currentTab.id);
     }
@@ -105,11 +142,11 @@ const AccountLayout = () => {
       />
 
       <div className="hidden lg:block mb-8">
-        <TabNavigation tabs={Tab} activeTab={activeTab} />
+        <TabNavigation tabs={filteredTabs} activeTab={activeTab} />
       </div>
 
       <MobileTabMenu
-        tabs={Tab}
+        tabs={filteredTabs}
         activeTab={activeTab}
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}

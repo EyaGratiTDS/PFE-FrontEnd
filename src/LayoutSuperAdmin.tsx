@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import NavBar from './templateBack/NavBar';
 import SidebarSuperAdmin from './templateBack/SideBarSuperAdmin';
 
-const Layout: React.FC = () => {
+const LayoutSuperAdmin: React.FC = () => {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
 
   return (
@@ -26,4 +26,4 @@ const Layout: React.FC = () => {
   );
 };
 
-export default Layout;
+export default LayoutSuperAdmin;

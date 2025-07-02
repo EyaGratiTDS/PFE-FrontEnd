@@ -3,12 +3,21 @@ import { Outlet } from 'react-router-dom';
 import NavBar from './templateBack/NavBar';
 import Sidebar from './templateBack/SideBar';
 
-const Layout: React.FC = () => {
+interface LayoutProps {
+  role?: 'admin' | 'superAdmin';
+}
+
+const Layout: React.FC<LayoutProps> = ({ role }) => {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar isSideMenuOpen={isSideMenuOpen} setIsSideMenuOpen={setIsSideMenuOpen} />
+      <Sidebar 
+        key={role}
+        role={role}
+        isSideMenuOpen={isSideMenuOpen} 
+        setIsSideMenuOpen={setIsSideMenuOpen} 
+      />
       
       <div className="flex flex-col flex-1">
         <NavBar 
