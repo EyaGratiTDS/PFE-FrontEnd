@@ -15,6 +15,8 @@ const ApiKeyManager = () => {
       const response = await ApiKeyService.listApiKeys();
       const keys = response?.data?.data || response?.data || [];
       setApiKeys(Array.isArray(keys) ? keys as ApiKey[] : []);
+      console.log(response);
+      console.log(keys);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
       toast.error('Failed to fetch API keys');

@@ -220,8 +220,6 @@ const ViewVCard: React.FC = () => {
             const activePixel = pixels.find((p: Pixel) => p.is_active) || null;
             setVcardPixel(activePixel);
 
-            console.log('Active pixel found:', activePixel);
-
             if (activePixel && activePixel.metaPixelId) {
               try {
                 const { initMetaPixel } = await import('../../utils/metaPixel');
@@ -398,11 +396,6 @@ const ViewVCard: React.FC = () => {
             elementId: event.elementId,
           }
         };
-
-        console.log('Sending tracking event to backend:', {
-          pixelId: vcardPixel.id,
-          eventData
-        });
 
         await pixelService.trackEvent(vcardPixel.id, eventData);
       }

@@ -47,17 +47,18 @@ const PixelForm: React.FC = () => {
 
         if (isEditMode && id) {
             const pixel = await pixelService.getPixelById(id);
+            const domain = pixel.data;
 
-            if (!pixel) {
+            if (!domain) {
             toast.error("Pixel not found");
             navigate("/admin/pixel");
             return;
             }
 
             setFormData({
-            name: pixel.name,
-            vcardId: pixel.vcard?.id?.toString() || '', 
-            is_active: pixel.is_active
+            name: domain.name,
+            vcardId: domain.vcard?.id?.toString() || '', 
+            is_active: domain.is_active
             });
         }
         } catch (error) {
@@ -242,7 +243,7 @@ const PixelForm: React.FC = () => {
                     autoComplete="off"
                     required
                   >
-                    <option value="">Select a vCard</option>
+                    <option value="" className="dark:bg-gray-800 dark:text-gray-300">Select a vCard</option>
                     {vcards.map(vcard => (
                       <option
                         key={vcard.id}

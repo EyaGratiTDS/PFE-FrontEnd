@@ -47,7 +47,7 @@ const CustomDomainForm: React.FC = () => {
           const response = await customDomainService.getDomainById(parseInt(id));
           
           const domain = response.data;
-          
+
           if (!domain) {
             toast.error("Domain not found");
             navigate("/admin/custom-domains");

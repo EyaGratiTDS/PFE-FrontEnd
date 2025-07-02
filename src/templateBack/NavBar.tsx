@@ -35,12 +35,6 @@ const NavBar: React.FC<NavBarProps> = ({ toggleSideMenu, isSideMenuOpen }) => {
     lastUpdateTime,
   } = useNotifications(currentUser);
 
-  useEffect(() => {
-    console.log('Notifications mises à jour :', notifications);
-    console.log('Nombre de non-lues :', unreadCount);
-    console.log('Dernière mise à jour :', lastUpdateTime);
-  }, [notifications, unreadCount, lastUpdateTime]);
-
    useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {

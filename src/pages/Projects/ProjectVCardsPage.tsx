@@ -260,8 +260,7 @@ const ProjectVCardsPage: React.FC = () => {
   const handleDeleteSuccess = () => setRefreshTrigger(prev => prev + 1);
 
   const breadcrumbLinks = [
-    { name: "Projects", path: "/projects" },
-    { name: project?.name || "Project", path: `/projects/${projectId}` },
+    { name: "Projects", path: "/admin/project" },
     { name: "VCards", path: "" }
   ];
 

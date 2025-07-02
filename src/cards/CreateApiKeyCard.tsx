@@ -40,6 +40,7 @@ const CreateApiKeyCard: React.FC<CreateApiKeyCardProps> = ({ onCreateSuccess }) 
   useEffect(() => {
   const fetchLimits = async () => {
     const limits = await limitService.checkApiKeyLimits();
+    console.log(limits);
     setCurrentApiKeys(limits.current);
     setMaxApiKeys(limits.max);
   };

@@ -76,7 +76,8 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
 
   const handleViewVCard = () => {
     if (vcard.url) {
-      navigate(`/vcard/${vcard.url}`);
+      // Ouvrir dans un nouvel onglet
+      window.open(`/vcard/${vcard.url}`, '_blank');
     }
   };
 
@@ -251,7 +252,7 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
                   <FaEllipsisV size={14} />
                 </button>
                 
-{showDropdown && (
+                {showDropdown && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}

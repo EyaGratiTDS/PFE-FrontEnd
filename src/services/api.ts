@@ -5,7 +5,7 @@ import { Plan } from './Plan';
 import { Subscription } from './Subscription';
 import { ActivityLog, ActivityLogType } from './ActivityLog';
 import { ApiKey } from './ApiKey';
-import { PixelEventParams } from './Pixel';
+import { Pixel, PixelEventParams } from './Pixel';
 import { CustomDomain, DNSInstructions } from './CustomDomain';
 import { VCard } from './vcard';
 
@@ -619,7 +619,7 @@ export const pixelService = {
     }
   },
 
-  getPixelById: async (id: string) => {
+  getPixelById: async (id: string): Promise<ApiResponse<Pixel>> => {
     try {
       const response = await api.get(`/pixel/${id}`);
       return response.data;
