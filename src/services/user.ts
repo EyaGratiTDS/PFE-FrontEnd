@@ -6,6 +6,7 @@ export interface User {
     password?: string;
     role?: 'user' | 'admin' | 'superAdmin';
     isVerified?: boolean;
+    isActive?: boolean;
     created_at: string;
     updated_at: string;
   }

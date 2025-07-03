@@ -76,7 +76,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
 
   const handleViewVCard = () => {
     if (vcard.url) {
-      // Ouvrir dans un nouvel onglet
       window.open(`/vcard/${vcard.url}`, '_blank');
     }
   };

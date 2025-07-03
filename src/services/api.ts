@@ -146,6 +146,24 @@ export const authService = {
 
   deleteAccount: (data: { password: string }): Promise<ApiResponse<DeleteAccountResponse>> =>
     api.delete('/users/me', { data }).then(res => res.data),
+
+  getAllUsers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ApiResponse<{
+    data: User[];
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+    };
+  }>> =>
+    api.get('/users/superadmin/users', { params }).then(res => res.data),
+
+  toggleUserStatus: (id: number, isActive: boolean): Promise<ApiResponse<{ message: string }>> =>
+    api.put(`/users/superadmin/users/${id}/status`, { isActive }).then(res => res.data),
 };
 
 export const vcardService = {

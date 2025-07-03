@@ -6,8 +6,6 @@ import {
   FaAngleLeft,
   FaAngleRight,
   FaTimes,
-  FaFileCsv,
-  FaFileCode
 } from 'react-icons/fa';
 import { FiChevronRight, FiSearch } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,8 +17,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Breadcrumb } from 'react-bootstrap';
 import { VCard } from "../../services/vcard";
 import FilterCard from '../../cards/FilterCard';
+import ExportMenu from '../../cards/ExportMenu'; 
 
-// Interface pour les données brutes de VCard reçues de l'API
 interface RawVCard {
   id?: string | number;
   name?: string;
@@ -524,28 +522,11 @@ const VCardPage: React.FC = () => {
               </button>
 
               {showExportMenu && (
-                <div
-                  ref={exportMenuRef}
-                  className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10"
-                >
-                  <div className="py-1">
-                    <button
-                      className="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                      onClick={() => handleExport('csv')}
-                      disabled={exporting}
-                    >
-                      <FaFileCsv className="text-green-500" />
-                      <span>Export as CSV</span>
-                    </button>
-                    <button
-                      className="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                      onClick={() => handleExport('json')}
-                      disabled={exporting}
-                    >
-                      <FaFileCode className="text-blue-500" />
-                      <span>Export as JSON</span>
-                    </button>
-                  </div>
+                <div ref={exportMenuRef}>
+                  <ExportMenu 
+                    onExport={handleExport} 
+                    exporting={exporting} 
+                  />
                 </div>
               )}
             </div>

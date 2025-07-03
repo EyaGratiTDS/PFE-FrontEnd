@@ -35,6 +35,7 @@ import PixelForm from './pages/Pixels/PixelForm';
 import CustomDomainsPage from './pages/CustomDomain/CustomDomainsPage';
 import CustomDomainForm from './pages/CustomDomain/CustomDomainForm';
 import DashboardAdmin from './pagesSuperAdmin/DashboardAdmin';
+import ListUsers from './pagesSuperAdmin/Users/ListUsers';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -115,6 +116,9 @@ function App() {
               <Route path="account" element={<AccountLayout />}>
                 <Route path="settings" element={<Settings />} />
                 <Route path="activityLogs" element={<ActivityLogs />} />
+              </Route>
+              <Route path="users">
+                <Route index element={<ListUsers />} />
               </Route>
             </Route>
           )}
