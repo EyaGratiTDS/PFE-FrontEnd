@@ -22,7 +22,6 @@ import { useAuth } from './context/AuthContext';
 import AccountLayout from './pages/Account/AccountLayout';
 import Settings from './pages/Account/Settings';
 import ActivityLogs from './pages/Account/ActivityLogs';
-import AddPlanForm from './pages/Account/AddPlanForm';
 import ApiKeyManager from './pages/Account/ApiKeyManager';
 import AccountPlans from './pages/Account/AccountPlan';
 import NotificationsPage from './pages/Notification/NotificationPage';
@@ -36,6 +35,7 @@ import CustomDomainsPage from './pages/CustomDomain/CustomDomainsPage';
 import CustomDomainForm from './pages/CustomDomain/CustomDomainForm';
 import DashboardAdmin from './pagesSuperAdmin/DashboardAdmin';
 import ListUsers from './pagesSuperAdmin/Users/ListUsers';
+import ListPlans from './pagesSuperAdmin/Plans/ListPlans';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -100,7 +100,6 @@ function App() {
                 <Route path="create" element={<CustomDomainForm />} />
                 <Route path="edit/:id" element={<CustomDomainForm />} />
               </Route>
-              <Route path="plan/add-plan" element={<AddPlanForm />} />
             </Route>
           )}
 
@@ -119,6 +118,9 @@ function App() {
               </Route>
               <Route path="users">
                 <Route index element={<ListUsers />} />
+              </Route>
+              <Route path="plan">
+                <Route index element={<ListPlans />} />
               </Route>
             </Route>
           )}

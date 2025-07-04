@@ -45,7 +45,6 @@ const renderStatusBadge = (isActive?: boolean) => {
   );
 };
 
-
 const UserRow: React.FC<{ user: User; onToggleStatus: (userId: string, isActive: boolean) => void }> = ({ 
   user, 
   onToggleStatus 
@@ -112,62 +111,64 @@ const UserRow: React.FC<{ user: User; onToggleStatus: (userId: string, isActive:
   </tr>
 );
 
-const UserTable: React.FC<UserTableProps> = ({ 
-  filteredUsers, 
+const UserTable: React.FC<UserTableProps> = ({
+  filteredUsers,
   hasActiveFilters,
   onToggleStatus
-}) => (
-  <div className="overflow-x-auto rounded-lg shadow">
-    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-      <thead className="bg-gray-50 dark:bg-gray-800">
-        <tr>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            User
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Role
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Status
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Verified
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Created
-          </th>
-          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-        {filteredUsers && filteredUsers.length > 0 ? (
-          filteredUsers.map((user) => (
-            <UserRow 
-              key={user.id} 
-              user={user} 
-              onToggleStatus={onToggleStatus} 
-            />
-          ))
-        ) : (
+}) => {
+  return (
+    <div className="overflow-x-auto rounded-lg shadow">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
-            <td colSpan={6} className="px-6 py-12 text-center">
-              <EmptyState
-                title={hasActiveFilters ? "No users match your filters" : "No users found"}
-                description={hasActiveFilters 
-                  ? "Try adjusting your search or filters" 
-                  : "Create your first user to get started"}
-                actionText="Add User"
-                actionLink="#"
-                icon={<span className="text-4xl mx-auto text-gray-400 mb-4">👤</span>}
-              />
-            </td>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              User
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Role
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Status
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Verified
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Created
+            </th>
+            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-);
+        </thead>
+        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          {filteredUsers && filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+              <UserRow
+                key={user.id}
+                user={user}
+                onToggleStatus={onToggleStatus}
+              />
+            ))
+          ) : (
+            <tr>
+              <td colSpan={6} className="px-6 py-12 text-center">
+                <EmptyState
+                  title={hasActiveFilters ? "No users match your filters" : "No users found"}
+                  description={hasActiveFilters
+                    ? "Try adjusting your search or filters"
+                    : "Create your first user to get started"}
+                  actionText="Add User"
+                  actionLink="#"
+                  icon={<span className="text-4xl mx-auto text-gray-400 mb-4">👤</span>}
+                />
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default UserTable;

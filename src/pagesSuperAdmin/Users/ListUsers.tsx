@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FaSearch, FaFilter, FaPlus, FaFileExport } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,6 +11,8 @@ import ExportMenu from '../../cards/ExportMenu';
 import UserTable from '../../atoms/Tables/UsersTable';
 import Pagination from '../../atoms/Pagination/Pagination';
 import ActiveFilters from '../../cards/ActiveFilters';
+import UserCharts from '../../atoms/Charts/UserCharts';
+import AddUserModal from '../../modals/AddUserModal';
 
 export interface ActiveFilters {
   status: string;
@@ -20,12 +22,12 @@ export interface ActiveFilters {
 }
 
 const ListUsers: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]); 
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
@@ -42,34 +44,32 @@ const ListUsers: React.FC = () => {
     superAdmins: 0
   });
   
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (users.length > 0) {
-      const total = users.length;
-      const active = users.filter(user => user.isActive).length;
-      const verified = users.filter(user => user.isVerified).length;
-      const admins = users.filter(user => user.role === 'admin').length;
-      const superAdmins = users.filter(user => user.role === 'superAdmin').length;
+    if (allUsers.length > 0) {
+      const total = allUsers.length;
+      const active = allUsers.filter(user => user.isActive).length;
+      const verified = allUsers.filter(user => user.isVerified).length;
+      const admins = allUsers.filter(user => user.role === 'admin').length;
+      const superAdmins = allUsers.filter(user => user.role === 'superAdmin').length;
       
       setStats({ total, active, verified, admins, superAdmins });
     } else {
       setStats({ total: 0, active: 0, verified: 0, admins: 0, superAdmins: 0 });
     }
-  }, [users]);
+  }, [allUsers]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Fermer le menu d'export si ouvert et clic en dehors
       if (showExportMenu && exportMenuRef.current && 
           !exportMenuRef.current.contains(event.target as Node)) {
         setShowExportMenu(false);
       }
 
-      // Fermer le menu de filtre si ouvert et clic en dehors
       if (showFilterMenu && 
           filterMenuRef.current && 
           !filterMenuRef.current.contains(event.target as Node) &&
@@ -87,74 +87,100 @@ const ListUsers: React.FC = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await authService.getAllUsers({
-          page: currentPage,
-          limit: itemsPerPage
-        });
+        const response = await authService.getAllUsers();
         
         if (response.data) {
           const userData = response.data;
           if (Array.isArray(userData)) {
-            setUsers(userData);
-            setFilteredUsers(userData);
+            setAllUsers(userData);
           } else {
-            setUsers([]);
-            setFilteredUsers([]);
+            setAllUsers([]);
             console.error('Invalid user data format:', userData);
             toast.error('Received invalid user data format');
           }
         } else {
-          setUsers([]);
-          setFilteredUsers([]);
+          setAllUsers([]);
           toast.error('No user data received from server');
         }
       } catch (error) {
         console.error('Failed to fetch users', error);
         toast.error('Failed to load users. Please try again.');
-        setUsers([]);
-        setFilteredUsers([]);
+        setAllUsers([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchUsers();
-  }, [currentPage]);
+  }, []);
 
-  useEffect(() => {
-    let filtered = [...(users || [])];
+  const filteredUsers = useMemo(() => {
+    if (!allUsers || allUsers.length === 0) return [];
+
+    let result = [...allUsers];
     
     if (activeFilters.search) {
-      filtered = filtered.filter(user => 
+      result = result.filter(user => 
         (user.name?.toLowerCase().includes(activeFilters.search.toLowerCase())) ||
         (user.email?.toLowerCase().includes(activeFilters.search.toLowerCase()))
       );
     }
     
     if (activeFilters.status !== 'all') {
-      filtered = filtered.filter(user => 
+      result = result.filter(user => 
         activeFilters.status === 'active' ? user.isActive : !user.isActive
       );
     }
     
     if (activeFilters.role !== 'all') {
-      filtered = filtered.filter(user => user.role === activeFilters.role);
+      result = result.filter(user => user.role === activeFilters.role);
     }
     
     if (activeFilters.verified !== 'all') {
-      filtered = filtered.filter(user => 
+      result = result.filter(user => 
         activeFilters.verified === 'verified' ? user.isVerified : !user.isVerified
       );
     }
     
-    setFilteredUsers(filtered);
-  }, [activeFilters, users]);
+    // Trier d'abord par superAdmin, puis admin, puis user
+    result.sort((a, b) => {
+      const roleOrder: Record<string, number> = {
+        'superAdmin': 0, // SuperAdmin en premier
+        'admin': 1,      // Admin ensuite
+        'user': 2        // User en dernier
+      };
+
+      const aRole = a.role || 'user';
+      const bRole = b.role || 'user';
+
+      const roleComparison = (roleOrder[aRole] || 2) - (roleOrder[bRole] || 2);
+
+      if (roleComparison === 0) {
+        const aName = a.name || '';
+        const bName = b.name || '';
+        return aName.localeCompare(bName);
+      }
+
+      return roleComparison;
+    });
+    
+    return result;
+  }, [activeFilters, allUsers]);
+
+  const currentPageUsers = useMemo(() => {
+    if (!filteredUsers || filteredUsers.length === 0) return [];
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
   const handleFilterChange = (filterType: keyof ActiveFilters, value: string) => {
     setActiveFilters(prev => ({
       ...prev,
       [filterType]: value
     }));
+    setCurrentPage(1);
   };
 
   const resetFilters = () => {
@@ -164,6 +190,7 @@ const ListUsers: React.FC = () => {
       verified: 'all',
       search: ''
     });
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = () => {
@@ -180,20 +207,25 @@ const ListUsers: React.FC = () => {
 
   const toggleUserStatus = async (userId: string, isActive: boolean) => {
     try {
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
+      setAllUsers(prevUsers =>
+        prevUsers.map(user =>
           user.id === userId ? { ...user, isActive } : user
         )
       );
-      
-      await authService.toggleUserStatus(Number(userId), isActive);
+
+      const numericUserId = parseInt(userId, 10);
+      if (isNaN(numericUserId)) {
+        throw new Error('Invalid user ID');
+      }
+
+      await authService.toggleUserStatus(numericUserId, isActive);
       toast.success(`User ${isActive ? 'activated' : 'deactivated'} successfully`);
     } catch (error) {
       console.error('Failed to toggle user status', error);
       toast.error('Failed to update user status');
-      
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
+
+      setAllUsers(prevUsers =>
+        prevUsers.map(user =>
           user.id === userId ? { ...user, isActive: !isActive } : user
         )
       );
@@ -275,6 +307,34 @@ const ListUsers: React.FC = () => {
     document.body.removeChild(link);
     
     toast.success('JSON export completed successfully');
+  };
+
+  const handleCreateUser = async (newUser: {
+    name: string;
+    email: string;
+    role: string;
+    password: string;
+  }) => {
+    try {
+      const createdUser = await authService.createUser(newUser);
+      
+      setAllUsers(prev => [createdUser, ...prev]);
+      
+      toast.success('User created successfully!');
+      setShowAddUserModal(false);
+      
+      setStats(prev => ({
+        ...prev,
+        total: prev.total + 1,
+        active: prev.active + 1,
+        ...(createdUser.role === 'admin' && { admins: prev.admins + 1 }),
+        ...(createdUser.role === 'superAdmin' && { superAdmins: prev.superAdmins + 1 }),
+        ...(createdUser.isVerified && { verified: prev.verified + 1 })
+      }));
+    } catch (error: any) {
+      console.error('Failed to create user:', error);
+      toast.error(error.response?.data?.message || 'Failed to create user');
+    }
   };
 
   if (loading) {
@@ -366,6 +426,7 @@ const ListUsers: React.FC = () => {
             </div>
 
             <button
+              onClick={() => setShowAddUserModal(true)}
               className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base relative"
             >
               <FaPlus className="absolute left-1/2 transform -translate-x-1/2 sm:static sm:transform-none sm:mr-2 w-10" />
@@ -384,11 +445,13 @@ const ListUsers: React.FC = () => {
         />
       )}
 
-      <UserTable 
-        filteredUsers={filteredUsers} 
-        hasActiveFilters={hasActiveFilters()} 
+      <UserTable
+        filteredUsers={currentPageUsers}
+        hasActiveFilters={hasActiveFilters()}
         onToggleStatus={toggleUserStatus}
       />
+
+      <UserCharts users={allUsers} />
 
       {filteredUsers && filteredUsers.length > 0 && totalPages > 1 && (
         <Pagination 
@@ -397,6 +460,12 @@ const ListUsers: React.FC = () => {
           onPageChange={paginate}
         />
       )}
+
+      <AddUserModal 
+        isOpen={showAddUserModal}
+        onClose={() => setShowAddUserModal(false)}
+        onCreateUser={handleCreateUser}
+      />
     </div>
   );
 };

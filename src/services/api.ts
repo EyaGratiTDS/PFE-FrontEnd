@@ -10,7 +10,7 @@ import { CustomDomain, DNSInstructions } from './CustomDomain';
 import { VCard } from './vcard';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ export const authService = {
   },
 
   handleGoogleCallback: async (): Promise<ApiResponse<SignInResponse>> => {
-    const response = await fetch(`http://localhost:3000/auth/google/callback`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/google/callback`, {
       credentials: 'include'
     });
 
@@ -164,6 +164,20 @@ export const authService = {
 
   toggleUserStatus: (id: number, isActive: boolean): Promise<ApiResponse<{ message: string }>> =>
     api.put(`/users/superadmin/users/${id}/status`, { isActive }).then(res => res.data),
+
+  createUser: async (userData: {
+    name: string;
+    email: string;
+    role: string;
+    password: string;
+  }) => {
+    try {
+      const response = await api.post('/users/add-user', userData);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to create user');
+    }
+  },
 };
 
 export const vcardService = {
