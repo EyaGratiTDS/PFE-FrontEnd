@@ -1,5 +1,5 @@
-import React from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
+import React, { useEffect, useState } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, ChartOptions } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { User } from '../../services/user';
 
@@ -10,6 +10,28 @@ interface UserChartsProps {
 }
 
 const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
+  const [textColor, setTextColor] = useState('#374151'); // Default to light mode color
+
+  // Fonction pour détecter le changement de mode
+  useEffect(() => {
+    const updateTextColor = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setTextColor(isDarkMode ? '#f3f4f6' : '#374151');
+    };
+
+    // Initial detection
+    updateTextColor();
+
+    // Observer for theme changes
+    const observer = new MutationObserver(updateTextColor);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const roleData = {
     labels: ['Users', 'Admins', 'Super Admins'],
     datasets: [
@@ -63,51 +85,77 @@ const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
     ],
   };
 
-  const commonOptions = {
+  const pieOptions: ChartOptions<'pie'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'top',
         labels: {
-          color: '#333',
+          color: textColor,
           font: {
             size: 12
           }
         }
-      }
-    },
-  };
-
-  // Options spécifiques pour Pie Chart
-  const pieOptions = {
-    ...commonOptions,
-    plugins: {
-      ...commonOptions.plugins,
+      },
       title: {
         display: true,
-        text: 'User Roles',
-        color: '#6B7280',
+        text: 'User Roles Distribution',
+        color: textColor,
         font: {
           size: 16,
-          weight: 'bold' as 'bold' // Correction ici
+          weight: 'bold' as const
         }
+      },
+      tooltip: {
+        titleColor: textColor,
+        bodyColor: textColor,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)'
       }
     }
   };
 
-  // Options spécifiques pour Bar Chart
-  const barOptions = {
-    ...commonOptions,
+  const barOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      ...commonOptions.plugins,
+      legend: {
+        display: false
+      },
       title: {
         display: true,
-        text: 'User Status',
-        color: '#6B7280',
+        text: 'User Status Overview',
+        color: textColor,
         font: {
           size: 16,
-          weight: 'bold' as 'bold' // Correction ici
+          weight: 'bold' as const
+        }
+      },
+      tooltip: {
+        titleColor: textColor,
+        bodyColor: textColor,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: textColor,
+          precision: 0
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        }
+      },
+      x: {
+        ticks: {
+          color: textColor,
+          maxRotation: 45,
+          minRotation: 45
+        },
+        grid: {
+          display: false
         }
       }
     }

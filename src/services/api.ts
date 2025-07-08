@@ -86,6 +86,10 @@ api.interceptors.response.use(
   }
 );
 
+export interface VCardWithUser extends VCard {
+  Users: User;
+}
+
 export const authService = {
   signIn: (credentials: { email: string; password: string; rememberMe: boolean }) =>
     api.post<{ token: string; user: User; requires2FA?: boolean; tempToken?: string }>('/users/sign-in', credentials),
@@ -259,6 +263,16 @@ export const vcardService = {
     }
   },
 
+   getAllWithUsers: async (): Promise<ApiResponse<VCardWithUser[]>> => {
+    try {
+      const response = await api.get('/vcard/admin/vcards-with-users');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting all vcards with users:', error);
+      throw error;
+    }
+  },
+
   checkLimit: async () => {
     try {
       const response = await api.get<{ current: number; max: number }>('/vcard/limits');
@@ -268,6 +282,20 @@ export const vcardService = {
       return { current: 0, max: 1 };
     }
   },
+
+   toggleStatus: async (id: string): Promise<{ 
+    message: string; 
+    vcardId: string; 
+    newStatus: boolean 
+  }> => {
+    try {
+      const response = await api.put(`/vcard/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error toggling status for vcard with id ${id}:`, error);
+      throw error;
+    }
+  }
 };
 
 export const blockService = {
@@ -280,6 +308,9 @@ export const blockService = {
   }) => api.post('/block', data),
 
   getAll: () => api.get('/block'),
+
+  getByVcardIdAdmin: (vcardId: string) =>
+    api.get(`/block/admin?vcardId=${vcardId}`),
 
   getByVcardId: (vcardId: string) =>
     api.get(`/block?vcardId=${vcardId}`),
@@ -298,6 +329,20 @@ export const blockService = {
 
   searchBlocks: (vcardId: string, query: string) =>
     api.get(`/block/search?vcardId=${vcardId}&q=${encodeURIComponent(query)}`),
+
+  toggleStatus: async (id: string): Promise<{ 
+      message: string; 
+      blockId: string; 
+      newStatus: boolean 
+    }> => {
+      try {
+        const response = await api.put(`/block/${id}/toggle-status`);
+        return response.data;
+      } catch (error) {
+        console.error(`Error toggling status for block with id ${id}:`, error);
+        throw error;
+      }
+    }
 
 };
 

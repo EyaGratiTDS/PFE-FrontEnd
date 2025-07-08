@@ -18,7 +18,7 @@ const FilterMenu = forwardRef<HTMLDivElement, FilterMenuProps>(({
   <div 
     ref={ref}
     className="fixed sm:absolute inset-0 sm:inset-auto sm:right-0 sm:mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-none sm:rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700 p-4 overflow-y-auto"
-    onClick={(e) => e.stopPropagation()} // Empêche la propagation du clic
+    onClick={(e) => e.stopPropagation()} 
   >
     <div className="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-gray-800 py-2 z-10">
       <h3 className="text-lg font-medium text-gray-800 dark:text-white">Filters</h3>
@@ -39,7 +39,7 @@ const FilterMenu = forwardRef<HTMLDivElement, FilterMenuProps>(({
           className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           value={activeFilters.status}
           onChange={(e) => onFilterChange('status', e.target.value)}
-          onClick={(e) => e.stopPropagation()} // Empêche la fermeture lors de l'interaction
+          onClick={(e) => e.stopPropagation()} 
         >
           <option value="all">All Statuses</option>
           <option value="active">Active</option>

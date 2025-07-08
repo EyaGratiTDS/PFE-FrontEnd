@@ -36,6 +36,8 @@ import CustomDomainForm from './pages/CustomDomain/CustomDomainForm';
 import DashboardAdmin from './pagesSuperAdmin/DashboardAdmin';
 import ListUsers from './pagesSuperAdmin/Users/ListUsers';
 import ListPlans from './pagesSuperAdmin/Plans/ListPlans';
+import ListVCards from './pagesSuperAdmin/VCards/ListVcards';
+import ListBlocks from './pagesSuperAdmin/VCards/ListBlocks';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -121,6 +123,10 @@ function App() {
               </Route>
               <Route path="plan">
                 <Route index element={<ListPlans />} />
+              </Route>
+              <Route path="vcard">
+                <Route index element={<ListVCards />} />
+                <Route path=":vcardId/blocks" element={<ListBlocks />} />
               </Route>
             </Route>
           )}

@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { FaPlus, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { Plan } from '../services/Plan';
+import { planService } from '../services/api';
 
-interface PlanFormProps {
-  onCreate: (newPlan: Omit<Plan, 'id' | 'created_at' | 'updated_at'>) => void;
+interface PlanFormModalProps {
+  isOpen: boolean;
   onClose: () => void;
+  onCreate?: (newPlan: Plan) => void;
+  onUpdate?: (updatedPlan: Plan) => void;
+  planToEdit?: Plan | null;
 }
 
-interface Plan {
-  id?: number;
-  name: string;
-  description: string;
-  price: number;
-  duration_days: number;
-  features: string[];
-  is_active: boolean;
-  is_default: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-const AddPlanForm: React.FC<PlanFormProps> = ({ onCreate, onClose }) => {
+const PlanFormModal: React.FC<PlanFormModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onCreate, 
+  onUpdate, 
+  planToEdit 
+}) => {
+  const isEditMode = !!planToEdit;
+  
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('0');
@@ -31,42 +31,25 @@ const AddPlanForm: React.FC<PlanFormProps> = ({ onCreate, onClose }) => {
   const [newFeature, setNewFeature] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      toast.error('Plan name is required');
-      return;
-    }
-    
-    if (features.length === 0) {
-      toast.error('Please add at least one feature');
-      return;
-    }
-    
-    const newPlan: Omit<Plan, 'id' | 'created_at' | 'updated_at'> = {
-      name,
-      description,
-      price: Number(price),
-      duration_days: Number(durationDays),
-      features,
-      is_active: isActive,
-      is_default: isDefault
-    };
-
-    setLoading(true);
-    try {
-      onCreate(newPlan);
-      toast.success('Plan created successfully!');
+  useEffect(() => {
+    if (isEditMode && planToEdit) {
+      setName(planToEdit.name);
+      setDescription(planToEdit.description || '');
+      setPrice(String(planToEdit.price));
+      setDurationDays(String(planToEdit.duration_days));
+      setIsActive(planToEdit.is_active);
+      setIsDefault(planToEdit.is_default);
+      setFeatures(
+        Array.isArray(planToEdit.features) 
+          ? planToEdit.features 
+          : typeof planToEdit.features === 'string' 
+            ? [planToEdit.features] 
+            : []
+      );
+    } else {
       resetForm();
-      onClose();
-    } catch (error: any) {
-      console.error('Failed to create plan:', error);
-      toast.error(error.message || 'Failed to create plan');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [isEditMode, planToEdit]);
 
   const resetForm = () => {
     setName('');
@@ -90,17 +73,72 @@ const AddPlanForm: React.FC<PlanFormProps> = ({ onCreate, onClose }) => {
     setFeatures(features.filter((_, i) => i !== index));
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim()) {
+      toast.error('Plan name is required');
+      return;
+    }
+    
+    if (features.length === 0) {
+      toast.error('Please add at least one feature');
+      return;
+    }
+    
+    const planData: Omit<Plan, 'id' | 'created_at' | 'updated_at'> = {
+      name,
+      description,
+      price,
+      duration_days: Number(durationDays),
+      features,
+      is_active: isActive,
+      is_default: isDefault
+    };
+
+    setLoading(true);
+    try {
+      if (isEditMode && planToEdit?.id) {
+        const response = await planService.updatePlan(
+          planToEdit.id.toString(), 
+          planData
+        );
+        
+        if (response.data) {
+          toast.success('Plan updated successfully!');
+          if (onUpdate) onUpdate(response.data as Plan);
+          onClose();
+        }
+      } else {
+        const response = await planService.createPlan(planData);
+        
+        if (response.data) {
+          toast.success('Plan created successfully!');
+          if (onCreate) onCreate(response.data as Plan);
+          resetForm();
+          onClose();
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to save plan:', error);
+      toast.error(error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} plan`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Create New Plan</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+              {isEditMode ? "Edit Plan" : "Create New Plan"}
+            </h2>
             <button 
-              onClick={() => {
-                resetForm();
-                onClose();
-              }}
+              onClick={onClose}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <FaTimes size={24} />
@@ -218,9 +256,8 @@ const AddPlanForm: React.FC<PlanFormProps> = ({ onCreate, onClose }) => {
                   type="button"
                   onClick={handleAddFeature}
                   disabled={!newFeature.trim()}
-                  className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center"
+                  className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
-                  <FaPlus className="mr-1" />
                   Add
                 </button>
               </div>
@@ -271,10 +308,10 @@ const AddPlanForm: React.FC<PlanFormProps> = ({ onCreate, onClose }) => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating...
+                    {isEditMode ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
-                  'Create Plan'
+                  isEditMode ? 'Update Plan' : 'Create Plan'
                 )}
               </button>
             </div>
@@ -285,4 +322,4 @@ const AddPlanForm: React.FC<PlanFormProps> = ({ onCreate, onClose }) => {
   );
 };
 
-export default AddPlanForm;
+export default PlanFormModal;

@@ -39,7 +39,7 @@ const BlocksPage: React.FC = () => {
       try {
         if (id) {
           setIsLoading(true);
-          const response = await blockService.getByVcardId(id);
+          const response = await blockService.getByVcardIdAdmin(id);
           const apiBlocks: Block[] = response.data;
 
           const formattedBlocks: DisplayBlock[] = apiBlocks.map(block => ({
