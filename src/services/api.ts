@@ -652,6 +652,26 @@ export const projectService = {
       throw error;
     }
   },
+
+   getAllProjectsWithUser: async () => {
+    try {
+      const response = await api.get('/project/projects-with-users');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting projects with user information:', error);
+      throw error;
+    }
+  }, 
+
+  toggleProjectBlocked: async (id: string) => {
+    try {
+      const response = await api.put(`/project/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error toggling blocked status for project ${id}:`, error);
+      throw error;
+    }
+  }
 };
 
 

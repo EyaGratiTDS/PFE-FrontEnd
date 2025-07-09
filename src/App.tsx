@@ -38,6 +38,7 @@ import ListUsers from './pagesSuperAdmin/Users/ListUsers';
 import ListPlans from './pagesSuperAdmin/Plans/ListPlans';
 import ListVCards from './pagesSuperAdmin/VCards/ListVcards';
 import ListBlocks from './pagesSuperAdmin/VCards/ListBlocks';
+import ListProjects from './pagesSuperAdmin/Project/ListProjects';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -127,6 +128,10 @@ function App() {
               <Route path="vcard">
                 <Route index element={<ListVCards />} />
                 <Route path=":vcardId/blocks" element={<ListBlocks />} />
+              </Route>
+              <Route path="project">
+                <Route index element={<ListProjects />} />
+                <Route path=":peojectId/vcards" element={<ProjectVCardsPage />} />
               </Route>
             </Route>
           )}
