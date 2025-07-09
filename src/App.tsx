@@ -39,6 +39,8 @@ import ListPlans from './pagesSuperAdmin/Plans/ListPlans';
 import ListVCards from './pagesSuperAdmin/VCards/ListVcards';
 import ListBlocks from './pagesSuperAdmin/VCards/ListBlocks';
 import ListProjects from './pagesSuperAdmin/Project/ListProjects';
+import ProjectVCardsList from './pagesSuperAdmin/Project/ProjectVCardsList';
+import ListPixels from './pagesSuperAdmin/Pixels/ListPixels';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -131,7 +133,10 @@ function App() {
               </Route>
               <Route path="project">
                 <Route index element={<ListProjects />} />
-                <Route path=":peojectId/vcards" element={<ProjectVCardsPage />} />
+                <Route path=":projectId/vcards" element={<ProjectVCardsList />} />
+              </Route>
+              <Route path="pixel">
+                <Route index element={<ListPixels />} />
               </Route>
             </Route>
           )}

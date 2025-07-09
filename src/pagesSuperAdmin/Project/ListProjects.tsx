@@ -208,7 +208,7 @@ const ListProjects: React.FC = () => {
   };
 
   const handleShowVcards = (projectId: string) => {
-    navigate(`/admin/project/${projectId}/vcards`);
+    navigate(`/super-admin/project/${projectId}/vcards`);
   };
 
   const formatProjectData = (project: Project) => ({

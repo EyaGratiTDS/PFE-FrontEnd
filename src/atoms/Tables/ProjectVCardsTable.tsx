@@ -34,6 +34,15 @@ const renderBlockedBadge = (isBlocked: boolean) => {
   );
 };
 
+// Fonction utilitaire pour construire les URLs d'images
+const getImageUrl = (path: string | null | undefined): string => {
+  if (!path) return '';
+  // Gère les URLs absolues (ex: http://...)
+  if (path.startsWith('http')) return path;
+  // Construit une URL relative à la base API
+  return `${API_BASE_URL}${path.startsWith('/') ? path : '/' + path}`;
+};
+
 const VCardRow: React.FC<{ 
   vcard: VCard; 
   onToggleBlocked: (vcardId: string, isBlocked: boolean) => void;
@@ -44,9 +53,15 @@ const VCardRow: React.FC<{
         {vcard.logo ? (
           <div className="flex-shrink-0 h-10 w-10">
             <img 
-              src={`${API_BASE_URL}${vcard.logo}`} 
+              src={getImageUrl(vcard.logo)} 
               alt={`${vcard.name} logo`}
-              className="h-10 w-10 rounded-full object-cover border border-gray-200"
+              className="h-10 w-10 rounded-full object-cover border border-gray-200 block"
+              onError={(e) => {
+                // Fallback si l'image ne charge pas
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.style.display = 'none';
+              }}
             />
           </div>
         ) : (
@@ -62,9 +77,14 @@ const VCardRow: React.FC<{
         {vcard.favicon ? (
           <div className="flex-shrink-0 h-8 w-8">
             <img 
-              src={`${API_BASE_URL}${vcard.favicon}`} 
+              src={getImageUrl(vcard.favicon)} 
               alt={`${vcard.name} favicon`}
-              className="h-8 w-8 rounded-full object-cover border border-gray-200"
+              className="h-8 w-8 rounded-full object-cover border border-gray-200 block"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.style.display = 'none';
+              }}
             />
           </div>
         ) : (

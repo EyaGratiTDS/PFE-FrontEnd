@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { blockService, vcardService } from '../../services/api';
@@ -7,7 +7,7 @@ import LoadingSpinner from '../../Loading/LoadingSpinner';
 import BlocksTable from '../../atoms/Tables/BlocksTable';
 import { VCard, Block } from '../../services/vcard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCube, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { FaCube, FaToggleOn, FaToggleOff, FaArrowLeft } from 'react-icons/fa';
 
 interface BlockStats {
   total: number;
@@ -107,6 +107,7 @@ const ListBlocks: React.FC = () => {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [vcard, setVcard] = useState<VCard | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); 
   const [stats, setStats] = useState<BlockStats>({
     total: 0,
     active: 0,
@@ -158,21 +159,16 @@ const ListBlocks: React.FC = () => {
 
   const handleToggleStatus = async (blockId: string) => {
     try {
-      // Trouver le bloc actuel pour conserver son état
       const currentBlock = blocks.find(b => b.id === blockId);
       if (!currentBlock) return;
 
-      // Mise à jour optimiste immédiate
       setBlocks(prevBlocks =>
         prevBlocks.map(block =>
           block.id === blockId ? { ...block, status: !block.status } : block
         )
       );
-
-      // Appel API pour basculer le statut
       const response = await blockService.toggleStatus(blockId);
       
-      // Mise à jour avec la réponse serveur
       setBlocks(prevBlocks =>
         prevBlocks.map(block =>
           block.id === blockId ? { ...block, status: response.newStatus } : block
@@ -184,7 +180,6 @@ const ListBlocks: React.FC = () => {
       console.error('Failed to toggle block status', error);
       toast.error('Failed to update block status');
       
-      // Revert en cas d'erreur
       setBlocks(prevBlocks =>
         prevBlocks.map(block =>
           block.id === blockId ? { ...block, status: !block.status } : block
@@ -241,6 +236,13 @@ const ListBlocks: React.FC = () => {
         pauseOnHover
         theme="colored"
       />
+
+      <button 
+        onClick={() => navigate(-1)}
+        className="flex items-center mb-6 text-primary hover:text-primary-dark"
+      >
+        <FaArrowLeft className="mr-2" /> Back to VCards
+      </button>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">

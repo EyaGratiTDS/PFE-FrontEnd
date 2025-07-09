@@ -1,57 +1,43 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FaSearch, FaFilter, FaFileExport, FaArrowLeft } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaFileExport } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { projectService } from '../../services/api';
+import { pixelService } from '../../services/api';
 import LoadingSpinner from '../../Loading/LoadingSpinner';
-import { VCard } from '../../services/vcard';
-import StatsCardsProjectVCards from '../../cards/StatsCardsProjectVCards';
+import StatsCardsPixels from '../../cards/StatsCardsPixels';
+import FilterMenuPixels from '../../cards/FilterMenuPixels';
 import ExportMenu from '../../cards/ExportMenu';
+import PixelTable from '../../atoms/Tables/PixelTable';
 import Pagination from '../../atoms/Pagination/Pagination';
-import ActiveFiltersVcards from '../../cards/ActiveFiltersVcards';
-import FilterMenu from '../../cards/FilterMenuVcard';
-import ProjectVCardsTable from '../../atoms/Tables/ProjectVCardsTable';
-import { vcardService } from '../../services/api';
+import PixelCharts from '../../atoms/Charts/PixelCharts';
+import ActiveFiltersPixels from '../../cards/ActiveFiltersPixels';
+import { Pixel } from '../../services/Pixel';
 
-
-interface ActiveFilters {
+export interface ActiveFilters {
   status: string;
-  search: string;
   blocked: string;
+  search: string;
 }
 
-interface Stats {
-  total: number;
-  active: number;
-  inactive: number;
-  blocked: number;
-  totalViews: number;
-}
-
-const ProjectVCardsPage: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
-  const [vcards, setVCards] = useState<VCard[]>([]);
+const ListPixels: React.FC = () => {
+  const [allPixels, setAllPixels] = useState<Pixel[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [projectName, setProjectName] = useState<string>('');
   
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
-    search: '',
-    blocked: 'all'
+    blocked: 'all',
+    search: ''
   });
   
-  const [stats, setStats] = useState<Stats>({
+  const [stats, setStats] = useState({
     total: 0,
     active: 0,
     inactive: 0,
-    blocked: 0,
-    totalViews: 0
+    blocked: 0
   });
   
   const itemsPerPage = 10;
@@ -60,52 +46,17 @@ const ProjectVCardsPage: React.FC = () => {
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchProjectVCards = async () => {
-      try {
-        setLoading(true);
-        if (!projectId) return;
-        
-        const response = await projectService.getVCardsByProject(projectId);
-        if (response.success && response.data) {
-          setVCards(response.data);
-          if (response.data.length > 0 && response.data[0].Project) {
-            setProjectName(response.data[0].Project.name);
-          }
-        } else {
-          setVCards([]);
-          toast.error('No vCards found for this project');
-        }
-      } catch (error) {
-        console.error('Failed to fetch project vCards', error);
-        toast.error('Failed to load project vCards. Please try again.');
-        setVCards([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProjectVCards();
-  }, [projectId]);
-
-  useEffect(() => {
-    if (vcards.length > 0) {
-      const total = vcards.length;
-      const active = vcards.filter(vcard => vcard.is_active).length;
-      const inactive = vcards.filter(vcard => !vcard.is_active).length;
-      const blocked = vcards.filter(vcard => vcard.status).length;
-      const totalViews = vcards.reduce((sum, vcard) => sum + (vcard.views || 0), 0);
+    if (allPixels.length > 0) {
+      const total = allPixels.length;
+      const active = allPixels.filter(pixel => pixel.is_active).length;
+      const inactive = allPixels.filter(pixel => !pixel.is_active).length;
+      const blocked = allPixels.filter(pixel => pixel.is_blocked).length;
       
-      setStats({ total, active, inactive, blocked, totalViews });
+      setStats({ total, active, inactive, blocked });
     } else {
-      setStats({ 
-        total: 0, 
-        active: 0, 
-        inactive: 0, 
-        blocked: 0, 
-        totalViews: 0 
-      });
+      setStats({ total: 0, active: 0, inactive: 0, blocked: 0 });
     }
-  }, [vcards]);
+  }, [allPixels]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -127,44 +78,74 @@ const ProjectVCardsPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilterMenu, showExportMenu]);
 
-  const filteredVCards = useMemo(() => {
-    if (!vcards || vcards.length === 0) return [];
+  useEffect(() => {
+    const fetchPixels = async () => {
+      try {
+        setLoading(true);
+        const response = await pixelService.getPixels();
+        
+        if (response.success && Array.isArray(response.data)) {
+          setAllPixels(response.data);
+        } else {
+          setAllPixels([]);
+          toast.error('Received invalid pixel data format');
+        }
+      } catch (error) {
+        console.error('Failed to fetch pixels', error);
+        toast.error('Failed to load pixels. Please try again.');
+        setAllPixels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    let result = [...vcards];
+    fetchPixels();
+  }, []);
+
+  const filteredPixels = useMemo(() => {
+    if (!allPixels || allPixels.length === 0) return [];
+
+    let result = [...allPixels];
     
     if (activeFilters.search) {
       const searchTerm = activeFilters.search.toLowerCase();
-      result = result.filter(vcard => 
-        (vcard.name?.toLowerCase().includes(searchTerm)) 
-      );
+      result = result.filter(pixel => {
+        const pixelNameMatch = pixel.name?.toLowerCase().includes(searchTerm) || false;
+        const userNameMatch = pixel.vcard?.user?.name?.toLowerCase().includes(searchTerm) || false;
+        const userEmailMatch = pixel.vcard?.user?.email?.toLowerCase().includes(searchTerm) || false;
+        
+        return pixelNameMatch || userNameMatch || userEmailMatch;
+      });
     }
     
     if (activeFilters.status !== 'all') {
-      result = result.filter(vcard => 
-        activeFilters.status === 'active' ? vcard.is_active : !vcard.is_active
+      result = result.filter(pixel => 
+        activeFilters.status === 'active' ? pixel.is_active : !pixel.is_active
       );
     }
     
     if (activeFilters.blocked !== 'all') {
-      result = result.filter(vcard => 
-        activeFilters.blocked === 'blocked' ? vcard.status : !vcard.status
+      result = result.filter(pixel => 
+        activeFilters.blocked === 'blocked' ? pixel.is_blocked : !pixel.is_blocked
       );
     }
     
-    return result.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    result.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
       return dateB - dateA;
     });
-  }, [activeFilters, vcards]);
+    
+    return result;
+  }, [activeFilters, allPixels]);
 
-  const currentPageVCards = useMemo(() => {
-    if (!filteredVCards || filteredVCards.length === 0) return [];
+  const currentPagePixels = useMemo(() => {
+    if (!filteredPixels || filteredPixels.length === 0) return [];
     
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredVCards.slice(startIndex, endIndex);
-  }, [filteredVCards, currentPage, itemsPerPage]);
+    return filteredPixels.slice(startIndex, endIndex);
+  }, [filteredPixels, currentPage, itemsPerPage]);
 
   const handleFilterChange = (filterType: keyof ActiveFilters, value: string) => {
     setActiveFilters(prev => ({
@@ -177,8 +158,8 @@ const ProjectVCardsPage: React.FC = () => {
   const resetFilters = () => {
     setActiveFilters({
       status: 'all',
-      search: '',
-      blocked: 'all'
+      blocked: 'all',
+      search: ''
     });
     setCurrentPage(1);
   };
@@ -186,38 +167,61 @@ const ProjectVCardsPage: React.FC = () => {
   const hasActiveFilters = () => {
     return (
       activeFilters.status !== 'all' ||
-      activeFilters.search !== '' ||
-      activeFilters.blocked !== 'all'
+      activeFilters.blocked !== 'all' ||
+      activeFilters.search !== ''
     );
   };
 
-  const totalPages = Math.ceil((filteredVCards?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil((filteredPixels?.length || 0) / itemsPerPage);
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  const formatVCardData = (vcard: VCard) => ({
-    ID: vcard.id,
-    Name: vcard.name,
-    URL: vcard.url,
-    Status: vcard.is_active ? 'Active' : 'Inactive',
-    Blocked: vcard.status ? 'Yes' : 'No',
-    'Created At': vcard.createdAt ? new Date(vcard.createdAt).toLocaleString() : 'N/A',
-    Views: vcard.views || 0
+    const togglePixelBlocked = async (pixelId: string, newBlockedStatus: boolean) => {
+    let originalPixels: Pixel[] = [];
+    
+    try {
+      originalPixels = [...allPixels];
+      
+      setAllPixels(prevPixels =>
+        prevPixels.map(pixel =>
+          pixel.id === pixelId ? { ...pixel, is_blocked: newBlockedStatus } : pixel
+        )
+      );
+
+      await pixelService.togglePixelBlocked(pixelId);
+      
+      toast.success(`Pixel ${newBlockedStatus ? 'blocked' : 'unblocked'} successfully`);
+    } catch (error) {
+      console.error('Failed to toggle pixel blocked status', error);
+      toast.error('Failed to update pixel blocked status');
+      
+      setAllPixels(originalPixels);
+    }
+  };
+
+  const formatPixelData = (pixel: Pixel) => ({
+    ID: pixel.id,
+    Name: pixel.name || 'N/A',
+    Status: pixel.is_active ? 'Active' : 'Inactive',
+    Blocked: pixel.is_blocked ? 'Yes' : 'No',
+    'Created At': new Date(pixel.created_at).toLocaleString(),
+    'User Name': pixel.vcard?.user?.name || 'N/A',
+    'User Email': pixel.vcard?.user?.email || 'N/A'
   });
 
   const handleExport = (format: 'csv' | 'json') => {
-    if (exporting || !filteredVCards || filteredVCards.length === 0) return;
-
+    if (exporting || !filteredPixels || filteredPixels.length === 0) return;
+    
     try {
       setExporting(true);
       setShowExportMenu(false);
-
+      
       const date = new Date().toISOString().slice(0, 10);
-      const filename = `project_${projectId}_vcards_export_${date}`;
-
+      const filename = `pixels_export_${date}`;
+      
       if (format === 'csv') {
-        exportToCsv(filteredVCards.map(formatVCardData), filename);
+        exportToCsv(filteredPixels.map(formatPixelData), filename);
       } else {
-        exportToJson(filteredVCards.map(formatVCardData), filename);
+        exportToJson(filteredPixels.map(formatPixelData), filename);
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -271,42 +275,6 @@ const ProjectVCardsPage: React.FC = () => {
     toast.success('JSON export completed successfully');
   };
 
-  const toggleVCardBlocked = async (vcardId: string, isBlocked: boolean) => {
-    try {
-      setVCards(prevVCards =>
-        prevVCards.map(vcard =>
-          vcard.id === vcardId ? { ...vcard, status: isBlocked } : vcard
-        )
-      );
-
-      // Appel API pour basculer l'état bloqué
-      await vcardService.toggleStatus(vcardId);
-      
-      toast.success(`VCard ${isBlocked ? 'blocked' : 'unblocked'} successfully`);
-    } catch (error) {
-      console.error('Failed to toggle VCard blocked status', error);
-      toast.error('Failed to update VCard blocked status');
-
-      setVCards(prevVCards =>
-        prevVCards.map(vcard =>
-          vcard.id === vcardId ? { ...vcard, status: !isBlocked } : vcard
-        )
-      );
-    }
-  };
-
-  const activeFiltersRecord: Record<string, string> = {
-    status: activeFilters.status,
-    search: activeFilters.search,
-    blocked: activeFilters.blocked
-  };
-
-  const handleGenericFilterChange = (filterType: string, value: string) => {
-    if (filterType === 'status' || filterType === 'search' || filterType === 'blocked') {
-      handleFilterChange(filterType as keyof ActiveFilters, value);
-    }
-  };
-
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -326,20 +294,11 @@ const ProjectVCardsPage: React.FC = () => {
         theme="colored"
       />
 
-      <button 
-        onClick={() => navigate(-1)}
-        className="flex items-center mb-6 text-primary hover:text-primary-dark"
-      >
-        <FaArrowLeft className="mr-2" /> Back to Projects
-      </button>
-
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {projectName ? `Project: ${projectName}` : 'Project VCards'}
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Pixel Management</h1>
           <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
-            View and manage VCards for this project
+            Track and manage all tracking pixels
           </p>
         </div>
 
@@ -350,7 +309,7 @@ const ProjectVCardsPage: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Search VCards..."
+              placeholder="Search by name, user or email..."
               className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base"
               value={activeFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -376,32 +335,12 @@ const ProjectVCardsPage: React.FC = () => {
               </button>
 
               {showFilterMenu && (
-                <FilterMenu 
+                <FilterMenuPixels 
                   ref={filterMenuRef}
-                  activeFilters={activeFiltersRecord}
-                  onFilterChange={handleGenericFilterChange}
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
                   onReset={resetFilters}
                   onClose={() => setShowFilterMenu(false)}
-                  filterOptions={[
-                    { 
-                      key: 'status', 
-                      label: 'Status', 
-                      options: [
-                        { value: 'all', label: 'All Statuses' },
-                        { value: 'active', label: 'Active' },
-                        { value: 'inactive', label: 'Inactive' }
-                      ] 
-                    },
-                    { 
-                      key: 'blocked', 
-                      label: 'Blocked', 
-                      options: [
-                        { value: 'all', label: 'All Blocked Statuses' },
-                        { value: 'blocked', label: 'Blocked' },
-                        { value: 'allowed', label: 'Allowed' }
-                      ] 
-                    }
-                  ]}
                 />
               )}
             </div>
@@ -411,7 +350,7 @@ const ProjectVCardsPage: React.FC = () => {
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 aria-label="Export options"
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                disabled={exporting || !filteredVCards || filteredVCards.length === 0}
+                disabled={exporting || !filteredPixels || filteredPixels.length === 0}
               >
                 <FaFileExport className={`text-purple-500 text-sm sm:text-base ${exporting ? 'opacity-50' : ''}`} />
               </button>
@@ -427,27 +366,24 @@ const ProjectVCardsPage: React.FC = () => {
         </div>
       </div>
 
-      <StatsCardsProjectVCards stats={stats} />
+      <StatsCardsPixels stats={stats} />
       
       {hasActiveFilters() && (
-        <ActiveFiltersVcards
-          activeFilters={activeFilters}
-          resetFilters={resetFilters} 
-          filterLabels={{
-            status: "Status",
-            search: "Search",
-            blocked: "Blocked"
-          }}
+        <ActiveFiltersPixels 
+            activeFilters={activeFilters} 
+            resetFilters={resetFilters} 
         />
-      )}
+        )}
 
-      <ProjectVCardsTable
-        vcards={currentPageVCards}
+      <PixelTable
+        pixels={currentPagePixels}
         hasActiveFilters={hasActiveFilters()}
-        onToggleBlocked={toggleVCardBlocked}
+        onToggleBlocked={togglePixelBlocked}
       />
 
-      {filteredVCards && filteredVCards.length > 0 && totalPages > 1 && (
+      <PixelCharts pixels={allPixels} />
+
+      {filteredPixels && filteredPixels.length > 0 && totalPages > 1 && (
         <Pagination 
           currentPage={currentPage}
           totalPages={totalPages}
@@ -458,4 +394,4 @@ const ProjectVCardsPage: React.FC = () => {
   );
 };
 
-export default ProjectVCardsPage;
+export default ListPixels;

@@ -744,6 +744,25 @@ export const pixelService = {
       }
   },
 
+   getPixels: async () => {
+    try {
+      const response = await api.get('/pixel/pixels');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting projects with user information:', error);
+      throw error;
+    }
+  }, 
+
+    togglePixelBlocked: async (id: string) => {
+      try {
+        const response = await api.put(`/pixel/${id}/toggle-status`);
+        return response.data;
+      } catch (error) {
+        console.error(`Error toggling blocked status for project ${id}:`, error);
+        throw error;
+      }
+    }
 };
 
 export const customDomainService = {

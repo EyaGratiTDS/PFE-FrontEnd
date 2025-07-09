@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FaSearch, FaFilter, FaFileExport, FaUsers, FaUserCheck, FaUserSlash, FaEye, FaBan } from 'react-icons/fa';
+import { useParams, useNavigate } from 'react-router-dom';
+import { FaSearch, FaFilter, FaFileExport, FaArrowLeft } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { vcardService } from '../../services/api';
+import { projectService } from '../../services/api';
 import LoadingSpinner from '../../Loading/LoadingSpinner';
-import { VCardWithUser } from '../../services/api';
-import { formatDate } from '../../services/dateUtils';
+import { VCard } from '../../services/vcard';
+import StatsCardsProjectVCards from '../../cards/StatsCardsProjectVCards';
 import ExportMenu from '../../cards/ExportMenu';
 import Pagination from '../../atoms/Pagination/Pagination';
 import ActiveFiltersVcards from '../../cards/ActiveFiltersVcards';
 import FilterMenu from '../../cards/FilterMenuVcard';
-import VCardsTable from '../../atoms/Tables/VCardsTable';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom'; 
-import { useAuth } from '../../context/AuthContext'; 
-import VCardsCharts from '../../atoms/Charts/VCardsCharts'; 
+import ProjectVCardsTable from '../../atoms/Tables/ProjectVCardsTable';
+import { vcardService } from '../../services/api';
 
 interface ActiveFilters {
   status: string;
@@ -30,126 +28,16 @@ interface Stats {
   totalViews: number;
 }
 
-const colorMap = {
-  orange: {
-    bg: 'bg-orange-100',
-    text: 'text-orange-500',
-    darkBg: 'dark:bg-orange-500',
-    darkText: 'dark:text-orange-100'
-  },
-  green: {
-    bg: 'bg-green-100',
-    text: 'text-green-500',
-    darkBg: 'dark:bg-green-500',
-    darkText: 'dark:text-green-100'
-  },
-  red: {
-    bg: 'bg-red-100',
-    text: 'text-red-500',
-    darkBg: 'dark:bg-red-500',
-    darkText: 'dark:text-red-100'
-  },
-  blue: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-500',
-    darkBg: 'dark:bg-blue-500',
-    darkText: 'dark:text-blue-100'
-  },
-  purple: {
-    bg: 'bg-purple-100',
-    text: 'text-purple-500',
-    darkBg: 'dark:bg-purple-500',
-    darkText: 'dark:text-purple-100'
-  }
-};
-
-const VCardStatCard: React.FC<{ 
-  icon: React.ReactNode;
-  title: string;
-  value: number;
-  color: keyof typeof colorMap;
-}> = ({ icon, title, value, color }) => {
-  const [prevValue, setPrevValue] = useState(value);
-  const [displayValue, setDisplayValue] = useState(value);
-  const colors = colorMap[color];
-
-  useEffect(() => {
-    if (value !== prevValue) {
-      setDisplayValue(value);
-      setPrevValue(value);
-    }
-  }, [value, prevValue]);
-
-  return (
-    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full">
-      <div className={`p-3 mr-4 rounded-full ${colors.bg} ${colors.text} ${colors.darkBg} ${colors.darkText}`}>
-        {icon}
-      </div>
-      <div>
-        <p className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-          {title}
-        </p>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={displayValue}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="text-lg font-semibold text-gray-700 dark:text-gray-200"
-          >
-            {displayValue}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-};
-
-const StatsCardsVcards: React.FC<{ stats: Stats }> = ({ stats }) => (
-  <div className="grid gap-6 mb-8 md:grid-cols-3 xl:grid-cols-5">
-    <VCardStatCard 
-      icon={<FaUsers className="w-5 h-5" />}
-      title="Total VCards"
-      value={stats.total}
-      color="orange"
-    />
-    <VCardStatCard 
-      icon={<FaUserCheck className="w-5 h-5" />}
-      title="Active"
-      value={stats.active}
-      color="green"
-    />
-    <VCardStatCard 
-      icon={<FaUserSlash className="w-5 h-5" />}
-      title="Inactive"
-      value={stats.inactive}
-      color="red"
-    />
-    <VCardStatCard 
-      icon={<FaEye className="w-5 h-5" />}
-      title="Total Views"
-      value={stats.totalViews}
-      color="blue"
-    />
-    <VCardStatCard 
-      icon={<FaBan className="w-5 h-5" />}
-      title="Blocked"
-      value={stats.blocked}
-      color="purple"
-    />
-  </div>
-);
-
-const ListVCards: React.FC = () => {
-  const { user } = useAuth(); 
-  const [allVCards, setAllVCards] = useState<VCardWithUser[]>([]);
+const ProjectVCardsPage: React.FC = () => {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const [vcards, setVcards] = useState<VCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const navigate = useNavigate(); 
+  const [projectName, setProjectName] = useState<string>('');
   
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
@@ -171,12 +59,41 @@ const ListVCards: React.FC = () => {
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (allVCards.length > 0) {
-      const total = allVCards.length;
-      const active = allVCards.filter(vcard => vcard.is_active).length;
-      const inactive = allVCards.filter(vcard => !vcard.is_active).length;
-      const blocked = allVCards.filter(vcard => vcard.status).length;
-      const totalViews = allVCards.reduce((sum, vcard) => sum + (vcard.views || 0), 0);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [projectRes, vcardsRes] = await Promise.all([
+          projectService.getProjectById(projectId!),
+          projectService.getVCardsByProject(projectId!)
+        ]);
+
+        setProjectName(projectRes.name || `Project ${projectId}`);
+
+        const vcardsData = Array.isArray(vcardsRes.data) ? vcardsRes.data : [];
+        const formattedCards = vcardsData.map((v: any) => ({
+          ...v,
+          id: v.id,
+          logo: v.logo,
+          favicon: v.favicon,
+        }));
+        setVcards(formattedCards);
+      } catch (error) {
+        toast.error('Failed to load project data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    projectId && fetchData();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (vcards.length > 0) {
+      const total = vcards.length;
+      const active = vcards.filter(vcard => vcard.is_active).length;
+      const inactive = vcards.filter(vcard => !vcard.is_active).length;
+      const blocked = vcards.filter(vcard => vcard.status).length;
+      const totalViews = vcards.reduce((sum, vcard) => sum + (vcard.views || 0), 0);
       
       setStats({ total, active, inactive, blocked, totalViews });
     } else {
@@ -188,7 +105,7 @@ const ListVCards: React.FC = () => {
         totalViews: 0 
       });
     }
-  }, [allVCards]);
+  }, [vcards]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -210,49 +127,23 @@ const ListVCards: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilterMenu, showExportMenu]);
 
-  useEffect(() => {
-    const fetchVCards = async () => {
-      try {
-        setLoading(true);
-        const response = await vcardService.getAllWithUsers();
-        if (response.data) {
-          setAllVCards(response.data);
-        } else {
-          setAllVCards([]);
-          toast.error('No VCard data received from server');
-        }
-      } catch (error) {
-        console.error('Failed to fetch VCards', error);
-        toast.error('Failed to load VCards. Please try again.');
-        setAllVCards([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVCards();
-  }, []);
-
-  const handleViewBlocks = (vcardId: string) => {
-    if (user?.role === 'superAdmin') {
-      navigate(`/super-admin/vcard/${vcardId}/blocks`);
-    } else {
-      navigate(`/admin/vcard/edit-vcard/${vcardId}/blocks`);
-    }
-  };
-
   const filteredVCards = useMemo(() => {
-    if (!allVCards || allVCards.length === 0) return [];
+    if (!vcards || vcards.length === 0) return [];
 
-    let result = [...allVCards];
+    let result = [...vcards];
     
     if (activeFilters.search) {
       const searchTerm = activeFilters.search.toLowerCase();
-      result = result.filter(vcard => 
-        (vcard.name?.toLowerCase().includes(searchTerm)) ||
-        (vcard.Users?.name?.toLowerCase().includes(searchTerm)) ||
-        (vcard.Users?.email?.toLowerCase().includes(searchTerm))
-      );
+      result = result.filter(vcard => {
+        // Convertir toutes les valeurs en chaînes avant de comparer
+        const name = vcard.name?.toString().toLowerCase() || '';
+        const url = vcard.url?.toString().toLowerCase() || '';
+        const id = vcard.id?.toString().toLowerCase() || '';
+
+        return name.includes(searchTerm) || 
+               url.includes(searchTerm) ||
+               id.includes(searchTerm);
+      });
     }
     
     if (activeFilters.status !== 'all') {
@@ -272,7 +163,7 @@ const ListVCards: React.FC = () => {
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return dateB - dateA;
     });
-  }, [activeFilters, allVCards]);
+  }, [activeFilters, vcards]);
 
   const currentPageVCards = useMemo(() => {
     if (!filteredVCards || filteredVCards.length === 0) return [];
@@ -310,16 +201,13 @@ const ListVCards: React.FC = () => {
   const totalPages = Math.ceil((filteredVCards?.length || 0) / itemsPerPage);
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  const formatVCardData = (vcard: VCardWithUser) => ({
-    ID: vcard.id,
-    Name: vcard.name,
-    URL: vcard.url,
+  const formatVCardData = (vcard: VCard) => ({
+    ID: vcard.id?.toString() || '', 
+    Name: vcard.name || '',
+    URL: vcard.url || '',
     Status: vcard.is_active ? 'Active' : 'Inactive',
     Blocked: vcard.status ? 'Yes' : 'No',
-    'Created At': vcard.createdAt ? formatDate(vcard.createdAt) : 'N/A',
-    'Last Updated': vcard.updatedAt ? formatDate(vcard.updatedAt) : 'N/A',
-    'User Name': vcard.Users?.name || 'N/A',
-    'User Email': vcard.Users?.email || 'N/A',
+    'Created At': vcard.createdAt ? new Date(vcard.createdAt).toLocaleString() : 'N/A',
     Views: vcard.views || 0
   });
 
@@ -331,7 +219,7 @@ const ListVCards: React.FC = () => {
       setShowExportMenu(false);
 
       const date = new Date().toISOString().slice(0, 10);
-      const filename = `vcards_export_${date}`;
+      const filename = `project_${projectId}_vcards_export_${date}`;
 
       if (format === 'csv') {
         exportToCsv(filteredVCards.map(formatVCardData), filename);
@@ -392,28 +280,20 @@ const ListVCards: React.FC = () => {
 
   const toggleVCardBlocked = async (vcardId: string, isBlocked: boolean) => {
     try {
-      setAllVCards(prevVCards =>
+      setVcards(prevVCards =>
         prevVCards.map(vcard =>
           vcard.id === vcardId ? { ...vcard, status: isBlocked } : vcard
         )
       );
 
-      const response = await vcardService.toggleStatus(vcardId);
+      await vcardService.toggleStatus(vcardId);
       
-      if (response.newStatus !== isBlocked) {
-        setAllVCards(prevVCards =>
-          prevVCards.map(vcard =>
-            vcard.id === vcardId ? { ...vcard, status: response.newStatus } : vcard
-          )
-        );
-      }
-      
-      toast.success(response.message);
+      toast.success(`VCard ${isBlocked ? 'blocked' : 'unblocked'} successfully`);
     } catch (error) {
       console.error('Failed to toggle VCard blocked status', error);
       toast.error('Failed to update VCard blocked status');
 
-      setAllVCards(prevVCards =>
+      setVcards(prevVCards =>
         prevVCards.map(vcard =>
           vcard.id === vcardId ? { ...vcard, status: !isBlocked } : vcard
         )
@@ -452,11 +332,20 @@ const ListVCards: React.FC = () => {
         theme="colored"
       />
 
+      <button 
+        onClick={() => navigate(-1)}
+        className="flex items-center mb-6 text-primary hover:text-primary-dark"
+      >
+        <FaArrowLeft className="mr-2" /> Back to Projects
+      </button>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">VCard Management</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+            {projectName ? `Project: ${projectName}` : 'Project VCards'}
+          </h1>
           <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
-            View and manage all VCards in the system
+            View and manage VCards for this project
           </p>
         </div>
 
@@ -544,7 +433,7 @@ const ListVCards: React.FC = () => {
         </div>
       </div>
 
-      <StatsCardsVcards stats={stats} />
+      <StatsCardsProjectVCards stats={stats} />
       
       {hasActiveFilters() && (
         <ActiveFiltersVcards
@@ -558,11 +447,10 @@ const ListVCards: React.FC = () => {
         />
       )}
 
-      <VCardsTable
+      <ProjectVCardsTable
         vcards={currentPageVCards}
         hasActiveFilters={hasActiveFilters()}
         onToggleBlocked={toggleVCardBlocked}
-        onViewBlocks={handleViewBlocks} 
       />
 
       {filteredVCards && filteredVCards.length > 0 && totalPages > 1 && (
@@ -573,9 +461,15 @@ const ListVCards: React.FC = () => {
         />
       )}
 
-      <VCardsCharts vcards={allVCards} />
+      {!loading && filteredVCards.length === 0 && (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          {hasActiveFilters()
+            ? "No VCards match your filters"
+            : "No VCards available for this project"}
+        </div>
+      )}
     </div>
   );
 };
 
-export default ListVCards;
+export default ProjectVCardsPage;

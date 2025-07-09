@@ -2,15 +2,19 @@ export interface Pixel {
   id: string; 
   name: string;
   is_active: boolean;
+  is_blocked: boolean;
   created_at: string;
   trackingUrl: string;
   metaPixelId?: string | null;
-  metaAccountId?: string;  
-  metaAccessToken?: string;
-  isDisabled?: boolean; 
   vcard?: {
     id: string;
     name: string;
+    url: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+    };
   };
 }
 
