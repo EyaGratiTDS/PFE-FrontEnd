@@ -2,7 +2,7 @@ export interface CustomDomain {
   id: number;
   domain: string;
   userId: number;
-  status: 'pending' | 'active' | 'failed' | 'disabled';
+  status: 'pending' | 'active' | 'failed' | 'blocked';
   custom_index_url?: string;
   custom_not_found_url?: string;
   verification_code?: string;
@@ -12,6 +12,11 @@ export interface CustomDomain {
     id: number;
     name: string;
     url: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+    };
   };
   created_at: string;
   isDisabled?: boolean;

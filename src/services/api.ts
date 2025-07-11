@@ -749,7 +749,7 @@ export const pixelService = {
       const response = await api.get('/pixel/pixels');
       return response.data;
     } catch (error) {
-      console.error('Error getting projects with user information:', error);
+      console.error('Error getting pixels with user information:', error);
       throw error;
     }
   }, 
@@ -882,7 +882,26 @@ export const customDomainService = {
       console.error(`Error handling domain request for ${domain}:`, error);
       throw error;
     }
-  }
+  },
+  getDomains: async () => {
+    try {
+      const response = await api.get('/custom-domain/domains');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting custom domains with user information:', error);
+      throw error;
+    }
+  },
+
+   toggleStatus: async (id: number, status: 'pending' | 'active' | 'failed' | 'blocked'): Promise<ApiResponse<CustomDomain>> => {
+    try {
+      const response = await api.put(`/custom-domain/${id}/toggle-status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error(`Error toggling status for custom domain ${id}:`, error);
+      throw error;
+    }
+  },
 };
 
 export const limitService = {
