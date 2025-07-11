@@ -1,14 +1,10 @@
 import React from 'react';
 import { Subscription } from '../../services/Subscription';
-import { Plan } from '../../services/Plan';
 import { format } from 'date-fns';
 
-interface SubscriptionWithPlan extends Subscription {
-  plan?: Plan;
-}
 
 interface SubscriptionHistoryTableProps {
-  subscriptions: SubscriptionWithPlan[];
+  subscriptions: Subscription[];
 }
 
 const SubscriptionHistoryTable: React.FC<SubscriptionHistoryTableProps> = ({ subscriptions }) => {

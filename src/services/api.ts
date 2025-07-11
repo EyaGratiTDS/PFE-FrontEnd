@@ -512,6 +512,26 @@ export const subscriptionService = {
       console.error(`Error getting subscription status for user ${userId}:`, error);
       throw error;
     }
+  },
+
+  getSubscriptions: async () => {
+    try {
+      const response = await api.get('/subscription/all');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting subscriptions with user information:', error);
+      throw error;
+    }
+  },
+
+  cancelSubscriptionByAdmin: async (id: number) => {
+    try {
+      const response = await api.put(`/subscription/${id}/CancelByAdmin`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error toggling blocked status for subscription ${id}:`, error);
+      throw error;
+    }
   }
 };
 

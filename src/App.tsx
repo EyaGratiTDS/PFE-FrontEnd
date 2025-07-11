@@ -42,6 +42,7 @@ import ListProjects from './pagesSuperAdmin/Project/ListProjects';
 import ProjectVCardsList from './pagesSuperAdmin/Project/ProjectVCardsList';
 import ListPixels from './pagesSuperAdmin/Pixels/ListPixels';
 import ListCustomDomains from './pagesSuperAdmin/CustomDomains/ListCustomDomains';
+import ListSubscriptions from './pagesSuperAdmin/Subscriptions/ListSubscriptions';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -141,6 +142,9 @@ function App() {
               </Route>
               <Route path="custom-domains">
                 <Route index element={<ListCustomDomains />} />
+              </Route>
+              <Route path="subscriptions">
+                <Route index element={<ListSubscriptions />} />
               </Route>
             </Route>
           )}
