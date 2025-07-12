@@ -88,13 +88,13 @@ const ApiKeyListCard: React.FC<ApiKeyListCardProps> = ({ apiKeys, isLoading, onD
                         {key.prefix}...
                         <button
                           type="button"
-                          onClick={() => !key.isDisabled && handleCopy(key.prefix)}
+                          onClick={() => handleCopy(key.prefix)}
                           className={`p-1 rounded-md ${
-                            key.isDisabled 
+                            key.isDisabled || !key.isActive
                               ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
                               : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
                           }`}
-                          disabled={key.isDisabled}
+                          disabled={key.isDisabled || !key.isActive}
                         >
                           <FaCopy className="h-4 w-4" />
                         </button>
@@ -120,15 +120,13 @@ const ApiKeyListCard: React.FC<ApiKeyListCardProps> = ({ apiKeys, isLoading, onD
                     </td>
 
                     <td className="whitespace-nowrap px-3 py-4 text-sm">
-                      {key.isActive && !key.isDisabled && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteClick(key.id)}
-                          className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
-                        >
-                          <FaTrashAlt className="h-4 w-4 text-red-500" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteClick(key.id)}
+                        className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
+                      >
+                        <FaTrashAlt className="h-4 w-4 text-red-500" />
+                      </button>
                     </td>
                   </tr>
                 ))}

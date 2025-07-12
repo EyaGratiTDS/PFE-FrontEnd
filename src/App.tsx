@@ -43,6 +43,7 @@ import ProjectVCardsList from './pagesSuperAdmin/Project/ProjectVCardsList';
 import ListPixels from './pagesSuperAdmin/Pixels/ListPixels';
 import ListCustomDomains from './pagesSuperAdmin/CustomDomains/ListCustomDomains';
 import ListSubscriptions from './pagesSuperAdmin/Subscriptions/ListSubscriptions';
+import ListApiKeys from './pagesSuperAdmin/ApiKeys/ListApiKeys';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -145,6 +146,9 @@ function App() {
               </Route>
               <Route path="subscriptions">
                 <Route index element={<ListSubscriptions />} />
+              </Route>
+              <Route path="apikeys">
+                <Route index element={<ListApiKeys />} />
               </Route>
             </Route>
           )}

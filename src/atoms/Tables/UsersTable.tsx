@@ -1,5 +1,5 @@
-import React from 'react';
-import { FaUser, FaUserSlash, FaUserCheck, FaCrown, FaUserTie, FaUserAlt } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaUser, FaUserSlash, FaUserCheck, FaCrown, FaUserTie, FaUserAlt, FaEllipsisV } from 'react-icons/fa';
 import EmptyState from '../../cards/EmptyState';
 import { User } from '../../services/user';
 import { API_BASE_URL } from '../../config/constants';
@@ -8,6 +8,7 @@ interface UserTableProps {
   filteredUsers: User[];
   hasActiveFilters: boolean;
   onToggleStatus: (userId: string, isActive: boolean) => void;
+  onChangePlan: (userId: string, planName: string) => void;
 }
 
 const renderRoleBadge = (role?: string) => {
@@ -66,77 +67,127 @@ const renderPlanBadge = (subscription?: User['activeSubscription']) => {
   );
 };
 
-const UserRow: React.FC<{ user: User; onToggleStatus: (userId: string, isActive: boolean) => void }> = ({ 
-  user, 
-  onToggleStatus 
-}) => (
-  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-    <td className="px-4 py-3 whitespace-nowrap">
-      <div className="flex items-center">
-        <div className="flex-shrink-0 h-10 w-10">
-          {user.avatar ? (
-            <img 
-              className="h-10 w-10 rounded-full" 
-              src={`${API_BASE_URL}${user.avatar}`} 
-              alt={user.name || 'User'} 
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/default-avatar.png';
-              }}
-            />
-          ) : (
-            <div className="bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 flex items-center justify-center text-gray-400">
-              <FaUser />
-            </div>
-          )}
-        </div>
-        <div className="ml-4">
-          <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px]">
-            {user.name || 'Unnamed User'}
-          </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
-            {user.email || 'No email'}
-          </div>
-        </div>
-      </div>
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap">
-      {renderRoleBadge(user.role)}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap">
-      {renderStatusBadge(user.isActive)}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap">
-      {renderPlanBadge(user.activeSubscription)}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-      <div className="flex justify-end space-x-2">
-        {user.role !== 'superAdmin' && (
-          <button
-            onClick={() => onToggleStatus(user.id, !user.isActive)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            title={user.isActive ? "Deactivate user" : "Activate user"}
-          >
-            {user.isActive ? (
-              <FaUserSlash className="text-yellow-500" />
+const UserRow: React.FC<{ 
+  user: User; 
+  onToggleStatus: (userId: string, isActive: boolean) => void;
+  onChangePlan: (userId: string, planName: string) => void;
+}> = ({ user, onToggleStatus, onChangePlan }) => {
+  const [showPlanMenu, setShowPlanMenu] = useState(false);
+  
+  return (
+    <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+      <td className="px-4 py-3 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-10 w-10">
+            {user.avatar ? (
+              <img 
+                className="h-10 w-10 rounded-full" 
+                src={`${API_BASE_URL}${user.avatar}`} 
+                alt={user.name || 'User'} 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/default-avatar.png';
+                }}
+              />
             ) : (
-              <FaUserCheck className="text-green-500" />
+              <div className="bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 flex items-center justify-center text-gray-400">
+                <FaUser />
+              </div>
             )}
-          </button>
-        )}
-      </div>
-    </td>
-  </tr>
-);
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px]">
+              {user.name || 'Unnamed User'}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
+              {user.email || 'No email'}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        {renderRoleBadge(user.role)}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        {renderStatusBadge(user.isActive)}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        {renderPlanBadge(user.activeSubscription)}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+        <div className="flex justify-end space-x-2">
+          {user.role !== 'superAdmin' && (
+            <button
+              onClick={() => onToggleStatus(user.id, !user.isActive)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+              title={user.isActive ? "Deactivate user" : "Activate user"}
+            >
+              {user.isActive ? (
+                <FaUserSlash className="text-yellow-500" />
+              ) : (
+                <FaUserCheck className="text-green-500" />
+              )}
+            </button>
+          )}
+          
+          {/* Menu déroulant pour changer le plan */}
+          <div className="relative">
+            <button
+              onClick={() => setShowPlanMenu(!showPlanMenu)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+              title="Change user plan"
+            >
+              <FaEllipsisV />
+            </button>
+            
+            {showPlanMenu && (
+              <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      onChangePlan(user.id, 'free');
+                      setShowPlanMenu(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Free Plan
+                  </button>
+                  <button
+                    onClick={() => {
+                      onChangePlan(user.id, 'basic');
+                      setShowPlanMenu(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Basic Plan
+                  </button>
+                  <button
+                    onClick={() => {
+                      onChangePlan(user.id, 'pro');
+                      setShowPlanMenu(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Pro Plan
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const UserTable: React.FC<UserTableProps> = ({
   filteredUsers,
   hasActiveFilters,
-  onToggleStatus
+  onToggleStatus,
+  onChangePlan
 }) => {
-   console.log(filteredUsers);
   return (
     <div className="overflow-x-auto rounded-lg shadow">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -169,6 +220,7 @@ const UserTable: React.FC<UserTableProps> = ({
                 key={user.id}
                 user={user}
                 onToggleStatus={onToggleStatus}
+                onChangePlan={onChangePlan}
               />
             ))
           ) : (

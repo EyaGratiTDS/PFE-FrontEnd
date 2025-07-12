@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FaSearch, FaFilter, FaPlus, FaFileExport } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { authService } from '../../services/api';
+import { authService, subscriptionService, planService } from '../../services/api';
 import LoadingSpinner from '../../Loading/LoadingSpinner';
 import { User } from '../../services/user';
 import StatsCards from '../../cards/StatsCard';
@@ -13,6 +13,7 @@ import Pagination from '../../atoms/Pagination/Pagination';
 import ActiveFilters from '../../cards/ActiveFilters';
 import UserCharts from '../../atoms/Charts/UserCharts';
 import AddUserModal from '../../modals/AddUserModal';
+import AssignPlanModal from '../../modals/AssignPlanModal';
 
 export interface ActiveFilters {
   status: string;
@@ -28,6 +29,7 @@ const ListUsers: React.FC = () => {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showAssignPlanModal, setShowAssignPlanModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
@@ -35,6 +37,9 @@ const ListUsers: React.FC = () => {
     verified: 'all',
     search: ''
   });
+  
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string>('');
   
   const [stats, setStats] = useState({
     total: 0,
@@ -92,7 +97,12 @@ const ListUsers: React.FC = () => {
         if (response.data) {
           const userData = response.data;
           if (Array.isArray(userData)) {
-            setAllUsers(userData);
+            // Convertir tous les IDs en string pour la cohérence
+            const usersWithStringIds = userData.map(user => ({
+              ...user,
+              id: user.id.toString()
+            }));
+            setAllUsers(usersWithStringIds);
           } else {
             setAllUsers([]);
             console.error('Invalid user data format:', userData);
@@ -231,6 +241,114 @@ const ListUsers: React.FC = () => {
     }
   };
 
+  const handleChangePlan = async (userId: string, planName: string) => {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+    
+    // Si c'est le plan free, assigner directement sans ouvrir le modal
+    if (planName.toLowerCase() === 'free') {
+      await assignPlanDirectly(userId, planName);
+    } else {
+      setSelectedUser(user);
+      setSelectedPlan(planName);
+      setShowAssignPlanModal(true);
+    }
+  };
+
+  const assignPlanDirectly = async (userId: string, planName: string) => {
+    try {
+      const plansResponse = await planService.getAllPlans();
+      const plans = Array.isArray(plansResponse.data) ? plansResponse.data : [];
+      
+      if (plans.length === 0) {
+        toast.error('No plans found');
+        return;
+      }
+      
+      const plan = plans.find(p => p.name.toLowerCase() === planName.toLowerCase());
+      
+      if (!plan) {
+        toast.error(`Plan ${planName} not found`);
+        return;
+      }
+      
+      await subscriptionService.assignPlan(
+        parseInt(userId),
+        plan.id,
+        'unlimited'
+      );
+      
+      // Recharger les utilisateurs après assignation
+      setLoading(true);
+      const response = await authService.getAllUsers();
+      
+      if (response.data && Array.isArray(response.data)) {
+        const usersWithStringIds = response.data.map(user => ({
+          ...user,
+          id: user.id.toString()
+        }));
+        setAllUsers(usersWithStringIds);
+      }
+      
+      toast.success(`Plan ${planName} assigned successfully`);
+    } catch (error) {
+      console.error('Failed to assign plan', error);
+      toast.error('Failed to assign plan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAssignPlan = async (duration: string, unit?: 'days' | 'months' | 'years') => {
+    if (!selectedUser) return;
+    
+    try {
+      const plansResponse = await planService.getAllPlans();
+      const plans = Array.isArray(plansResponse.data) ? plansResponse.data : [];
+      
+      if (plans.length === 0) {
+        toast.error('No plans found');
+        return;
+      }
+      
+      const plan = plans.find(p => 
+        p.name.toLowerCase() === selectedPlan.toLowerCase()
+      );
+      
+      if (!plan) {
+        toast.error(`Plan ${selectedPlan} not found`);
+        return;
+      }
+      
+      await subscriptionService.assignPlan(
+        parseInt(selectedUser.id),
+        plan.id,
+        duration,
+        unit
+      );
+      
+      // Recharger les utilisateurs après assignation
+      setLoading(true);
+      const response = await authService.getAllUsers();
+      
+      if (response.data && Array.isArray(response.data)) {
+        const usersWithStringIds = response.data.map(user => ({
+          ...user,
+          id: user.id.toString()
+        }));
+        setAllUsers(usersWithStringIds);
+      }
+      
+      toast.success(`Plan ${selectedPlan} assigned successfully to ${selectedUser.name}`);
+      setShowAssignPlanModal(false);
+    } catch (error) {
+      console.error('Failed to assign plan', error);
+      toast.error('Failed to assign plan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatUserData = (user: User) => ({
     ID: user.id,
     Name: user.name,
@@ -319,7 +437,13 @@ const ListUsers: React.FC = () => {
     try {
       const createdUser = await authService.createUser(newUser);
       
-      setAllUsers(prev => [createdUser, ...prev]);
+      // Convertir l'ID en string pour la cohérence
+      const userWithStringId = {
+        ...createdUser,
+        id: createdUser.id.toString()
+      };
+      
+      setAllUsers(prev => [userWithStringId, ...prev]);
       
       toast.success('User created successfully!');
       setShowAddUserModal(false);
@@ -450,6 +574,7 @@ const ListUsers: React.FC = () => {
         filteredUsers={currentPageUsers}
         hasActiveFilters={hasActiveFilters()}
         onToggleStatus={toggleUserStatus}
+        onChangePlan={handleChangePlan}
       />
 
       <UserCharts users={allUsers} />
@@ -467,7 +592,13 @@ const ListUsers: React.FC = () => {
         onClose={() => setShowAddUserModal(false)}
         onCreateUser={handleCreateUser}
       />
-    </div>
+
+      <AssignPlanModal
+        isOpen={showAssignPlanModal}
+        onClose={() => setShowAssignPlanModal(false)}
+        onAssignPlan={handleAssignPlan}
+        planName={selectedPlan}
+      /> </div>
   );
 };
 

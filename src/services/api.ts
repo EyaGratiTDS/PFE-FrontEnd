@@ -387,6 +387,26 @@ export const ApiKeyService = {
 
   revokeApiKey: (id: number): Promise<ApiResponse<{ success: boolean }>> =>
     api.delete(`/apikey/${id}`).then(res => res.data),
+
+  listAllApiKeys: async () => {
+    try {
+      const response = await api.get('/apikey/all');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting apiKeys with user information:', error);
+      throw error;
+    }
+  },
+
+  toggleApiKeyStatus: async (id: number) => {
+    try {
+      const response = await api.put(`/apikey/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error toggling active status for apiKey ${id}:`, error);
+      throw error;
+    }
+  }
 };
 
 export const planService = {
@@ -532,7 +552,27 @@ export const subscriptionService = {
       console.error(`Error toggling blocked status for subscription ${id}:`, error);
       throw error;
     }
-  }
+  },
+
+   assignPlan: async (
+    userId: number, 
+    planId: number, 
+    duration: string, 
+    unit?: 'days' | 'months' | 'years'
+  ): Promise<ApiResponse<Subscription>> => {
+    try {
+      const response = await api.post('/subscription/assign', {
+        userId,
+        planId,
+        duration,
+        unit
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error assigning plan ${planId} to user ${userId}:`, error);
+      throw error;
+    }
+  },
 };
 
 export const notificationService = {

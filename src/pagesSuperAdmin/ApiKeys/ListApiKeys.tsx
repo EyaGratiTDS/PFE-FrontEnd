@@ -2,23 +2,24 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FaSearch, FaFilter, FaFileExport } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { subscriptionService } from '../../services/api';
+import { ApiKeyService } from '../../services/api';
 import LoadingSpinner from '../../Loading/LoadingSpinner';
-import StatsCardsSubscriptions from '../../cards/StatsCardsSubscriptions';
-import FilterMenuSubscriptions from '../../cards/FilterMenuSubscriptions';
+import StatsCardsApiKeys from '../../cards/StatsCardsApiKeys';
+import FilterMenuApiKeys from '../../cards/FilterMenuApiKeys';
 import ExportMenu from '../../cards/ExportMenu';
-import SubscriptionTable from '../../atoms/Tables/SubscriptionTable';
-import ActiveFiltersSubscriptions from '../../cards/ActiveFiltersSubscriptions';
-import SubscriptionCharts from '../../atoms/Charts/SubscriptionCharts';
-import { Subscriptions } from '../../services/Subscription';
+import ApiKeyTable from '../../atoms/Tables/ApiKeysTable';
+import ActiveFiltersApiKeys from '../../cards/ActiveFiltersApiKeys';
+import ApiKeyCharts from '../../atoms/Charts/ApiKeyCharts';
+import { ApiKey } from '../../services/ApiKey';
+import Pagination from '../../atoms/Pagination/Pagination';
 
 export interface ActiveFilters {
   status: string;
   search: string;
 }
 
-const ListSubscriptions: React.FC = () => {
-  const [allSubscriptions, setAllSubscriptions] = useState<Subscriptions[]>([]);
+const ListApiKeys: React.FC = () => {
+  const [allApiKeys, setAllApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -31,9 +32,7 @@ const ListSubscriptions: React.FC = () => {
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
-    expired: 0,
-    canceled: 0,
-    pending: 0
+    disabled: 0
   });
   
   const itemsPerPage = 10;
@@ -42,18 +41,16 @@ const ListSubscriptions: React.FC = () => {
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (allSubscriptions.length > 0) {
-      const total = allSubscriptions.length;
-      const active = allSubscriptions.filter(sub => sub.status === 'active').length;
-      const expired = allSubscriptions.filter(sub => sub.status === 'expired').length;
-      const canceled = allSubscriptions.filter(sub => sub.status === 'canceled').length;
-      const pending = allSubscriptions.filter(sub => sub.status === 'pending').length;
+    if (allApiKeys.length > 0) {
+      const total = allApiKeys.length;
+      const active = allApiKeys.filter(key => key.isActive).length;
+      const disabled = total - active;
       
-      setStats({ total, active, expired, canceled, pending });
+      setStats({ total, active, disabled });
     } else {
-      setStats({ total: 0, active: 0, expired: 0, canceled: 0, pending: 0 });
+      setStats({ total: 0, active: 0, disabled: 0 });
     }
-  }, [allSubscriptions]);
+  }, [allApiKeys]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,45 +73,48 @@ const ListSubscriptions: React.FC = () => {
   }, [showFilterMenu, showExportMenu]);
 
   useEffect(() => {
-    const fetchSubscriptions = async () => {
+    const fetchApiKeys = async () => {
       try {
         setLoading(true);
-        const response = await subscriptionService.getSubscriptions();
-        
+        const response = await ApiKeyService.listAllApiKeys();
         if (response.success && Array.isArray(response.data)) {
-          setAllSubscriptions(response.data);
+          setAllApiKeys(response.data);
         } else {
-          setAllSubscriptions([]);
-          toast.error('Received invalid subscription data format');
+          setAllApiKeys([]);
+          toast.error('Received invalid API key data format');
         }
       } catch (error) {
-        console.error('Failed to fetch subscriptions', error);
-        toast.error('Failed to load subscriptions. Please try again.');
-        setAllSubscriptions([]);
+        console.error('Failed to fetch API keys', error);
+        toast.error('Failed to load API keys. Please try again.');
+        setAllApiKeys([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSubscriptions();
+    fetchApiKeys();
   }, []);
 
-  const filteredSubscriptions = useMemo(() => {
-    if (!allSubscriptions || allSubscriptions.length === 0) return [];
+  const filteredApiKeys = useMemo(() => {
+    if (!allApiKeys || allApiKeys.length === 0) return [];
 
-    let result = [...allSubscriptions];
+    let result = [...allApiKeys];
     
     if (activeFilters.search) {
       const searchTerm = activeFilters.search.toLowerCase();
-      result = result.filter(sub => 
-        (sub.user?.name?.toLowerCase().includes(searchTerm) || 
-        (sub.user?.email?.toLowerCase().includes(searchTerm) ||
-        (sub.plan?.name?.toLowerCase().includes(searchTerm))
-      )));
+      result = result.filter(key => 
+        (key.Users?.name?.toLowerCase().includes(searchTerm)) || 
+        (key.Users?.email?.toLowerCase().includes(searchTerm)) || 
+        (key.name?.toLowerCase().includes(searchTerm))
+      );
     }
     
     if (activeFilters.status !== 'all') {
-      result = result.filter(sub => sub.status === activeFilters.status);
+      if (activeFilters.status === 'active') {
+        result = result.filter(key => key.isActive);
+      } else if (activeFilters.status === 'disabled') {
+        result = result.filter(key => !key.isActive);
+      }
     }
     
     result.sort((a, b) => {
@@ -124,16 +124,16 @@ const ListSubscriptions: React.FC = () => {
     });
     
     return result;
-  }, [activeFilters, allSubscriptions]);
+  }, [activeFilters, allApiKeys]);
 
-  const totalPages = Math.ceil((filteredSubscriptions?.length || 0) / itemsPerPage);
-  const currentPageSubscriptions = useMemo(() => {
-    if (!filteredSubscriptions || filteredSubscriptions.length === 0) return [];
+  const totalPages = Math.ceil((filteredApiKeys?.length || 0) / itemsPerPage);
+  const currentPageApiKeys = useMemo(() => {
+    if (!filteredApiKeys || filteredApiKeys.length === 0) return [];
     
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredSubscriptions.slice(startIndex, endIndex);
-  }, [filteredSubscriptions, currentPage, itemsPerPage]);
+    return filteredApiKeys.slice(startIndex, endIndex);
+  }, [filteredApiKeys, currentPage, itemsPerPage]);
 
   const handleFilterChange = (filterType: keyof ActiveFilters, value: string) => {
     setActiveFilters(prev => ({
@@ -160,103 +160,139 @@ const ListSubscriptions: React.FC = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  const formatSubscriptionData = (sub: Subscriptions) => ({
-    ID: sub.id,
-    'User Name': sub.user?.name || 'N/A',
-    'User Email': sub.user?.email || 'N/A',
-    'Plan Name': sub.plan?.name || 'N/A',
-    'Plan Price': sub.plan?.price || 'N/A',
-    'Start Date': new Date(sub.start_date).toLocaleDateString(),
-    'End Date': new Date(sub.end_date).toLocaleDateString(),
-    Status: sub.status.charAt(0).toUpperCase() + sub.status.slice(1),
-    'Payment Method': sub.payment_method || 'N/A',
-    'Created At': new Date(sub.created_at).toLocaleString()
-  });
+  const formatApiKeyData = (key: ApiKey) => {
+    return {
+      ID: key.id,
+      Name: key.name || 'N/A',
+      'User Name': key.Users?.name || 'N/A',
+      'User Email': key.Users?.email || 'N/A',
+      Prefix: key.prefix || 'N/A',
+      Scopes: (Array.isArray(key.scopes) ? key.scopes.join(', ') : 'N/A'),
+      'Created At': key.created_at ? new Date(key.created_at).toLocaleString() : 'N/A',
+      Status: key.isActive ? 'Active' : 'Disabled'
+    };
+  };
 
   const handleExport = (format: 'csv' | 'json') => {
-    if (exporting || !filteredSubscriptions || filteredSubscriptions.length === 0) return;
+    if (exporting) return;
     
+    if (!filteredApiKeys || filteredApiKeys.length === 0) {
+      toast.warning('No data to export');
+      return;
+    }
+
     try {
       setExporting(true);
       setShowExportMenu(false);
       
       const date = new Date().toISOString().slice(0, 10);
-      const filename = `subscriptions_export_${date}`;
+      const filename = `apikeys_export_${date}`;
+      
+      const formattedData = filteredApiKeys.map(formatApiKeyData);
       
       if (format === 'csv') {
-        exportToCsv(filteredSubscriptions.map(formatSubscriptionData), filename);
+        exportToCsv(formattedData, filename);
       } else {
-        exportToJson(filteredSubscriptions.map(formatSubscriptionData), filename);
+        exportToJson(formattedData, filename);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export error:', error);
-      toast.error('Export failed');
+      toast.error(`Export failed: ${error.message || 'Unknown error'}`);
     } finally {
       setExporting(false);
     }
   };
 
   const exportToCsv = (data: any[], filename: string) => {
-    if (!data || data.length === 0) return;
-    
-    const csvContent = [
-      Object.keys(data[0]).join(','),
-      ...data.map(row => 
-        Object.values(row).map(value => 
-          typeof value === 'string' && value.includes(',') 
-            ? `"${value.replace(/"/g, '""')}"` 
-            : value
-        ).join(',')
-      )
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('CSV export completed successfully');
+    try {
+      if (!data || data.length === 0) {
+        toast.warning('No data to export');
+        return;
+      }
+      
+      const header = Object.keys(data[0]).join(',');
+      
+      const rows = data.map(row => 
+        Object.values(row).map(value => {
+          const stringValue = typeof value === 'string' ? value : String(value);
+          const escapedValue = stringValue.replace(/"/g, '""');
+          
+          if (/[,"\n]/.test(escapedValue)) {
+            return `"${escapedValue}"`;
+          }
+          return escapedValue;
+        }).join(',')
+      );
+      
+      const csvContent = [header, ...rows].join('\r\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filename}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      toast.success('CSV export completed successfully');
+    } catch (error: any) {
+      console.error('CSV export error:', error);
+      toast.error(`CSV export failed: ${error.message || 'Unknown error'}`);
+      throw error;
+    }
   };
 
   const exportToJson = (data: any[], filename: string) => {
-    if (!data || data.length === 0) return;
-    
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.json`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('JSON export completed successfully');
+    try {
+      if (!data || data.length === 0) {
+        toast.warning('No data to export');
+        return;
+      }
+      
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filename}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      toast.success('JSON export completed successfully');
+    } catch (error: any) {
+      console.error('JSON export error:', error);
+      toast.error(`JSON export failed: ${error.message || 'Unknown error'}`);
+      throw error;
+    }
   };
 
-  const handleCancelSubscription = async (subscriptionId: number) => {
+  const handleToggleApiKey = async (apiKeyId: number) => {
     try {
-      setLoading(true);
-      await subscriptionService.cancelSubscriptionByAdmin(subscriptionId);
+      const apiKeyToUpdate = allApiKeys.find(key => key.id === apiKeyId);
+      if (!apiKeyToUpdate) {
+        toast.error('API key not found');
+        return;
+      }
+      const wasActive = apiKeyToUpdate.isActive;
+
+      await ApiKeyService.toggleApiKeyStatus(apiKeyId);
       
-      setAllSubscriptions(prev => 
-        prev.map(sub => 
-          sub.id === subscriptionId ? { ...sub, status: 'canceled' } : sub
+      setAllApiKeys(prev => 
+        prev.map(key => 
+          key.id === apiKeyId ? { ...key, isActive: !wasActive } : key
         )
       );
-      
-      toast.success('Subscription canceled successfully');
     } catch (error) {
-      console.error('Failed to cancel subscription', error);
-      toast.error('Failed to cancel subscription');
-    } finally {
-      setLoading(false);
+      console.error('Failed to toggle API key status', error);
+      throw error;
     }
   };
 
@@ -281,9 +317,9 @@ const ListSubscriptions: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Subscriptions</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">API Keys</h1>
           <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
-            Manage all subscriptions
+            Manage all API keys
           </p>
         </div>
 
@@ -294,7 +330,7 @@ const ListSubscriptions: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Search by user, plan..."
+              placeholder="Search by user, name..."
               className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base"
               value={activeFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -320,7 +356,7 @@ const ListSubscriptions: React.FC = () => {
               </button>
 
               {showFilterMenu && (
-                <FilterMenuSubscriptions 
+                <FilterMenuApiKeys 
                   ref={filterMenuRef}
                   activeFilters={activeFilters}
                   onFilterChange={handleFilterChange}
@@ -335,7 +371,7 @@ const ListSubscriptions: React.FC = () => {
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 aria-label="Export options"
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                disabled={exporting || !filteredSubscriptions || filteredSubscriptions.length === 0}
+                disabled={exporting || !filteredApiKeys || filteredApiKeys.length === 0}
               >
                 <FaFileExport className={`text-purple-500 text-sm sm:text-base ${exporting ? 'opacity-50' : ''}`} />
               </button>
@@ -351,27 +387,34 @@ const ListSubscriptions: React.FC = () => {
         </div>
       </div>
 
-      <StatsCardsSubscriptions stats={stats} />
+      <StatsCardsApiKeys stats={stats} />
       
       {hasActiveFilters() && (
-        <ActiveFiltersSubscriptions 
+        <ActiveFiltersApiKeys 
           activeFilters={activeFilters} 
           resetFilters={resetFilters} 
         />
       )}
 
-      <SubscriptionTable
-        subscriptions={currentPageSubscriptions}
+      <ApiKeyTable
+        apiKeys={currentPageApiKeys}
         hasActiveFilters={hasActiveFilters()}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={paginate}
-        onCancelSubscription={handleCancelSubscription}
+        onToggleApiKey={handleToggleApiKey}
       />
 
-      <SubscriptionCharts subscriptions={allSubscriptions} />
+      <ApiKeyCharts apiKeys={allApiKeys} />
+
+      {filteredApiKeys && filteredApiKeys.length > 0 && totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={paginate}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
-export default ListSubscriptions;
+export default ListApiKeys;
