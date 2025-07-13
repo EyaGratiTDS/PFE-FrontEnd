@@ -100,6 +100,7 @@ const EditVCard: React.FC = () => {
     remove_branding: false,
     qr_code: "",
     views: 0,
+    status: true,
     projectId: 0,
     is_share: true,
     is_downloaded: true,

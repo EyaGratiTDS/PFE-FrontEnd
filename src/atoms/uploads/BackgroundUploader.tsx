@@ -17,7 +17,6 @@ const BackgroundUploader: React.FC<BackgroundUploaderProps> = ({
 
   return (
     <div className="relative group">
-      {/* Zone de dépôt stylisée */}
       <div 
         className={`relative rounded-xl border-2 border-dashed ${imagePreview ? 'border-transparent' : 'border-gray-300 dark:border-gray-600 group-hover:border-primary'} transition-all duration-300 overflow-hidden h-64 w-full cursor-pointer`}
         onClick={handleClick}
@@ -78,7 +77,6 @@ const BackgroundUploader: React.FC<BackgroundUploaderProps> = ({
           </svg>
         </button>
       )}
-      {/* Input file caché */}
       <input
         type="file"
         ref={fileInputRef}

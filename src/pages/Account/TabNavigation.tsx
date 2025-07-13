@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaUserCog, FaCog, FaHistory, FaCreditCard, FaKey } from 'react-icons/fa';
 
-interface Tab {
+export interface Tab {
   id: string;
   label: string;
   icon: React.ReactNode;

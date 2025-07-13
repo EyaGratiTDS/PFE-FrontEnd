@@ -5,8 +5,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   FaFileExport, 
-  FaAngleLeft, 
-  FaAngleRight,
   FaFilter,
   FaTimes,
   FaSearch
@@ -15,6 +13,7 @@ import ReactCountryFlag from "react-country-flag";
 import FilterCardLogs from './../../cards/FilterCardLogs';
 import { countryCodeMap } from './../../services/countries';
 import ExportMenu from '../../cards/ExportMenu'; 
+import Pagination from '../../atoms/Pagination/Pagination';
 
 interface DateRange {
   start: Date | undefined;
@@ -214,7 +213,7 @@ const ActivityLogs = () => {
       return countryCodeMap[lowerLastPart];
     }
   
-    const parenMatch = lastPart.match(/\(([A-Z]{2})\)/);
+    const parenMatch = lastPart.match(/\(([A-Z]{2)\)/);
     if (parenMatch) {
       return parenMatch[1];
     }
@@ -537,49 +536,12 @@ const ActivityLogs = () => {
             </div>
       
             {totalPages > 1 && (
-              <div className="flex justify-center mt-4">
-                <nav className="inline-flex rounded-md shadow-sm">
-                  <button
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className={`px-3 py-1.5 rounded-l-md border border-gray-300 dark:border-gray-600 ${
-                      currentPage === 1
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <FaAngleLeft className="h-3 w-3" />
-                  </button>
-
-                  {/* Cache les numéros de page sur mobile */}
-                  <div className="hidden sm:flex">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                      <button
-                        key={number}
-                        onClick={() => paginate(number)}
-                        className={`px-3 py-1.5 border-t border-b border-gray-300 dark:border-gray-600 ${
-                          currentPage === number
-                            ? 'bg-purple-500 text-white border-purple-500'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {number}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className={`px-3 py-1.5 rounded-r-md border border-gray-300 dark:border-gray-600 ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <FaAngleRight className="h-3 w-3" />
-                  </button>
-                </nav>
+              <div className="mt-4">
+                <Pagination 
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={paginate}
+                />
               </div>
             )}
           </div>

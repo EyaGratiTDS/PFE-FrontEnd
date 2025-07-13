@@ -2,12 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FaPlus,
   FaFilter,
-  FaAngleLeft,
-  FaAngleRight,
   FaTimes,
   FaChartLine,
-  FaCalendarAlt,
   FaFileExport,
+  FaCalendarAlt,
 } from 'react-icons/fa';
 import { FiSearch } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,6 +21,7 @@ import { Pixel } from '../../services/Pixel';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ExportMenu from '../../cards/ExportMenu'; 
+import Pagination from '../../atoms/Pagination/Pagination'; // Import du composant Pagination
 
 const downloadFile = (blob: Blob, fileName: string) => {
   const url = URL.createObjectURL(blob);
@@ -513,23 +512,35 @@ const PixelPage: React.FC = () => {
         </div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="grid grid-cols-1 xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
-      >
-        <AnimatePresence>
-          {currentCards.map(pixel => (
-            <PixelItem
-              key={pixel.id}
-              pixel={pixel}
-              onDelete={() => handleDeletePixel(pixel.id)}
-            />
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {filteredPixels.length > 0 ? (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-1 xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+          >
+            <AnimatePresence>
+              {currentCards.map(pixel => (
+                <PixelItem
+                  key={pixel.id}
+                  pixel={pixel}
+                  onDelete={() => handleDeletePixel(pixel.id)}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
 
-      {filteredPixels.length === 0 && (
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={paginate}
+              />
+            </div>
+          )}
+        </>
+      ) : (
         <EmptyState
           title={searchTerm || hasActiveFilters() 
             ? "No pixels match your filters" 
@@ -541,52 +552,6 @@ const PixelPage: React.FC = () => {
           actionLink="/admin/pixel/create"
           icon={<FaChartLine size={40} />}
         />
-      )}
-
-      {totalPages > 1 && (
-        <div className="flex justify-end mt-8">
-          <nav className="flex items-center gap-1">
-            <button
-              onClick={() => paginate(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className={`p-2 rounded-md flex items-center justify-center ${
-                currentPage === 1
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-              }`}
-            >
-              <FaAngleLeft className="h-4 w-4" />
-            </button>
-
-            <div className="flex items-center gap-1 mx-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                <button
-                  key={number}
-                  onClick={() => paginate(number)}
-                  className={`w-8 h-8 text-sm rounded-md flex items-center justify-center ${
-                    currentPage === number
-                      ? 'bg-purple-500 text-white font-medium'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                  }`}
-                >
-                  {number}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded-md flex items-center justify-center ${
-                currentPage === totalPages
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-              }`}
-            >
-              <FaAngleRight className="h-4 w-4" />
-            </button>
-          </nav>
-        </div>
       )}
     </div>
   );

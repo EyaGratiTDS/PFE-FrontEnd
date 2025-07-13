@@ -19,7 +19,7 @@ const AccountLayout = () => {
     name: '',
     email: '',
     avatar: '',
-    created_at: '',
+    createdAt: '',
     updated_at: '',
     role: 'user' 
   });
@@ -94,22 +94,6 @@ const AccountLayout = () => {
       console.error('Update error:', error);
     }
   };
-
-  /*useEffect(() => {
-    if (loading || filteredTabs.length === 0) return;
-
-    const pathSegments = location.pathname.split('/');
-    const accountSegmentIndex = pathSegments.indexOf('account') + 1;
-    const currentTabId = pathSegments[accountSegmentIndex] || 'account';
-
-    const currentTab = filteredTabs.find(tab => tab.id === currentTabId);
-    
-    if (currentTab) {
-      setActiveTab(currentTab.id);
-    } else {
-      navigate(`${basePath}/account`, { replace: true });
-    }
-  }, [location.pathname, loading, filteredTabs, navigate, basePath]);*/
 
   useEffect(() => {
     const currentTab = filteredTabs.find(tab => location.pathname === tab.path);

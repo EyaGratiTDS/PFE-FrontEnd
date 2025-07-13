@@ -87,7 +87,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
               </div>
             </div>
 
-            {/* User Details */}
             <div className="ml-24 sm:ml-36 pt-1 space-y-1 sm:space-y-2">
               <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
                 {userData.name || 'Your Name'}
@@ -114,11 +113,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
           </div>
         </div>
 
-        {/* Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
-          {/* Left Column */}
           <div className="md:col-span-1">
-            {/* About Card */}
             <div className={`${colorMode === 'light' ? 'card' : ''} bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6`}>
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center">
                 <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-500" />

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { pixelService } from '../services/api';
 import { PixelEventParams } from '../services/Pixel';
-import { trackMetaEvent, mapToMetaEvent } from '../utils/metaPixel';
+import { trackMetaEvent, mapToMetaEvent } from '../utils/MetaPixel';
 
 const usePixelTracker = (pixelId: string | null, active: boolean, metaPixelId?: string | null) => {
   const scrollDepth = useRef<number>(0);
@@ -12,8 +12,7 @@ const usePixelTracker = (pixelId: string | null, active: boolean, metaPixelId?: 
   const trackEvent = (params: PixelEventParams) => {
     if (!active || !pixelId || !params.eventType) return;
 
-    // Ne pas tracker si la page n'est pas visible (sauf pour les événements de visibilité)
-    if (!pageVisibilityRef.current && !params.eventType.includes('page_')) return;
+   if (!pageVisibilityRef.current && !params.eventType.includes('page_')) return;
 
     try {
       pixelService.trackEvent(pixelId, params);
@@ -26,7 +25,6 @@ const usePixelTracker = (pixelId: string | null, active: boolean, metaPixelId?: 
     }
   };
 
-  // Gérer la visibilité de la page
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;

@@ -6,6 +6,7 @@ export interface Pixel {
   created_at: string;
   trackingUrl: string;
   metaPixelId?: string | null;
+  isDisabled?: boolean;
   vcard?: {
     id: string;
     name: string;

@@ -1,10 +1,10 @@
 import React from 'react';
 import EmptyState from '../../cards/EmptyState';
-import { Subscription } from '../../services/Subscription';
+import { Subscriptions } from '../../services/Subscription';
 import Pagination from '../Pagination/Pagination';
 
 interface SubscriptionTableProps {
-  subscriptions: Subscription[];
+  subscriptions: Subscriptions[];
   hasActiveFilters: boolean;
   currentPage: number;
   totalPages: number;
@@ -43,7 +43,7 @@ const renderStatusBadge = (status: string) => {
 };
 
 const SubscriptionRow: React.FC<{ 
-  subscription: Subscription; 
+  subscription: Subscriptions; 
   onCancelSubscription: (subscriptionId: number) => void;
 }> = ({ subscription, onCancelSubscription }) => {
   const userName = subscription.user?.name || 'N/A';

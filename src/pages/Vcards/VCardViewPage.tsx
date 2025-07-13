@@ -222,7 +222,7 @@ const ViewVCard: React.FC = () => {
 
             if (activePixel && activePixel.metaPixelId) {
               try {
-                const { initMetaPixel } = await import('../../utils/metaPixel');
+                const { initMetaPixel } = await import('../../utils/MetaPixel');
                 initMetaPixel(activePixel.metaPixelId);
                 console.log('Meta Pixel initialized:', activePixel.metaPixelId);
               } catch (metaError) {

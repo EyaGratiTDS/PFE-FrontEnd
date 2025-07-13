@@ -10,7 +10,7 @@ interface CheckboxProps {
 
 const Checkbox: React.FC<CheckboxProps> = ({ name, checked = false, onChange, label }) => {
   return (
-    <div className="mb-3"> {/* Ajout d'une marge en bas pour chaque checkbox */}
+    <div className="mb-3"> 
       <label className="inline-flex items-center cursor-pointer">
         <input
           type="checkbox"

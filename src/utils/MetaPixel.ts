@@ -7,7 +7,6 @@ declare global {
 export const initMetaPixel = (pixelId: string) => {
   if (!pixelId) return;
 
-  // Créer le script Meta Pixel
   const script = document.createElement('script');
   script.innerHTML = `
     !function(f,b,e,v,n,t,s)
@@ -23,7 +22,6 @@ export const initMetaPixel = (pixelId: string) => {
   `;
   document.head.appendChild(script);
 
-  // Ajouter la balise noscript
   const noscript = document.createElement('noscript');
   const img = document.createElement('img');
   img.height = 1;
@@ -40,7 +38,6 @@ export const trackMetaEvent = (eventName: string, eventData?: Record<string, any
   }
 };
 
-// Mappage des événements
 export const mapToMetaEvent = (eventType: string) => {
   const mapping: Record<string, string> = {
     'view': 'ViewContent',

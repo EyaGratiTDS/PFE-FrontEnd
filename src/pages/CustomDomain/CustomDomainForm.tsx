@@ -17,7 +17,7 @@ const CustomDomainForm: React.FC = () => {
     custom_index_url: "",
     custom_not_found_url: "",
     vcardId: "",
-    status: "pending" as "pending" | "active" | "failed" | "disabled",
+    status: "pending" as "pending" | "active" | "failed" | "blocked",
   });
 
   const [vcards, setVcards] = useState<VCard[]>([]);

@@ -10,19 +10,16 @@ interface UserChartsProps {
 }
 
 const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
-  const [textColor, setTextColor] = useState('#374151'); // Default to light mode color
+  const [textColor, setTextColor] = useState('#374151'); 
 
-  // Fonction pour détecter le changement de mode
   useEffect(() => {
     const updateTextColor = () => {
       const isDarkMode = document.documentElement.classList.contains('dark');
       setTextColor(isDarkMode ? '#f3f4f6' : '#374151');
     };
 
-    // Initial detection
     updateTextColor();
 
-    // Observer for theme changes
     const observer = new MutationObserver(updateTextColor);
     observer.observe(document.documentElement, {
       attributes: true,

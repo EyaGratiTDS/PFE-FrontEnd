@@ -8,9 +8,9 @@ import { BlockType } from "./types";
 import { motion, AnimatePresence } from "framer-motion";
 import { Breadcrumb } from "react-bootstrap";
 import debounce from "lodash.debounce";
-import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import { Block } from "../../services/vcard";
+import Pagination from "../../atoms/Pagination/Pagination";
 
 interface DisplayBlock {
   id: string;
@@ -212,7 +212,7 @@ const BlocksPage: React.FC = () => {
 
   return (
     <div className="p-6 px-28 w-full max-w-[90rem] mx-auto div-block">
-    <ToastContainer
+      <ToastContainer
         position="top-right"
         autoClose={5000}
         hideProgressBar={false}
@@ -348,48 +348,12 @@ const BlocksPage: React.FC = () => {
             </AnimatePresence>
 
             {totalPages > 1 && (
-              <div className="flex justify-end mt-8">
-                <nav className="flex items-center gap-1">
-                  <button
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-md flex items-center justify-center ${
-                      currentPage === 1
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                    }`}
-                  >
-                    <FaAngleLeft className="h-4 w-4" />
-                  </button>
-
-                  <div className="flex items-center gap-1 mx-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                      <button
-                        key={number}
-                        onClick={() => paginate(number)}
-                        className={`w-8 h-8 text-sm rounded-md flex items-center justify-center ${
-                          currentPage === number
-                            ? 'bg-primary text-white font-medium'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                        }`}
-                      >
-                        {number}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-md flex items-center justify-center ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                    }`}
-                  >
-                    <FaAngleRight className="h-4 w-4" />
-                  </button>
-                </nav>
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={paginate}
+                />
               </div>
             )}
           </>

@@ -3,8 +3,6 @@ import {
   FaPlus,
   FaFileExport,
   FaFilter,
-  FaAngleLeft,
-  FaAngleRight,
   FaTimes,
 } from 'react-icons/fa';
 import { FiChevronRight, FiSearch } from 'react-icons/fi';
@@ -18,6 +16,7 @@ import { Breadcrumb } from 'react-bootstrap';
 import { VCard } from "../../services/vcard";
 import FilterCard from '../../cards/FilterCard';
 import ExportMenu from '../../cards/ExportMenu'; 
+import Pagination from '../../atoms/Pagination/Pagination'; 
 
 interface RawVCard {
   id?: string | number;
@@ -633,48 +632,12 @@ const VCardPage: React.FC = () => {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex justify-end mt-8">
-                <nav className="flex items-center gap-1">
-                  <button
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-md flex items-center justify-center ${
-                      currentPage === 1
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                    }`}
-                  >
-                    <FaAngleLeft className="h-4 w-4" />
-                  </button>
-
-                  <div className="flex items-center gap-1 mx-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                      <button
-                        key={number}
-                        onClick={() => paginate(number)}
-                        className={`w-8 h-8 text-sm rounded-md flex items-center justify-center ${
-                          currentPage === number
-                            ? 'bg-purple-500 text-white font-medium'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                        }`}
-                      >
-                        {number}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-md flex items-center justify-center ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                    }`}
-                  >
-                    <FaAngleRight className="h-4 w-4" />
-                  </button>
-                </nav>
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={paginate}
+                />
               </div>
             )}
           </>

@@ -16,6 +16,10 @@ interface UserWithSubscription extends User {
   subscription?: Subscription;
 }
 
+interface SubscriptionWithPlan extends Subscription {
+  plan?: Plan;
+}
+
 const normalizeFeatures = (plan: any): Plan => {
   if (!plan) return plan;
 
@@ -89,7 +93,7 @@ const AccountPlans: React.FC = () => {
     success: boolean;
     endDate?: string;
   }>({ loading: false, error: null, success: false });
-  const [subscriptionHistory, setSubscriptionHistory] = useState<Subscription[]>([]);
+  const [subscriptionHistory, setSubscriptionHistory] = useState<SubscriptionWithPlan[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -129,7 +133,7 @@ const AccountPlans: React.FC = () => {
             };
           })
         );
-        setSubscriptionHistory(subscriptionsWithPlans); 
+        setSubscriptionHistory(subscriptionsWithPlans);
       }
 
     } catch (err: unknown) {

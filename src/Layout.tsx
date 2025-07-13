@@ -1,20 +1,20 @@
+// Layout.tsx
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import NavBar from './templateBack/NavBar';
 import Sidebar from './templateBack/SideBar';
 
 interface LayoutProps {
-  role?: 'admin' | 'superAdmin';
+  role?: 'admin' | 'superAdmin'; 
 }
 
-const Layout: React.FC<LayoutProps> = ({ role }) => {
+const Layout: React.FC<LayoutProps> = ({ role = 'admin' }) => { 
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar 
-        key={role}
-        role={role}
+        role={role} 
         isSideMenuOpen={isSideMenuOpen} 
         setIsSideMenuOpen={setIsSideMenuOpen} 
       />
