@@ -56,7 +56,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon, title, value, color }) => {
   };
 
   return (
-    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full">
+    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full mobile-stat-item">
       <div 
         className={`p-3 mr-4 rounded-full ${colorClasses[color].text} ${colorClasses[color].bg}`}
       >
@@ -84,7 +84,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon, title, value, color }) => {
 };
 
 const PlanStatsCards: React.FC<{ stats: PlanStats }> = ({ stats }) => (
-  <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
+  <div className="grid gap-4 sm:gap-6 mb-6 sm:mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
     <StatCard 
       icon={<FaClipboardList className="w-5 h-5" />}
       title="Total Plans"

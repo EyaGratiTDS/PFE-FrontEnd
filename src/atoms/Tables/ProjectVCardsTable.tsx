@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaEye, FaImage, FaBan, FaCheck } from 'react-icons/fa';
+import { FaEye, FaImage, FaBan, FaCheck, FaAddressCard } from 'react-icons/fa';
 import { VCard } from '../../services/vcard';
 import { formatDate } from '../../services/dateUtils';
 import { API_BASE_URL } from '../../config/constants';
@@ -34,13 +34,89 @@ const renderBlockedBadge = (isBlocked: boolean) => {
   );
 };
 
-// Fonction utilitaire pour construire les URLs d'images
 const getImageUrl = (path: string | null | undefined): string => {
   if (!path) return '';
-  // Gère les URLs absolues (ex: http://...)
   if (path.startsWith('http')) return path;
-  // Construit une URL relative à la base API
   return `${API_BASE_URL}${path.startsWith('/') ? path : '/' + path}`;
+};
+
+const MobileVCardItem: React.FC<{ 
+  vcard: VCard; 
+  onToggleBlocked: (vcardId: string, isBlocked: boolean) => void;
+}> = ({ vcard, onToggleBlocked }) => {
+  return (
+    <div className="projectvcards-mobile-container-enlarged">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 projectvcards-mobile-item-enlarged mobile-card-content-enlarged">
+        <div className="flex justify-between items-start mobile-card-header-enlarged">
+          <div className="flex items-center space-x-3 flex-1 min-w-0 projectvcards-mobile-header-section">
+            <div className="flex-shrink-0">
+              {vcard.logo ? (
+                <img 
+                  src={getImageUrl(vcard.logo)} 
+                  alt={`${vcard.name} logo`}
+                  className="mobile-card-logo-enlarged rounded-full object-cover border border-gray-200"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="mobile-card-logo-enlarged rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <FaAddressCard className="text-white text-xl" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
+                {vcard.name}
+              </h3>
+              <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 projectvcards-mobile-card-description">
+                VCard • Views: {vcard.views || 0}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end space-y-1 projectvcards-mobile-badges-section">
+            {renderActiveBadge(vcard.is_active)}
+            {renderBlockedBadge(vcard.status)}
+          </div>
+        </div>
+
+        <div className="projectvcards-mobile-description-full">
+          <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-3">
+            <span className="font-medium">Created:</span> {vcard.createdAt ? formatDate(vcard.createdAt) : 'N/A'}
+          </div>
+        </div>
+
+        <div className="projectvcards-mobile-actions-bottom mobile-card-actions-enlarged">
+          <div className="flex justify-end space-x-2">
+            <a 
+              href={`/vcard/${vcard.url}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center mobile-action-btn-enlarged border border-gray-300 dark:border-gray-600 rounded-md font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              title="View vCard"
+            >
+              <FaEye className="mr-1" />
+              View
+            </a>
+            <button
+              onClick={() => onToggleBlocked(vcard.id, !vcard.status)}
+              className={`inline-flex items-center mobile-action-btn-enlarged border rounded-md font-medium ${
+                vcard.status 
+                  ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100 dark:border-green-600 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-800/30' 
+                  : 'border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-600 dark:text-red-400 dark:bg-red-900/20 dark:hover:bg-red-800/30'
+              }`}
+              title={vcard.status ? "Unblock" : "Block"}
+            >
+              {vcard.status ? <FaCheck className="mr-1" /> : <FaBan className="mr-1" />}
+              {vcard.status ? 'Unblock' : 'Block'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const VCardRow: React.FC<{ 
@@ -57,7 +133,6 @@ const VCardRow: React.FC<{
               alt={`${vcard.name} logo`}
               className="h-10 w-10 rounded-full object-cover border border-gray-200 block"
               onError={(e) => {
-                // Fallback si l'image ne charge pas
                 const target = e.target as HTMLImageElement;
                 target.onerror = null;
                 target.style.display = 'none';
@@ -144,67 +219,81 @@ const ProjectVCardsTable: React.FC<ProjectVCardsTableProps> = ({
   hasActiveFilters,
   onToggleBlocked
 }) => {
+  if (vcards.length === 0) {
+    return (
+      <div className="overflow-x-auto rounded-lg shadow w-full">
+        <div className="w-full bg-white dark:bg-gray-800 py-8 text-center rounded-lg">
+          <div className="text-gray-400 text-3xl mb-2">📇</div>
+          <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+            {hasActiveFilters 
+              ? "No VCards match your filters" 
+              : "No VCards found"}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto text-xs">
+            {hasActiveFilters
+              ? "Try adjusting your search or filters"
+              : "Create your first VCard to get started"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto rounded-lg shadow w-full max-w-full">
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead className="bg-gray-50 dark:bg-gray-800">
-          <tr>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Logo
-            </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Favicon
-            </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Name
-            </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Status
-            </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Blocked
-            </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Created
-            </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Views
-            </th>
-            <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          {vcards.length > 0 ? (
-            vcards.map((vcard) => (
+    <div className="w-full">
+      <div className="block md:hidden">
+        <div className="projectvcards-mobile-container">
+          {vcards.map((vcard) => (
+            <MobileVCardItem
+              key={vcard.id}
+              vcard={vcard}
+              onToggleBlocked={onToggleBlocked}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden md:block overflow-x-auto rounded-lg shadow w-full max-w-full">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Logo
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Favicon
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Name
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Blocked
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Created
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Views
+              </th>
+              <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {vcards.map((vcard) => (
               <VCardRow
                 key={vcard.id}
                 vcard={vcard}
                 onToggleBlocked={onToggleBlocked}
               />
-            ))
-          ) : (
-            <tr>
-              <td colSpan={8} className="px-6 py-12 text-center">
-                <div className="text-center py-4">
-                  <div className="text-gray-400 text-3xl mb-2">📇</div>
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                    {hasActiveFilters 
-                      ? "No VCards match your filters" 
-                      : "No VCards found"}
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto text-xs">
-                    {hasActiveFilters
-                      ? "Try adjusting your search or filters"
-                      : "Create your first VCard to get started"}
-                  </p>
-                </div>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

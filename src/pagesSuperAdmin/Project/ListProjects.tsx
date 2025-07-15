@@ -294,7 +294,7 @@ const ListProjects: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto">
+    <div className="p-4 pr-4 pb-4 pt-4 pl-2 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto mobile-no-left-padding">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -310,14 +310,14 @@ const ListProjects: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Project Management</h1>
-          <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Project Management</h1>
+          <p className="text-primary mt-1 sm:mt-2 text-xs sm:text-sm">
             View and manage all projects in the system
           </p>
         </div>
 
         <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[150px] sm:min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
             </div>
@@ -396,7 +396,9 @@ const ListProjects: React.FC = () => {
         onShowVcards={handleShowVcards}
       />
 
-      <ProjectCharts projects={allProjects} />
+      <div className="mt-6 sm:mt-8">
+        <ProjectCharts projects={allProjects} />
+      </div>
 
       {filteredProjects && filteredProjects.length > 0 && totalPages > 1 && (
         <Pagination 

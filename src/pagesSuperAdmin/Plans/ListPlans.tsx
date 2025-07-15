@@ -187,7 +187,7 @@ const ListPlans: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto">
+    <div className="lg:p-2 xl:p-2 sm:p-6 sm:py-2 lg:px-8 xl:px-14 lg:py-4 xl:py-4 w-full max-w-[90rem] mx-auto">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -227,8 +227,8 @@ const ListPlans: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Plan Management</h1>
-          <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl pt-4 font-bold text-gray-800 dark:text-white">Plan Management</h1>
+          <p className="text-primary mt-1 sm:mt-2 text-xs sm:text-sm">
             View and manage all subscription plans
           </p>
         </div>
@@ -244,14 +244,16 @@ const ListPlans: React.FC = () => {
         </div>
       </div>
 
-      <PlanStatsCards
-        stats={{
-          total: stats.total,
-          active: stats.active,
-          free: stats.free,
-          default: stats.default
-        }}
-      />
+      <div className="mobile-stats-reduce">
+        <PlanStatsCards
+          stats={{
+            total: stats.total,
+            active: stats.active,
+            free: stats.free,
+            default: stats.default
+          }}
+        />
+      </div>
 
       {plans.length === 0 ? (
         <div className="text-center py-16">
@@ -275,7 +277,7 @@ const ListPlans: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {plans.map((plan: Plan) => (
             <PlanCardAdmin
               key={plan.id}

@@ -265,7 +265,7 @@ const ListSubscriptions: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto">
+    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto mobile-no-left-padding">
       <ToastContainer
         position="top-right"
         autoClose={5000}

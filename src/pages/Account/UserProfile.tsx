@@ -131,8 +131,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
                   { icon: Briefcase, text: 'Software Engineering' },
                   { 
                     icon: Calendar, 
-                    text: userData.created_at 
-                      ? `Joined ${formatDate(userData.created_at).split(',')[0]}`
+                    text: userData.createdAt 
+                      ? `Joined ${formatDate(userData.createdAt).split(',')[0]}`
                       : 'Joined April 2022'
                   }
                 ].map((item, index) => (

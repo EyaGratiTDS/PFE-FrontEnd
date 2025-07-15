@@ -467,7 +467,7 @@ const ListUsers: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto">
+    <div className="lg:p-2 xl:p-2 sm:p-6 sm:py-2 lg:px-8 xl:px-14 lg:py-4 xl:py-4 w-full max-w-[90rem] mx-auto">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -483,21 +483,21 @@ const ListUsers: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">User Management</h1>
-          <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl pt-4 font-bold text-gray-800 dark:text-white">User Management</h1>
+          <p className="text-primary mt-1 sm:mt-2 text-xs sm:text-sm">
             View and manage all system users
           </p>
         </div>
 
         <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[160px] sm:min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type="text"
               placeholder="Search users..."
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base"
+              className="w-full pl-9 sm:pl-10 pr-4 py-1.5 sm:py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base h-12 sm:h-auto"
               value={activeFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
             />
@@ -561,7 +561,9 @@ const ListUsers: React.FC = () => {
         </div>
       </div>
 
-      <StatsCards stats={stats} />
+      <div className="mobile-stats-reduce">
+        <StatsCards stats={stats} />
+      </div>
       
       {hasActiveFilters() && (
         <ActiveFilters 
@@ -577,15 +579,19 @@ const ListUsers: React.FC = () => {
         onChangePlan={handleChangePlan}
       />
 
-      <UserCharts users={allUsers} />
-
       {filteredUsers && filteredUsers.length > 0 && totalPages > 1 && (
-        <Pagination 
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={paginate}
-        />
+        <div className="mt-6">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={paginate}
+          />
+        </div>
       )}
+
+      <div className="mt-6 sm:mt-8 mobile-charts-reduce">
+        <UserCharts users={allUsers} />
+      </div>
 
       <AddUserModal 
         isOpen={showAddUserModal}

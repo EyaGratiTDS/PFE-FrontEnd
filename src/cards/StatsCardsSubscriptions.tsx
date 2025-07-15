@@ -55,7 +55,7 @@ const StatCard: React.FC<{
   const colors = colorMap[color];
 
   return (
-    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full">
+    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full mobile-stat-item">
       <div className={`p-3 mr-4 rounded-full ${colors.bg} ${colors.text} ${colors.darkBg} ${colors.darkText}`}>
         {icon}
       </div>
@@ -72,7 +72,7 @@ const StatCard: React.FC<{
 };
 
 const StatsCardsSubscriptions: React.FC<StatsCardsProps> = ({ stats }) => (
-  <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-5">
+  <div className="grid gap-4 sm:gap-6 mb-6 sm:mb-8 grid-cols-1 sm:grid-cols-3 lg:grid-cols-5">
     <StatCard 
       icon={<FaMoneyBillWave className="w-5 h-5" />}
       title="Total Subscriptions"

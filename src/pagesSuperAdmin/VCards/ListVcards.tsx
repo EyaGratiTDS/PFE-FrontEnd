@@ -1,3 +1,4 @@
+// ListVCards.tsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FaSearch, FaFilter, FaFileExport, FaUsers, FaUserCheck, FaUserSlash, FaEye, FaBan } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
@@ -81,7 +82,7 @@ const VCardStatCard: React.FC<{
   }, [value, prevValue]);
 
   return (
-    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full">
+    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800 h-full stats-card-mobile-item">
       <div className={`p-3 mr-4 rounded-full ${colors.bg} ${colors.text} ${colors.darkBg} ${colors.darkText}`}>
         {icon}
       </div>
@@ -107,7 +108,7 @@ const VCardStatCard: React.FC<{
 };
 
 const StatsCardsVcards: React.FC<{ stats: Stats }> = ({ stats }) => (
-  <div className="grid gap-6 mb-8 md:grid-cols-3 xl:grid-cols-5">
+  <div className="grid gap-4 sm:gap-6 mb-6 sm:mb-8 grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 stats-cards-mobile-reduce">
     <VCardStatCard 
       icon={<FaUsers className="w-5 h-5" />}
       title="Total VCards"
@@ -438,7 +439,7 @@ const ListVCards: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto">
+    <div className="lg:p-2 xl:p-2 sm:p-6 sm:py-2 lg:px-8 xl:px-14 lg:py-4 xl:py-4 w-full max-w-[90rem] mx-auto">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -454,20 +455,20 @@ const ListVCards: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">VCard Management</h1>
-          <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl pt-4 font-bold text-gray-800 dark:text-white">VCard Management</h1>
+          <p className="text-primary mt-1 sm:mt-2 text-xs sm:text-sm">
             View and manage all VCards in the system
           </p>
         </div>
 
         <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[150px] sm:min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type="text"
-              placeholder="Search VCards..."
+              placeholder="Search VCards, users or emails..."
               className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base"
               value={activeFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -566,14 +567,18 @@ const ListVCards: React.FC = () => {
       />
 
       {filteredVCards && filteredVCards.length > 0 && totalPages > 1 && (
-        <Pagination 
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={paginate}
-        />
+        <div className="mt-6">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={paginate}
+          />
+        </div>
       )}
 
-      <VCardsCharts vcards={allVCards} />
+      <div className="mt-6 sm:mt-8 listvcard-charts-mobile-reduce">
+        <VCardsCharts vcards={allVCards} />
+      </div>
     </div>
   );
 };

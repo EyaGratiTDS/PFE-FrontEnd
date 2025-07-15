@@ -184,7 +184,7 @@ const VCardsCharts: React.FC<VCardsChartsProps> = ({ vcards }) => {
   };
 
   return (
-    <div className="mt-12">
+    <div className="mt-12 charts-mobile-reduce-right">
       <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
         VCard Analytics
       </h2>

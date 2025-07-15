@@ -80,7 +80,7 @@ const BlockStatCard: React.FC<{
 };
 
 const StatsCardsBlocks: React.FC<{ stats: BlockStats }> = ({ stats }) => (
-  <div className="grid gap-6 mb-8 md:grid-cols-3">
+  <div className="grid gap-6 mb-8 md:grid-cols-3 mobile-stats-reduce">
     <BlockStatCard 
       icon={<FaCube className="w-5 h-5" />}
       title="Total Blocks"
@@ -223,7 +223,7 @@ const ListBlocks: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:px-8 xl:px-28 w-full max-w-[90rem] mx-auto">
+    <div className="lg:p-2 xl:p-2 sm:p-6 sm:py-2 lg:px-8 xl:px-14 lg:py-4 xl:py-4 w-full max-w-[90rem] mx-auto">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -239,21 +239,23 @@ const ListBlocks: React.FC = () => {
 
       <button 
         onClick={() => navigate(-1)}
-        className="flex items-center mb-6 text-primary hover:text-primary-dark"
+        className="flex items-center mb-2 mt-3 text-primary hover:text-primary-dark"
       >
         <FaArrowLeft className="mr-2" /> Back to VCards
       </button>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Blocks Management</h1>
-          <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl pt-4 font-bold text-gray-800 dark:text-white">Blocks Management</h1>
+          <p className="text-primary mt-1 sm:mt-2 text-xs sm:text-sm">
             Manage blocks for VCard: {vcard.name}
           </p>
         </div>
       </div>
 
-      <StatsCardsBlocks stats={stats} />
+      <div className="mobile-stats-reduce">
+        <StatsCardsBlocks stats={stats} />
+      </div>
 
       {blocks.length > 0 ? (
         <BlocksTable
