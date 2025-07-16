@@ -10,6 +10,7 @@ export default {
         'tablet': {'min': '768px', 'max': '1023px'},
         'mobile': {'max': '767px'},
         'desktop': {'min': '1024px'},
+        'xs': '475px',
       },
       maxHeight: {
         '0': '0',
@@ -17,6 +18,36 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'],
+      },
+      animation: {
+        'shimmer': 'shimmer 2s infinite',
+        'float': 'float 3s ease-in-out infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
+        'pulse-glow': 'pulse-glow 1.5s ease-in-out infinite',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        glow: {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(147, 51, 234, 0.3)' },
+          '50%': { boxShadow: '0 0 40px rgba(147, 51, 234, 0.6)' },
+        },
+        'pulse-glow': {
+          '0%, 100%': { opacity: '0.5' },
+          '50%': { opacity: '1' },
+        },
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+      borderWidth: {
+        '3': '3px',
       },
   },
     colors: {

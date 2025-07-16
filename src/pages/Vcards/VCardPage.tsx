@@ -442,11 +442,6 @@ const VCardPage: React.FC = () => {
     }
   };
 
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -503,7 +498,7 @@ const VCardPage: React.FC = () => {
             <input
               type="text"
               placeholder="Search VCards..."
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm sm:text-base"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -512,12 +507,12 @@ const VCardPage: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
             <div className="relative" ref={exportButtonRef}>
               <button
-                className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 aria-label="Export options"
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={exporting || filteredVCards.length === 0}
               >
-                <FaFileExport className={`text-purple-500 text-sm sm:text-base ${exporting ? 'opacity-50' : ''}`} />
+                <FaFileExport className={`text-purple-600 text-sm sm:text-base ${exporting ? 'opacity-50' : ''}`} />
               </button>
 
               {showExportMenu && (
@@ -532,18 +527,18 @@ const VCardPage: React.FC = () => {
 
             <div className="relative">
               <button
-                className={`p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border ${
+                className={`p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border transition-colors duration-200 ${
                   hasActiveFilters()
-                    ? 'border-red-500'
-                    : 'border-purple-500'
-                } hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200`}
+                    ? 'border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
               >
-                <FaFilter className={
+                <FaFilter className={`text-sm sm:text-base ${
                   hasActiveFilters()
                     ? 'text-red-500'
-                    : 'text-purple-500'
-                } />
+                    : 'text-purple-600'
+                }`} />
               </button>
 
               {showFilterMenu && (
@@ -558,10 +553,10 @@ const VCardPage: React.FC = () => {
 
             <button
               onClick={handleCreateClick}
-              className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base relative"
+              className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base shadow-md hover:shadow-lg"
             >
-              <FaPlus className="absolute left-1/2 transform -translate-x-1/2 sm:static sm:transform-none sm:mr-2 w-10" />
-              <span className="hidden xs:inline sm:ml-0">Create VCard</span>
+              <FaPlus className="mr-2 text-sm sm:text-base" />
+              <span className="hidden xs:inline">Create VCard</span>
             </button>
           </div>
         </div>
@@ -613,14 +608,26 @@ const VCardPage: React.FC = () => {
       >
         {filteredVCards.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6">
-              <AnimatePresence>
-                {currentCards.map((vcard) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <AnimatePresence mode="popLayout">
+                {currentCards.map((vcard, index) => (
                   <motion.div
                     key={vcard.id}
-                    variants={item}
-                    layout
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ 
+                      opacity: 1, 
+                      y: 0,
+                      transition: {
+                        delay: index * 0.05,
+                        duration: 0.3
+                      }
+                    }}
+                    exit={{ 
+                      opacity: 0, 
+                      y: -20,
+                      transition: { duration: 0.2 }
+                    }}
+                    className="flex justify-center"
                   >
                     <VCardItem
                       vcard={vcard}

@@ -2,7 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile User Cards - Reduce right side by 5mm (19px) */
+/* Fix pour éliminer l'espace vide en bas des pages */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  height: 100%;
+  min-height: 100vh;
+}
+
+/* Layout optimisé pour éliminer les espaces vides */
+.layout-container {
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  height: calc(100vh - 64px); /* Adjust based on navbar height */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-container {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Correction des conteneurs de pages */
+.page-container {
+  min-height: calc(100vh - 120px);
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+/* Remove extra spacing from grid containers */
+.container.grid {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* NexCard Logo Styles */
+.nexcard-logo-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nexcard-logo-container:hover {
+  transform: scale(1.05) rotate(1deg);
+}
+
+.nexcard-gradient {
+  background: linear-gradient(135deg, #06A3DA 0%, #0891b2 100%);
+}
+
+.nexcard-text-gradient {
+  background: linear-gradient(135deg, #06A3DA 0%, #0284c7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Sidebar Logo Spacing - Optimized */
+.sidebar-logo-section {
+  border-bottom: 1px solid rgba(6, 163, 218, 0.15);
+  position: relative;
+  padding: 0.75rem 1.5rem !important; /* Reduced from py-4 px-6 */
+}
+
+.sidebar-logo-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #06A3DA, transparent);
+  opacity: 0.3;
+}
+
+.sidebar-logo-section + ul {
+  margin-top: 0.75rem !important; 
+}
+
+@keyframes nexcard-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(6, 163, 218, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(6, 163, 218, 0.6));
+  }
+}
+
+.nexcard-logo-container:hover svg {
+  animation: nexcard-pulse 2s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+  .nexcard-logo-container {
+    transform: scale(0.95);
+  }
+  
+  .nexcard-logo-container:hover {
+    transform: scale(1) rotate(0.5deg);
+  }
+}
+
 .mobile-user-card-reduced {
   margin-right: 19px !important;
   padding-right: 0px !important;
@@ -1192,11 +1303,6 @@
 @media (max-width: 400px) {
   .block-card {
     max-width: 85vw;
-    padding: 0;
-    margin: 0;
-  }
-  .div-block{
-    padding: 0;
     margin-left: -50px;
   }
   .name {
@@ -2431,7 +2537,7 @@
 @media (max-width: 490px) {
   .subscriptions-mobile-item-reduced {
     width: 100% !important;
-    max-width: 100% !important;
+    max-width:  100% !important;
     margin: 0 !important;
     padding: 0.875rem !important;
     box-sizing: border-box !important;
@@ -2539,7 +2645,6 @@
   }
 }
 
-/* Réduction supplémentaire de l'espace entre prix et dates */
 .subscriptions-mobile-item-reduced > div:last-child {
   margin-top: 0.25rem !important;
 }
@@ -2548,17 +2653,14 @@
   margin-top: 0.25rem !important;
 }
 
-/* Force la réduction de marge sur tous les éléments de transition */
 .subscriptions-small-screen-fix.mt-1 {
   margin-top: 0.25rem !important;
 }
 
-/* Cibler spécifiquement le container des dates */
 .subscriptions-mobile-item-reduced > div:nth-child(2) {
   margin-top: 0.25rem !important;
 }
 
-/* Sélecteurs spécifiques pour réduire l'espace entre prix et dates */
 @media (max-width: 770px) {
   .subscriptions-mobile-item-reduced .mt-1 {
     margin-top: 0.125rem !important;
@@ -2575,7 +2677,6 @@
   }
 }
 
-/* API Keys Mobile Responsivité - Basé sur le design ProjectTable */
 @media (max-width: 770px) {
   .apikeys-mobile-container-reduced {
     margin-right: 0px !important;
@@ -2646,7 +2747,6 @@
   }
 }
 
-/* Styles additionnels pour les très petits écrans - API Keys */
 @media (max-width: 480px) {
   .apikeys-mobile-container-reduced {
     padding: 0 0.25rem !important;
@@ -2679,7 +2779,6 @@
   }
 }
 
-/* Styles pour écrans très petits (moins de 400px) - API Keys */
 @media (max-width: 400px) {
   .apikeys-mobile-container-reduced {
     padding: 0 !important;
@@ -2688,5 +2787,177 @@
   .apikeys-mobile-item-reduced {
     padding: 0.5rem !important;
     border-radius: 0.375rem !important;
+  }
+}
+@media (max-width: 480px) {
+  .mobile-no-left-padding {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-no-left-padding {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  * {
+    max-width: 100% !important;
+  }
+  
+  body {
+    overflow-x: hidden !important;
+  }
+  
+  .subscriptions-mobile-narrow {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .subscriptions-small-screen-fix {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .subscriptions-force-no-margin {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+.subscriptions-mobile-item-reduced > div:last-child {
+  margin-top: 0.25rem !important;
+}
+
+.subscriptions-mobile-item-reduced .mt-1 {
+  margin-top: 0.25rem !important;
+}
+
+.subscriptions-small-screen-fix.mt-1 {
+  margin-top: 0.25rem !important;
+}
+
+.subscriptions-mobile-item-reduced > div:nth-child(2) {
+  margin-top: 0.25rem !important;
+}
+
+@media (max-width: 770px) {
+  .subscriptions-mobile-item-reduced .mt-1 {
+    margin-top: 0.125rem !important;
+  }
+  
+  .subscriptions-mobile-item-reduced .space-y-1 > * + * {
+    margin-top: 0.125rem !important;
+  }
+}
+
+@media (max-width: 490px) {
+  .subscriptions-mobile-item-reduced .mt-1 {
+    margin-top: 0.125rem !important;
+  }
+}
+
+/* NexCard Logo Final - Ultra Modern Styles */
+.nexcard-logo-final {
+  position: relative;
+  overflow: visible;
+}
+
+.nexcard-logo-final::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle, rgba(6, 163, 218, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.nexcard-logo-final:hover::before {
+  opacity: 1;
+}
+
+/* Animation de brillance pour le texte */
+@keyframes shine {
+  0% { background-position: -100px; }
+  100% { background-position: 200px; }
+}
+
+.nexcard-text-shine {
+  background: linear-gradient(
+    90deg,
+    #06A3DA 0%,
+    #ffffff 50%,
+    #06A3DA 100%
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 3s infinite linear;
+}
+
+/* Effet de lueur pulsante pour la sidebar */
+.sidebar-logo-section:hover .nexcard-logo-container {
+  filter: drop-shadow(0 0 10px rgba(6, 163, 218, 0.4));
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+  .nexcard-logo-final::before {
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+  }
+}
+
+/* Optimisation spécifique pour la sidebar avec logo */
+.sidebar-with-logo {
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-with-logo .sidebar-logo-section {
+  flex-shrink: 0;
+  padding: 0.75rem 1.5rem;
+}
+
+.sidebar-with-logo .sidebar-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+/* Responsive adjustments pour éviter l'espace vide */
+@media (max-width: 1024px) {
+  .main-content {
+    height: calc(100vh - 72px); /* Adjust for mobile navbar */
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    min-height: calc(100vh - 140px);
+  }
+  
+  .sidebar-logo-section {
+    padding: 0.5rem 1rem !important;
   }
 }

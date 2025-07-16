@@ -69,22 +69,31 @@ export const useAuth = () => {
       setState(prev => ({ ...prev, isLoading: true }));
       const response = await authService.signIn({ email, password, rememberMe });
       const { token, user, tempToken, requires2FA } = response.data;
+      
       if (!user || !token) {
         throw new Error('Invalid response from server');
       }
       
+      // Si c'est 2FA, ne pas mettre à jour l'état d'authentification maintenant
+      if (requires2FA && tempToken) {
+        setState(prev => ({ ...prev, isLoading: false }));
+        return { user, tempToken, requires2FA };
+      }
+      
+      // Stocker le token et mettre à jour l'état
       storeToken(token, rememberMe);
+      
+      // Mettre à jour l'état d'authentification de manière synchrone
       setState({
         user,
         isAuthenticated: true,
         isLoading: false
       });
       
-      return { 
-        user, 
-        ...(tempToken && { tempToken }),
-        ...(requires2FA && { requires2FA })
-      };
+      // Attendre un peu pour s'assurer que l'état est propagé
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      return { user };
     } catch (error) {
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
@@ -115,12 +124,18 @@ export const useAuth = () => {
       if (!token || !userData) {
         throw new Error('Invalid token or user data');
       }
+      
       storeToken(token, true);
+      
+      // Mettre à jour l'état d'authentification de manière synchrone
       setState({
         user: userData,
         isAuthenticated: true,
         isLoading: false
       });
+      
+      // Attendre un peu pour s'assurer que l'état est propagé
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       return userData;
     } catch (error) {

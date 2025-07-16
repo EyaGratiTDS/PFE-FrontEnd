@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Transition } from '@headlessui/react';
+import NexCardLogoFinal from '../atoms/Logo/NexCardLogoFinal';
 
 interface SidebarProps {
   role: 'admin' | 'superAdmin'; 
@@ -186,6 +187,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       <div className="z-20 hidden w-64 bg-white dark:bg-gray-800 lg:block flex-shrink-0">
         <div className="py-4 text-gray-500 dark:text-gray-400">
+          <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <Link to={`${basePath}/dashboard`} className="block">
+              <NexCardLogoFinal size="md" showText={true} />
+            </Link>
+          </div>
+          
           <ul className="mt-6">
             {menuItems.map(renderMenuItem)}
           </ul>
@@ -219,6 +226,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           leaveTo="-translate-x-full"
         >
           <div ref={sidebarRef} className="py-4 text-gray-500 dark:text-gray-400 h-full overflow-y-auto">
+            {/* Logo Header Mobile */}
+            <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <Link to={`${basePath}/dashboard`} className="block" onClick={handleMobileLinkClick}>
+                <NexCardLogoFinal size="md" showText={true} />
+              </Link>
+            </div>
+            
             <ul className="mt-6">
               {menuItems.map(renderMenuItem)}
             </ul>

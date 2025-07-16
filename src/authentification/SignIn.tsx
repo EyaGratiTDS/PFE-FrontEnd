@@ -40,6 +40,7 @@ const SignIn: React.FC = () => {
   }, []);
 
   const getRedirectPath = (role: string | undefined) => {
+    console.log('User role for redirection:', role);
     if (role === 'superAdmin') return '/super-admin/dashboard';
     if (role === 'admin') return '/admin/dashboard';
     return '/';
@@ -116,10 +117,15 @@ const SignIn: React.FC = () => {
 
       renderToastMessage("Login successful!", "success");
       
+      // Attendre que le contexte d'authentification soit mis à jour
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Vérifier que l'utilisateur est bien authentifié avant de naviguer
       const redirectPath = getRedirectPath(user.role);
-      setTimeout(() => {
-        navigate(redirectPath);
-      }, 2000);
+      console.log('Redirecting to:', redirectPath);
+      
+      // Navigation avec remplacement de l'historique
+      window.location.href = redirectPath;
     } catch (err: any) {
       let errorMessage = "Failed to log in. Please try again.";
 
@@ -175,10 +181,13 @@ const SignIn: React.FC = () => {
         await handleGoogleAuth(token, user);
         
         renderToastMessage("Login successful!", "success");
+        // Attendre que le contexte d'authentification soit mis à jour
+        await new Promise(resolve => setTimeout(resolve, 500));
         const redirectPath = getRedirectPath(user.role);
-        setTimeout(() => {
-          navigate(redirectPath);
-        }, 2000);
+        console.log('Redirecting to:', redirectPath);
+        
+        // Navigation avec remplacement complet de la page
+        window.location.href = redirectPath;
       }
     } catch (error) {
       console.error("Erreur lors du traitement Google callback:", error);
@@ -243,11 +252,13 @@ const SignIn: React.FC = () => {
 
       renderToastMessage("Login successful!", "success");
       
-      // Correction : Passer le rôle même s'il est undefined
+      // Attendre que le contexte d'authentification soit mis à jour
+      await new Promise(resolve => setTimeout(resolve, 500));
       const redirectPath = getRedirectPath(user.role);
-      setTimeout(() => {
-        navigate(redirectPath);
-      }, 2000);
+      console.log('Redirecting to:', redirectPath);
+      
+      // Navigation avec remplacement complet de la page
+      window.location.href = redirectPath;
     } catch (err: any) {
       let errorMessage = "Failed to verify 2FA code. Please try again.";
 

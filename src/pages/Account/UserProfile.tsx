@@ -8,8 +8,9 @@ import {
   Calendar,
   MapPin,
   Phone,
-  Briefcase,
-  Edit3
+  Edit3,
+  Check as CheckIcon,
+  AlertTriangle as ExclamationTriangleIcon
 } from 'lucide-react';
 
 interface UserProfileProps {
@@ -68,9 +69,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
             )}
           </div>
 
-          {/* Profile Info */}
           <div className="px-4 sm:px-6 py-4 sm:py-5 relative">
-            {/* Avatar */}
             <div className="absolute -top-12 sm:-top-16 left-4 sm:left-6 border-4 border-white dark:border-gray-800 rounded-full shadow-lg">
               <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                 {avatarPreview ? (
@@ -96,18 +95,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
                 <span className="truncate">{userData.email || 'email@example.com'}</span>
               </p>
               <div className="mt-1 sm:mt-2 flex flex-wrap gap-1 sm:gap-2">
-                {['Professional', 'Designer', 'Active'].map((badge, index) => (
-                  <span 
-                    key={index}
-                    className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs rounded-full font-medium"
-                    style={{
-                      backgroundColor: index === 0 ? '#dbeafe' : index === 1 ? '#e9d5ff' : '#dcfce7',
-                      color: index === 0 ? '#1e40af' : index === 1 ? '#6b21a8' : '#166534'
-                    }}
-                  >
-                    {badge}
+                {/* Status badges based on real user data */}
+                {userData.isVerified && (
+                  <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs rounded-full font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                    Verified
                   </span>
-                ))}
+                )}
+                {userData.isActive && (
+                  <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs rounded-full font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                    Active
+                  </span>
+                )}
+                {userData.role && (
+                  <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs rounded-full font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                    {userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}
+                  </span>
+                )}
+                {userData.activeSubscription && (
+                  <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs rounded-full font-medium bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">
+                    {userData.activeSubscription.plan.name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -121,19 +129,30 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
                 About
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Professional designer with expertise in UI/UX and brand identity. Passionate about creating beautiful and functional designs that solve real-world problems.
+                Welcome to your profile. Update your information to personalize your experience and make the most of our platform.
               </p>
 
               <div className="mt-4 space-y-2 sm:space-y-3">
                 {[
-                  { icon: MapPin, text: 'Paris, France' },
-                  { icon: Phone, text: '+216 25 285 386' },
-                  { icon: Briefcase, text: 'Software Engineering' },
+                  { 
+                    icon: Mail, 
+                    text: userData.email || 'Email not available' 
+                  },
+                  { 
+                    icon: UserIcon, 
+                    text: `Role: ${userData.role || 'User'}` 
+                  },
                   { 
                     icon: Calendar, 
                     text: userData.createdAt 
                       ? `Joined ${formatDate(userData.createdAt).split(',')[0]}`
-                      : 'Joined April 2022'
+                      : 'Join date not available'
+                  },
+                  { 
+                    icon: Calendar, 
+                    text: userData.updated_at 
+                      ? `Last updated ${formatDate(userData.updated_at).split(',')[0]}`
+                      : 'Last update not available'
                   }
                 ].map((item, index) => (
                   <div key={index} className="flex items-center text-sm">
@@ -146,83 +165,108 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
               </div>
             </div>
 
-            {/* Skills Card */}
             <div className={`${colorMode === 'light' ? 'card' : ''} bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6`}>
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                Skills
+                Account Information
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {['UI Design', 'Figma', 'Prototyping', 'User Research', 'Adobe CC', 'Design Systems'].map((skill) => (
-                  <div 
-                    key={skill}
-                    className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm text-gray-800 dark:text-gray-200"
-                    style={{
-                      backgroundColor: colorMode === 'light' ? '#f3f4f6' : '#374151'
-                    }}
-                  >
-                    {skill}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Account Status:</span>
+                  <span className={`text-sm font-medium ${userData.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {userData.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Email Verified:</span>
+                  <span className={`text-sm font-medium ${userData.isVerified ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {userData.isVerified ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Role:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {userData.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'User'}
+                  </span>
+                </div>
+                {userData.activeSubscription && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Current Plan:</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {userData.activeSubscription.plan.name}
+                    </span>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column */}
           <div className="md:col-span-2">
-            {/* Projects Card */}
+            {/* Account Status Card */}
             <div className={`${colorMode === 'light' ? 'card' : ''} bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6`}>
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                Recent Projects
+                Account Details
               </h2>
 
               <div className="space-y-4 sm:space-y-5">
-                {[
-                  { 
-                    title: 'E-commerce Redesign', 
-                    description: 'Complete overhaul of the product listing and checkout experience',
-                    status: 'Completed'
-                  },
-                  {
-                    title: 'Mobile App UI Kit',
-                    description: 'Design system with components for iOS and Android applications',
-                    status: 'In Progress'
-                  },
-                  {
-                    title: 'Brand Identity',
-                    description: 'Logo and visual identity for a new tech startup',
-                    status: 'Planning'
-                  }
-                ].map((project, index) => (
-                  <div 
-                    key={index}
-                    className={`pb-4 sm:pb-5 ${index < 2 ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}
-                  >
+                <div className="pb-4 sm:pb-5 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                        Account Created
+                      </h3>
+                      <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        Welcome to our platform since {userData.createdAt ? formatDate(userData.createdAt) : 'Recently'}
+                      </p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap mt-1 sm:mt-0 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                      Member
+                    </span>
+                  </div>
+                </div>
+
+                {userData.activeSubscription && (
+                  <div className="pb-4 sm:pb-5 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                       <div className="flex-1">
                         <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
-                          {project.title}
+                          Current Subscription
                         </h3>
                         <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                          {project.description}
+                          {userData.activeSubscription.plan.name} plan - {userData.activeSubscription.plan.description}
                         </p>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap mt-1 sm:mt-0
-                        ${project.status === 'Completed' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                          project.status === 'In Progress' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
-                          'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'}`}
-                      >
-                        {project.status}
+                      <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap mt-1 sm:mt-0 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                        Active
                       </span>
                     </div>
                   </div>
-                ))}
+                )}
+
+                <div>
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                        Email Verification
+                      </h3>
+                      <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {userData.isVerified ? 'Your email address has been verified' : 'Please verify your email address to unlock all features'}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap mt-1 sm:mt-0
+                      ${userData.isVerified ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 
+                        'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'}`}
+                    >
+                      {userData.isVerified ? 'Verified' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Activity Card */}
             <div className={`${colorMode === 'light' ? 'card' : ''} bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6`}>
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                Recent Activity
+                Account Activity
               </h2>
 
               <div className="space-y-3 sm:space-y-4">
@@ -230,20 +274,20 @@ const UserProfile: React.FC<UserProfileProps> = ({ userData, onEditProfile }) =>
                   {
                     icon: UserIcon,
                     color: 'blue',
-                    text: 'updated your profile picture',
-                    date: userData.updated_at ? formatDate(userData.updated_at) : '2 days ago'
-                  },
-                  {
-                    icon: Briefcase,
-                    color: 'purple',
-                    text: 'completed the E-commerce Redesign project',
-                    date: '5 days ago'
+                    text: 'joined our platform',
+                    date: userData.createdAt ? formatDate(userData.createdAt) : 'Recently'
                   },
                   {
                     icon: UserIcon,
                     color: 'green',
-                    text: 'updated your profile information',
-                    date: '1 week ago'
+                    text: 'last updated profile',
+                    date: userData.updated_at ? formatDate(userData.updated_at) : '2 days ago'
+                  },
+                  {
+                    icon: userData.isVerified ? CheckIcon : ExclamationTriangleIcon,
+                    color: userData.isVerified ? 'green' : 'yellow',
+                    text: userData.isVerified ? 'verified email address' : 'email verification pending',
+                    date: userData.isVerified ? 'Verified' : 'Pending'
                   }
                 ].map((activity, index) => (
                   <div key={index} className="flex items-start gap-2 sm:gap-3">

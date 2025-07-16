@@ -120,13 +120,18 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
 
   return (
     <>
-      <div 
-        className="bg-white dark:bg-gray-700 relative rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-72 w-64 cursor-pointer"
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -5 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer w-full h-80"
         style={getBackgroundStyle()}
         onDoubleClick={handleDoubleClick}
       >
+        {/* Disabled overlay */}
         {vcard.isDisabled && ( 
-          <div className="absolute inset-0 bg-black/30 dark:bg-gray-900/50 flex items-center justify-center rounded-xl z-10">
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg z-10">
             <div className="text-center p-4">
               <FaLock className="text-white text-2xl mb-2 mx-auto" />
               <div className="text-white text-sm font-medium mb-2">
@@ -141,12 +146,15 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
             </div>
           </div>
         )}
+
+        {/* Background overlay for custom images */}
         {vcard.background_type === 'custom-image' && (
-          <div className="absolute inset-0 bg-black/10 dark:bg-gray-800/30"></div>
+          <div className="absolute inset-0 bg-black/20 rounded-lg"></div>
         )}
 
+        {/* Favicon */}
         {vcard.favicon && vcard.favicon !== 'default' && (
-          <div className="absolute top-2 right-2 w-6 h-6 rounded-full overflow-hidden border-2 border-white dark:border-gray-300 bg-white dark:bg-gray-800">
+          <div className="absolute top-3 right-3 w-8 h-8 rounded-full overflow-hidden border-2 border-white/80 bg-white shadow-sm">
             <img 
               src={vcard.favicon} 
               alt="Favicon" 
@@ -156,150 +164,141 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
         )}
 
         <div className="relative h-full flex flex-col p-6">
+          {/* Logo section */}
           <div className="flex justify-center mb-4">
             {vcard.logo ? (
               <img
                 src={vcard.logo}
                 alt={`${vcard.name} logo`}
-                className="w-16 h-16 rounded-full object-cover border-2 border-primary dark:border-gray-200"
+                className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg"
               />
             ) : (
-              <div 
-                className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center bg-gray-100 border-primary dark:bg-gray-800"
-                style={{ border: `2px solid` }}
-              >
-                <span className='text-primary'>{vcard.name.charAt(0)}</span>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center border-2 border-white shadow-lg">
+                <span className="text-xl font-bold text-white">
+                  {vcard.name.charAt(0).toUpperCase()}
+                </span>
               </div>
             )}
           </div>
 
+          {/* Content section */}
           <div className="flex-1 flex flex-col items-center text-center">
-            <h2 className="text-xl font-bold mb-2 line-clamp-1 text-cool-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold mb-2 line-clamp-2 text-gray-900 dark:text-white leading-tight">
               {vcard.name}
             </h2>
             {vcard.description && (
-              <p 
-                className="text-sm mb-4 line-clamp-3 text-cool-gray-900 dark:text-white"
-                style={{opacity: 0.9 }}
-              >
+              <p className="text-sm mb-4 line-clamp-3 text-gray-600 dark:text-gray-300 leading-relaxed">
                 {vcard.description}
               </p>
             )}
           </div>
 
-          <div className="flex justify-between items-center pt-3 border-t border-white/20">
-            <div className="flex items-center space-x-2">
-              <span 
-                className={`px-2 py-1 rounded-full text-xs flex items-center ${
-                  vcard.is_active ? 'bg-green-500' : 'bg-gray-500'
-                }`}
-                style={{ 
-                  color: '#ffffff',
-                  boxShadow: 'none' 
-                }}
-              >
-                {vcard.is_active ? (
-                  <>
-                    <FaEye className="mr-1" /> Active
-                  </>
-                ) : (
-                  <>
-                    <FaEyeSlash className="mr-1" /> Inactive
-                  </>
-                )}
-              </span>
-              
-              <span 
-                className="px-2 py-1 rounded-full text-xs flex items-center backdrop-blur-sm"
-                style={{
-                  boxShadow: 'none',
-                  position: 'relative',
-                  minWidth: '60px' 
-                }}
-              >
-                <FaEye className="mr-1 text-blue-500" style={{ flexShrink: 0 }} />
-                <span className="font-medium" style={{ flexShrink: 0 }}>
+          {/* Footer section */}
+          <div className="mt-auto">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center space-x-2">
+                <span 
+                  className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${
+                    vcard.is_active 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {vcard.is_active ? (
+                    <>
+                      <FaEye className="mr-1 text-xs" /> Active
+                    </>
+                  ) : (
+                    <>
+                      <FaEyeSlash className="mr-1 text-xs" /> Inactive
+                    </>
+                  )}
+                </span>
+                
+                <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  <FaEye className="mr-1 text-xs" />
                   {vcard.views ?? 0}
                 </span>
-              </span>
-            </div>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              {vcard.is_share && (
-                <button 
-                  className="p-1 rounded-full hover:bg-white/20 transition"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <FaShare size={14} />
-                </button>
-              )}
-              {vcard.is_downloaded && (
-                <button 
-                  className="p-1 rounded-full hover:bg-white/20 transition"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <FaDownload size={14} />
-                </button>
-              )}
+              {/* Action buttons */}
+              <div className="flex items-center space-x-1">
+                {vcard.is_share && (
+                  <button 
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FaShare size={14} className="text-gray-600 dark:text-gray-400" />
+                  </button>
+                )}
+                {vcard.is_downloaded && (
+                  <button 
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FaDownload size={14} className="text-gray-600 dark:text-gray-400" />
+                  </button>
+                )}
 
-              <div className="relative" ref={dropdownRef}>
-                <button 
-                  onClick={toggleDropdown}
-                  className="p-1 rounded-full hover:bg-white/20 transition"
-                  disabled={isDeleting}
-                >
-                  <FaEllipsisV size={14} />
-                </button>
-                
-                {showDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
-                >
-                  <button
-                    onClick={handleViewVCard}
-                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FaIdCard className="mr-3 text-blue-500" />
-                    View VCard
-                  </button>
-                  <button
-                    onClick={handleBlocksClick}
-                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FaTh className="mr-3 text-green-500" />
-                    VCard Blocks
-                  </button>
-                  <button
-                    onClick={handleStatsClick}
-                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FaChartLine className="mr-3 text-purple-500" />
-                    Stats
-                  </button>
-                  <button
-                    onClick={handleEditClick}
-                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FaEdit className="mr-3 text-blue-500" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDeleteClick}
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    onClick={toggleDropdown}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     disabled={isDeleting}
-                    className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                   >
-                    <FaTrash className="mr-3" />
-                    Delete
+                    <FaEllipsisV size={14} className="text-gray-600 dark:text-gray-400" />
                   </button>
-                </motion.div>
-              )}
+                  
+                  {showDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                    >
+                      <button
+                        onClick={handleViewVCard}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FaIdCard className="mr-3 text-blue-500" />
+                        View VCard
+                      </button>
+                      <button
+                        onClick={handleBlocksClick}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FaTh className="mr-3 text-green-500" />
+                        VCard Blocks
+                      </button>
+                      <button
+                        onClick={handleStatsClick}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FaChartLine className="mr-3 text-purple-500" />
+                        Stats
+                      </button>
+                      <button
+                        onClick={handleEditClick}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FaEdit className="mr-3 text-blue-500" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={handleDeleteClick}
+                        disabled={isDeleting}
+                        className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                      >
+                        <FaTrash className="mr-3" />
+                        Delete
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <DeleteConfirmationModal
         isOpen={showDeleteModal}

@@ -25,7 +25,6 @@ import ActivityLogs from './pages/Account/ActivityLogs';
 import ApiKeyManager from './pages/Account/ApiKeyManager';
 import AccountPlans from './pages/Account/AccountPlan';
 import NotificationsPage from './pages/Notification/NotificationPage';
-import UserProfilePage from './pages/Account/UserProfilePage';
 import ProjectPage from './pages/Projects/ProjectPage';
 import ProjectForm from './pages/Projects/ProjectForm';
 import ProjectVCardsPage from './pages/Projects/ProjectVCardsPage';
@@ -71,87 +70,83 @@ function App() {
               : <Navigate to="/admin/dashboard" replace />
           } />
           
-          {user?.role === 'admin' && (
-            <Route path="/admin" element={<Layout role="admin" />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard">
-                <Route index element={<Dashboard />} />
-                <Route path="profile" element={<UserProfilePage />} />
-                <Route path="notifications" element={<NotificationsPage />} />
-              </Route>
-              <Route path="vcard" element={<VCardPage />} />
-              <Route path="vcard/create-vcard" element={<CreateVCard />} />
-              <Route path="vcard/edit-vcard/:id" element={<EditVCard />} />
-              <Route path="vcard/edit-vcard/:id/blocks" element={<BlocksPage />} />
-              <Route path="vcard/edit-vcard/:id/blocks/add-blocks" element={<AddBlocksPage />} />
-              
-              <Route path="account" element={<AccountLayout />}>
-                <Route path="settings" element={<Settings />} />
-                <Route path="activityLogs" element={<ActivityLogs />} />
-                <Route path="plan" element={<AccountPlans />} />
-                <Route path="api" element={<ApiKeyManager />} />
-              </Route>
-              
-              <Route path="project">
-                <Route index element={<ProjectPage />} />
-                <Route path="create" element={<ProjectForm />} />
-                <Route path="edit/:id" element={<ProjectForm />} />
-                <Route path=":id/vcards" element={<ProjectVCardsPage />} />
-              </Route>
-              <Route path="pixel">
-                <Route index element={<PixelPage />} />
-                <Route path="create" element={<PixelForm />} />
-                <Route path="edit/:id" element={<PixelForm />} />
-              </Route>
-              <Route path="custom-domains">
-                <Route index element={<CustomDomainsPage />} />
-                <Route path="create" element={<CustomDomainForm />} />
-                <Route path="edit/:id" element={<CustomDomainForm />} />
-              </Route>
+          <Route path="/admin" element={<Layout role="admin" />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard">
+              <Route index element={<Dashboard />} />
+              <Route path="profile" element={<Navigate to="/admin/account" replace />} />
+              <Route path="notifications" element={<NotificationsPage />} />
             </Route>
-          )}
+            <Route path="vcard" element={<VCardPage />} />
+            <Route path="vcard/create-vcard" element={<CreateVCard />} />
+            <Route path="vcard/edit-vcard/:id" element={<EditVCard />} />
+            <Route path="vcard/edit-vcard/:id/blocks" element={<BlocksPage />} />
+            <Route path="vcard/edit-vcard/:id/blocks/add-blocks" element={<AddBlocksPage />} />
+            
+            <Route path="account" element={<AccountLayout />}>
+              <Route path="settings" element={<Settings />} />
+              <Route path="activityLogs" element={<ActivityLogs />} />
+              <Route path="plan" element={<AccountPlans />} />
+              <Route path="api" element={<ApiKeyManager />} />
+            </Route>
+            
+            <Route path="project">
+              <Route index element={<ProjectPage />} />
+              <Route path="create" element={<ProjectForm />} />
+              <Route path="edit/:id" element={<ProjectForm />} />
+              <Route path=":id/vcards" element={<ProjectVCardsPage />} />
+            </Route>
+            <Route path="pixel">
+              <Route index element={<PixelPage />} />
+              <Route path="create" element={<PixelForm />} />
+              <Route path="edit/:id" element={<PixelForm />} />
+            </Route>
+            <Route path="custom-domains">
+              <Route index element={<CustomDomainsPage />} />
+              <Route path="create" element={<CustomDomainForm />} />
+              <Route path="edit/:id" element={<CustomDomainForm />} />
+            </Route>
+          </Route>
 
-          {user?.role === 'superAdmin' && (
-            <Route path="/super-admin" element={<Layout role="superAdmin" />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard">
-                <Route index element={<DashboardAdmin />} />
-                <Route path="profile" element={<UserProfilePage />} />
-                <Route path="notifications" element={<NotificationsPage />} />
-              </Route>
-              
-              <Route path="account" element={<AccountLayout />}>
-                <Route path="settings" element={<Settings />} />
-                <Route path="activityLogs" element={<ActivityLogs />} />
-              </Route>
-              <Route path="users">
-                <Route index element={<ListUsers />} />
-              </Route>
-              <Route path="plan">
-                <Route index element={<ListPlans />} />
-              </Route>
-              <Route path="vcard">
-                <Route index element={<ListVCards />} />
-                <Route path=":vcardId/blocks" element={<ListBlocks />} />
-              </Route>
-              <Route path="project">
-                <Route index element={<ListProjects />} />
-                <Route path=":projectId/vcards" element={<ProjectVCardsList />} />
-              </Route>
-              <Route path="pixel">
-                <Route index element={<ListPixels />} />
-              </Route>
-              <Route path="custom-domains">
-                <Route index element={<ListCustomDomains />} />
-              </Route>
-              <Route path="subscriptions">
-                <Route index element={<ListSubscriptions />} />
-              </Route>
-              <Route path="apikeys">
-                <Route index element={<ListApiKeys />} />
-              </Route>
+          <Route path="/super-admin" element={<Layout role="superAdmin" />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard">
+              <Route index element={<DashboardAdmin />} />
+              <Route path="profile" element={<Navigate to="/super-admin/account" replace />} />
+              <Route path="notifications" element={<NotificationsPage />} />
             </Route>
-          )}
+            
+            <Route path="account" element={<AccountLayout />}>
+              <Route path="settings" element={<Settings />} />
+              <Route path="activityLogs" element={<ActivityLogs />} />
+            </Route>
+            <Route path="users">
+              <Route index element={<ListUsers />} />
+            </Route>
+            <Route path="plan">
+              <Route index element={<ListPlans />} />
+            </Route>
+            <Route path="vcard">
+              <Route index element={<ListVCards />} />
+              <Route path=":vcardId/blocks" element={<ListBlocks />} />
+            </Route>
+            <Route path="project">
+              <Route index element={<ListProjects />} />
+              <Route path=":projectId/vcards" element={<ProjectVCardsList />} />
+            </Route>
+            <Route path="pixel">
+              <Route index element={<ListPixels />} />
+            </Route>
+            <Route path="custom-domains">
+              <Route index element={<ListCustomDomains />} />
+            </Route>
+            <Route path="subscriptions">
+              <Route index element={<ListSubscriptions />} />
+            </Route>
+            <Route path="apikeys">
+              <Route index element={<ListApiKeys />} />
+            </Route>
+          </Route>
         </Route>
         
         <Route path="/vcard/:url" element={<VCardViewPage />} />

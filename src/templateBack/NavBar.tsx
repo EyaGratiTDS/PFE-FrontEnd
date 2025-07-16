@@ -354,7 +354,7 @@ const NavBar: React.FC<NavBarProps> = ({ toggleSideMenu, isSideMenuOpen }) => {
                 <ul className="absolute right-0 w-56 p-2 mt-2 space-y-2 text-gray-600 bg-white border border-gray-100 rounded-md shadow-md dark:border-gray-700 dark:text-gray-300 dark:bg-gray-700 profile-menu">
                   <li className="flex">
                     <Link
-                      to="/admin/dashboard/profile"
+                      to={currentUser?.role === 'superAdmin' ? '/super-admin/account' : '/admin/account'}
                       className="inline-flex items-center w-full px-2 py-1 text-sm font-semibold transition-colors duration-150 rounded-md hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-gray-200"
                       onClick={() => setIsProfileMenuOpen(false)}
                     >
@@ -375,7 +375,7 @@ const NavBar: React.FC<NavBarProps> = ({ toggleSideMenu, isSideMenuOpen }) => {
                   </li>
                   <li className="flex">
                     <Link
-                      to="/admin/account/settings"
+                      to={currentUser?.role === 'superAdmin' ? '/super-admin/account/settings' : '/admin/account/settings'}
                       className="inline-flex items-center w-full px-2 py-1 text-sm font-semibold transition-colors duration-150 rounded-md hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-gray-200"
                       onClick={() => setIsProfileMenuOpen(false)}
                     >
