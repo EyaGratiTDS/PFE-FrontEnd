@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { authService } from "../services/api";
+import NexCardLogoFinal from '../atoms/Logo/NexCardLogoFinal';
+import Image from "./Image";
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -76,12 +78,30 @@ const ForgotPassword: React.FC = () => {
     }
   };
   return (
-    <div className="signup-container" style={{ padding: "20px" }}>
+    <div className="signup-container">
       <ToastContainer />
+      
+      {/* Logo en haut à gauche de la page */}
+      <div className="logo-top-left" style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        zIndex: '1000',
+        transition: 'all 0.3s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}>
+        <NexCardLogoFinal size="md" showText={true} />
+      </div>
+
       <div className="form-container-signup">
         <div className="form-wrapper-signup">
-          <h3 className="form-signup" style={{ padding: "10px" }}>Forgot Password</h3>
-          <p className="text-primary text-md text-center" style={{ padding: "10px" }}>
+          <h3 className="form-signup">Forgot Password</h3>
+          <p className="text-primary text-md text-center">
             Please enter your email to reset your password.
           </p>
           <form className="form" onSubmit={handleSubmit}>
@@ -117,6 +137,8 @@ const ForgotPassword: React.FC = () => {
           </form>
         </div>
       </div>
+
+      <Image />
     </div>
   );
 };

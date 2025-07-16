@@ -129,7 +129,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
         style={getBackgroundStyle()}
         onDoubleClick={handleDoubleClick}
       >
-        {/* Disabled overlay */}
         {vcard.isDisabled && ( 
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg z-10">
             <div className="text-center p-4">
@@ -147,12 +146,10 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
           </div>
         )}
 
-        {/* Background overlay for custom images */}
         {vcard.background_type === 'custom-image' && (
           <div className="absolute inset-0 bg-black/20 rounded-lg"></div>
         )}
 
-        {/* Favicon */}
         {vcard.favicon && vcard.favicon !== 'default' && (
           <div className="absolute top-3 right-3 w-8 h-8 rounded-full overflow-hidden border-2 border-white/80 bg-white shadow-sm">
             <img 
@@ -164,7 +161,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
         )}
 
         <div className="relative h-full flex flex-col p-6">
-          {/* Logo section */}
           <div className="flex justify-center mb-4">
             {vcard.logo ? (
               <img
@@ -181,7 +177,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
             )}
           </div>
 
-          {/* Content section */}
           <div className="flex-1 flex flex-col items-center text-center">
             <h2 className="text-lg font-semibold mb-2 line-clamp-2 text-gray-900 dark:text-white leading-tight">
               {vcard.name}
@@ -193,7 +188,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
             )}
           </div>
 
-          {/* Footer section */}
           <div className="mt-auto">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center space-x-2">
@@ -221,7 +215,6 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
                 </span>
               </div>
 
-              {/* Action buttons */}
               <div className="flex items-center space-x-1">
                 {vcard.is_share && (
                   <button 

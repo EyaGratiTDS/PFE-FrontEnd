@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Image from "./Image";
 import ReCAPTCHA from "react-google-recaptcha";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; 
+import NexCardLogoFinal from '../atoms/Logo/NexCardLogoFinal'; 
 
 const SignUp: React.FC = () => {
   const [name, setName] = useState("");
@@ -115,6 +116,24 @@ const SignUp: React.FC = () => {
   return (
     <div className="signup-container">
       <ToastContainer />
+      
+      {/* Logo en haut à gauche de la page */}
+      <div className="logo-top-left" style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        zIndex: '1000',
+        transition: 'all 0.3s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}>
+        <NexCardLogoFinal size="md" showText={true} />
+      </div>
+
       <div className="form-container-signup">
         <div className="form-wrapper-signup">
           <h3 className="form-signup">Create your account</h3>

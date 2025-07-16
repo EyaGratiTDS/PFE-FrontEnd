@@ -478,6 +478,89 @@ h6,
     }
 }
 
+/*** Enhanced Facts Cards ***/
+.facts .hover-shadow-xl:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.facts .backdrop-blur {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.facts .transition-all {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.facts .duration-300 {
+    transition-duration: 300ms;
+}
+
+.facts .cursor-pointer {
+    cursor: pointer;
+}
+
+.facts .bg-opacity-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.facts .opacity-90 {
+    opacity: 0.9;
+}
+
+.facts .opacity-75 {
+    opacity: 0.75;
+}
+
+.facts .opacity-10 {
+    opacity: 0.1;
+}
+
+.facts .opacity-5 {
+    opacity: 0.05;
+}
+
+.facts .fw-medium {
+    font-weight: 500;
+}
+
+/* Animation améliorée pour les cartes */
+@keyframes factCardFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.facts .col-lg-4:hover > div {
+    animation: factCardFloat 2s ease-in-out infinite;
+}
+
+/* Effet de brillance sur hover */
+.facts .position-relative::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.facts .position-relative:hover::before {
+    left: 100%;
+}
+
+/* Amélioration responsive */
+@media (max-width: 991.98px) {
+    .facts .col-lg-4 {
+        margin-bottom: 1.5rem;
+    }
+    
+    .facts .col-lg-4:last-child {
+        margin-bottom: 0;
+    }
+}
+
 .back-to-top {
     position: fixed;
     display: none;

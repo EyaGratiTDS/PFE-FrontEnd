@@ -37,6 +37,7 @@ const ListPlans: React.FC = () => {
         
         if (response.data) {
           setPlans(response.data);
+          console.log(response.data);
         } else {
           setPlans([]);
           toast.error('No plan data received from server');

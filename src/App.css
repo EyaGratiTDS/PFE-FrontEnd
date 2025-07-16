@@ -154,15 +154,16 @@ html, body {
 
 .form-wrapper-signup {
   background-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding-left: 2rem;
   padding-right: 2rem;
   padding-top: 1rem;
   padding-bottom: 1rem;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 500px;
 }
+
 
 .image-container-signup {
   flex: 1;

@@ -10,10 +10,10 @@ const Carousel = () => {
             <div className="p-3" style={{ maxWidth: "900px" }}>
               <h5 className="text-white text-uppercase mb-3 animated slideInDown">Creative & Innovative</h5>
               <h1 className="display-1 text-white mb-md-4 animated zoomIn">Creative & Innovative Digital Solution</h1>
-              <Link to="/sign-up" className="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">
+              <Link to="/sign-up" className="btn btn-primary rounded-pill px-5 py-3 me-3 position-relative overflow-hidden fw-bold animated slideInLeft">
                 Sign Up
               </Link>
-              <Link to="/sign-in" className="btn btn-outline-light py-md-3 px-md-5 animated slideInRight">
+              <Link to="/sign-in" className="btn btn-outline-light rounded-pill px-5 py-3 position-relative overflow-hidden fw-bold animated slideInRight">
                 Sign In
               </Link>
             </div>
@@ -26,10 +26,10 @@ const Carousel = () => {
             <div className="p-3" style={{ maxWidth: "900px" }}>
               <h5 className="text-white text-uppercase mb-3 animated slideInDown">Creative & Innovative</h5>
               <h1 className="display-1 text-white mb-md-4 animated zoomIn">Creative & Innovative Digital Solution</h1>
-              <Link to="/sign-up" className="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">
+              <Link to="/sign-up" className="btn btn-primary rounded-pill px-5 py-3 me-3 position-relative overflow-hidden fw-bold animated slideInLeft">
                 Sign Up
               </Link>
-              <Link to="/sign-in" className="btn btn-outline-light py-md-3 px-md-5 animated slideInRight">
+              <Link to="/sign-in" className="btn btn-outline-light rounded-pill px-5 py-3 position-relative overflow-hidden fw-bold animated slideInRight">
                 Sign In
               </Link>
             </div>

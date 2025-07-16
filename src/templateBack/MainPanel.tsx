@@ -6,9 +6,7 @@ const MainPanel: React.FC = () => {
       <h2 className="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
         Dashboard
       </h2> 
-      {/* Cards */}
       <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
-        {/* Card */}
         <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
           <div className="p-3 mr-4 text-orange-500 bg-orange-100 rounded-full dark:text-orange-100 dark:bg-orange-500">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -24,7 +22,6 @@ const MainPanel: React.FC = () => {
             </p>
           </div>
         </div>
-        {/* Card */}
         <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
           <div className="p-3 mr-4 text-green-500 bg-green-100 rounded-full dark:text-green-100 dark:bg-green-500">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -44,7 +41,6 @@ const MainPanel: React.FC = () => {
             </p>
           </div>
         </div>
-        {/* Card */}
         <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
           <div className="p-3 mr-4 text-blue-500 bg-blue-100 rounded-full dark:text-blue-100 dark:bg-blue-500">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -60,7 +56,6 @@ const MainPanel: React.FC = () => {
             </p>
           </div>
         </div>
-        {/* Card */}
         <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
           <div className="p-3 mr-4 text-teal-500 bg-teal-100 rounded-full dark:text-teal-100 dark:bg-teal-500">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -82,7 +77,6 @@ const MainPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* New Table */}
       <div className="w-full overflow-hidden rounded-lg shadow-xs">
         <div className="w-full overflow-x-auto">
           <table className="w-full whitespace-no-wrap">
@@ -112,7 +106,6 @@ const MainPanel: React.FC = () => {
                   date: '6/10/2020',
                   avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=200&facepad=3&fit=facearea&s=707b9c33066bf8808c934c8ab394dff6',
                 },
-                // Add more rows as needed
               ].map((row, index) => (
                 <tr key={index} className="text-gray-700 dark:text-gray-400">
                   <td className="px-4 py-3">
@@ -162,7 +155,6 @@ const MainPanel: React.FC = () => {
             Showing 21-30 of 100
           </span>
           <span className="col-span-2" />
-          {/* Pagination */}
           <span className="flex col-span-4 mt-2 sm:mt-auto sm:justify-end">
             <nav aria-label="Table navigation">
               <ul className="inline-flex items-center">

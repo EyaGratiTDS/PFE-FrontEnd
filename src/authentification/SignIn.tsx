@@ -6,6 +6,7 @@ import Image from "./Image";
 import { useAuth } from "../context/AuthContext";
 import { authService, subscriptionService, planService } from "../services/api";
 import { FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
+import NexCardLogoFinal from '../atoms/Logo/NexCardLogoFinal';
 
 const SignIn: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -117,14 +118,11 @@ const SignIn: React.FC = () => {
 
       renderToastMessage("Login successful!", "success");
       
-      // Attendre que le contexte d'authentification soit mis à jour
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Vérifier que l'utilisateur est bien authentifié avant de naviguer
       const redirectPath = getRedirectPath(user.role);
       console.log('Redirecting to:', redirectPath);
       
-      // Navigation avec remplacement de l'historique
       window.location.href = redirectPath;
     } catch (err: any) {
       let errorMessage = "Failed to log in. Please try again.";
@@ -181,12 +179,10 @@ const SignIn: React.FC = () => {
         await handleGoogleAuth(token, user);
         
         renderToastMessage("Login successful!", "success");
-        // Attendre que le contexte d'authentification soit mis à jour
         await new Promise(resolve => setTimeout(resolve, 500));
         const redirectPath = getRedirectPath(user.role);
         console.log('Redirecting to:', redirectPath);
         
-        // Navigation avec remplacement complet de la page
         window.location.href = redirectPath;
       }
     } catch (error) {
@@ -252,12 +248,10 @@ const SignIn: React.FC = () => {
 
       renderToastMessage("Login successful!", "success");
       
-      // Attendre que le contexte d'authentification soit mis à jour
       await new Promise(resolve => setTimeout(resolve, 500));
       const redirectPath = getRedirectPath(user.role);
       console.log('Redirecting to:', redirectPath);
       
-      // Navigation avec remplacement complet de la page
       window.location.href = redirectPath;
     } catch (err: any) {
       let errorMessage = "Failed to verify 2FA code. Please try again.";
@@ -284,6 +278,23 @@ const SignIn: React.FC = () => {
   return (
     <div className="signup-container">
       <ToastContainer />
+      
+      <div className="logo-top-left" style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        zIndex: '1000',
+        transition: 'all 0.3s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}>
+        <NexCardLogoFinal size="md" showText={true} />
+      </div>
+
       <div className="form-container-signup">
         <div className="form-wrapper-signup">
           {requires2FA ? (

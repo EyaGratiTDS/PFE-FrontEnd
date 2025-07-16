@@ -14,17 +14,14 @@ const Layout: React.FC<LayoutProps> = ({ role = 'admin' }) => {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const { user, isLoading, isAuthenticated } = useAuth();
 
-  // Attendre que l'authentification soit chargée
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  // Si pas authentifié, rediriger vers login
   if (!isAuthenticated || !user) {
     return <Navigate to="/sign-in" replace />;
   }
 
-  // Vérifier que l'utilisateur a le bon rôle
   if (role === 'admin' && user.role !== 'admin') {
     return <Navigate to="/sign-in" replace />;
   }
