@@ -150,6 +150,15 @@ const Sidebar: React.FC<SidebarProps> = ({
             </svg>
           ),
           label: 'Api Keys'
+        },
+        {
+          path: `${basePath}/quote`,
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 17a4 4 0 01-4-4V7a4 4 0 014-4h10a4 4 0 014 4v6a4 4 0 01-4 4H7zm0 0v2a2 2 0 002 2h6a2 2 0 002-2v-2" />
+            </svg>
+          ),
+          label: 'Quote'
         }
       ];
     }
@@ -185,7 +194,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      <div className="z-20 hidden w-64 bg-white dark:bg-gray-800 lg:block flex-shrink-0">
+      <div className="z-20 hidden w-64 bg-white dark:bg-gray-800 lg:block flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
         <div className="py-4 text-gray-500 dark:text-gray-400">
           <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <Link to={`${basePath}/dashboard`} className="block">
@@ -198,6 +207,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </ul>
         </div>
       </div>
+
 
       <Transition
         show={isSideMenuOpen}
@@ -217,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <Transition show={isSideMenuOpen}>
         <Transition.Child
           as="div"
-          className="fixed inset-y-0 z-20 flex-shrink-0 w-64 mt-16 bg-white dark:bg-gray-800 lg:hidden"
+          className="fixed inset-y-0 z-20 flex-shrink-0 w-64 mt-16 bg-white dark:bg-gray-800 lg:hidden h-screen overflow-y-auto custom-scrollbar"
           enter="transition-transform duration-300 ease-in-out"
           enterFrom="-translate-x-full"
           enterTo="translate-x-0"
@@ -226,7 +236,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           leaveTo="-translate-x-full"
         >
           <div ref={sidebarRef} className="py-4 text-gray-500 dark:text-gray-400 h-full overflow-y-auto">
-            {/* Logo Header Mobile */}
             <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <Link to={`${basePath}/dashboard`} className="block" onClick={handleMobileLinkClick}>
                 <NexCardLogoFinal size="md" showText={true} />

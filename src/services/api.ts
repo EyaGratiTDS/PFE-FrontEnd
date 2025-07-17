@@ -7,6 +7,7 @@ import { ActivityLog, ActivityLogType } from './ActivityLog';
 import { ApiKey } from './ApiKey';
 import { Pixel, PixelEventParams } from './Pixel';
 import { CustomDomain, DNSInstructions } from './CustomDomain';
+import { Quote, QuoteService as QuoteServiceEnum } from './Quote';
 import { VCard } from './vcard';
 
 const api = axios.create({
@@ -1033,4 +1034,24 @@ checkCustomDomainLimit: async () => {
     return { current: 0, max: 0 };
   }
 },
+};
+
+export const QuoteService = {
+  add: async (data: { 
+    name: string; 
+    email: string;
+    service: QuoteServiceEnum;
+    description: string; 
+  }): Promise<Quote> => {
+    const response = await api.post('/quotes', data);
+    return response.data;
+  },
+  getAll: async (): Promise<Quote[]> => {
+    const response = await api.get('/quotes');
+    return response.data;
+  },
+  delete: async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/quotes/${id}`);
+    return response.data;
+  }
 };

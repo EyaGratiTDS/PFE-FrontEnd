@@ -6,7 +6,7 @@ export const useActiveSection = () => {
   useEffect(() => {
     const handleScroll = () => {
       const sections = ['home', 'about', 'features', 'services', 'pricing', 'contact', 'testimonials', 'team'];
-      const scrollPosition = window.scrollY + 100; // Offset pour le header
+      const scrollPosition = window.scrollY + 100; 
 
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = document.getElementById(sections[i]);
@@ -18,7 +18,7 @@ export const useActiveSection = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Vérifier la section active au chargement
+    handleScroll(); 
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);

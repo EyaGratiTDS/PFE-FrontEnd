@@ -81,7 +81,6 @@ const ForgotPassword: React.FC = () => {
     <div className="signup-container">
       <ToastContainer />
       
-      {/* Logo en haut à gauche de la page */}
       <div className="logo-top-left" style={{
         position: 'fixed',
         top: '20px',

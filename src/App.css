@@ -1,8 +1,9 @@
+
+@import './styles/custom-scrollbar.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Fix pour éliminer l'espace vide en bas des pages */
 html, body {
   margin: 0;
   padding: 0;
@@ -15,7 +16,6 @@ html, body {
   min-height: 100vh;
 }
 
-/* Layout optimisé pour éliminer les espaces vides */
 .layout-container {
   height: 100vh;
   min-height: 100vh;
@@ -24,7 +24,7 @@ html, body {
 }
 
 .main-content {
-  height: calc(100vh - 64px); /* Adjust based on navbar height */
+  height: calc(100vh - 64px);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -35,20 +35,17 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Correction des conteneurs de pages */
 .page-container {
   min-height: calc(100vh - 120px);
   padding-bottom: 0;
   margin-bottom: 0;
 }
 
-/* Remove extra spacing from grid containers */
 .container.grid {
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
 }
 
-/* NexCard Logo Styles */
 .nexcard-logo-container {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -68,11 +65,10 @@ html, body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Sidebar Logo Spacing - Optimized */
 .sidebar-logo-section {
   border-bottom: 1px solid rgba(6, 163, 218, 0.15);
   position: relative;
-  padding: 0.75rem 1.5rem !important; /* Reduced from py-4 px-6 */
+  padding: 0.75rem 1.5rem !important;
 }
 
 .sidebar-logo-section::after {
