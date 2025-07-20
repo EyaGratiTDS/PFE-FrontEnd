@@ -17,7 +17,6 @@ const PricingPlan = () => {
                         .filter(plan => plan.is_active)
                         .slice(0, 3); 
                     setPlans(filteredPlans);
-                    console.log(filteredPlans);
                 }
             } catch (err) {
                 console.error('Error fetching plans:', err);

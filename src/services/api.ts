@@ -1055,3 +1055,39 @@ export const QuoteService = {
     return response.data;
   }
 };
+
+export const visitorService = {
+  trackVisitor: async (data?: { entryTime: string }): Promise<{ visitorId: string }> => {
+    try {
+      const response = await api.post('/visitor/track', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error tracking visitor:', error);
+      throw error;
+    }
+  },
+
+  trackVisitorExit: async (visitorId: string): Promise<{ success: boolean }> => {
+    try {
+      const response = await api.post('/visitor/track-exit', { visitorId });
+      return response.data;
+    } catch (error) {
+      console.error('Error tracking visitor exit:', error);
+      throw error;
+    }
+  },
+
+  getAudienceStats: async (): Promise<{
+    totalVisitors: number;
+    totalVisits: number;
+    avgDuration: number;
+  }> => {
+    try {
+      const response = await api.get('/visitor/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting audience stats:', error);
+      throw error;
+    }
+  },
+};

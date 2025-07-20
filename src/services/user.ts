@@ -19,4 +19,14 @@ export interface User {
   createdAt: string;
   updated_at: string;
   activeSubscription?: ActiveSubscription | null;
+  ipAddress?: string;
+  location?: string;
+  language?: string;
+  browser?: string;
+  os?: string;
+  visitCount?: number;
+  lastVisit?: string;
+  entryTime?: string;
+  exitTime?: string;
+  duration?: number;
 }

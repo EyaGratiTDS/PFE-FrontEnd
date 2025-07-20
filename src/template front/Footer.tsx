@@ -24,19 +24,6 @@ const Footer = () => {
                                     Revolutionize your professional connections with innovative 
                                     and eco-friendly digital business cards.
                                 </p>
-                                <form action="" className="w-100 position-relative z-index-2">
-                                    <div className="input-group">
-                                        <input
-                                            type="email"
-                                            className="form-control border-0 p-3 rounded-start"
-                                            placeholder="Your Email"
-                                            style={{ boxShadow: "none" }}
-                                        />
-                                        <button className="btn btn-dark px-4 rounded-end" type="submit">
-                                            <i className="fa fa-paper-plane me-2"></i>Sign Up
-                                        </button>
-                                    </div>
-                                </form>
                             </div>
                         </div>
 
@@ -223,7 +210,7 @@ const Footer = () => {
                                     <strong>2025 NexCard.</strong> All rights reserved.
                                 </p>
                             </div>
-                            <div className="col-md-6 text-center text-md-end">
+                            {/*<div className="col-md-6 text-center text-md-end">
                                 <div className="d-flex justify-content-center justify-content-md-end gap-3 flex-wrap">
                                     <a href="#" className="text-light text-decoration-none small"
                                        style={{ transition: "color 0.3s ease" }}
@@ -246,10 +233,9 @@ const Footer = () => {
                                         Support
                                     </a>
                                 </div>
-                            </div>
+                            </div>*/}
                         </div>
                         
-                        {/* Additional Info */}
                         <div className="row mt-3 pt-3 border-top border-secondary">
                             <div className="col-12 text-center">
                                 <p className="mb-0 text-muted small">

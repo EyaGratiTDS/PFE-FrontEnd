@@ -5,7 +5,6 @@ import { useActiveSection } from '../hooks/useActiveSection';
 const Header = () => {
   const activeSection = useActiveSection();
 
-  // Fonction pour faire défiler vers une section spécifique
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -125,6 +124,6 @@ const Header = () => {
       </nav>
     </div>
   );
-};
+}; 
 
 export default Header;
