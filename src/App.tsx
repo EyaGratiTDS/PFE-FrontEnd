@@ -44,6 +44,7 @@ import ListCustomDomains from './pagesSuperAdmin/CustomDomains/ListCustomDomains
 import ListSubscriptions from './pagesSuperAdmin/Subscriptions/ListSubscriptions';
 import ListApiKeys from './pagesSuperAdmin/ApiKeys/ListApiKeys';
 import ListQuotes from './pagesSuperAdmin/Quote/ListQuotes';
+import AuthHandler from './authentification/AuthHandler';
 
 function App() {
   const { isLoading, user } = useAuth(); 
@@ -63,6 +64,7 @@ function App() {
         <Route path="/reset-password" element={<NewPassword />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivatePolicy />} />
+        <Route path="/auth/handler" element={<AuthHandler />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Image from "./Image";
@@ -18,16 +18,7 @@ const SignIn: React.FC = () => {
   const [tempToken, setTempToken] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const navigate = useNavigate();
-  const { isLoading, login, handleGoogleAuth } = useAuth();
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    const token = searchParams.get("token");
-    const user = searchParams.get("user");
-    if (token && user) {
-      handleGoogleCallback();
-    }
-  }, [searchParams]);
+  const { isLoading, login } = useAuth();
 
   useEffect(() => {
     const rememberedEmail = localStorage.getItem("rememberedEmail");
@@ -134,60 +125,6 @@ const SignIn: React.FC = () => {
       }
 
       renderToastMessage(errorMessage, "error");
-    }
-  };
-
-  const handleGoogleCallback = async () => {
-    try {
-      const token = searchParams.get("token");
-      const userJson = searchParams.get("user");
-
-      if (token && userJson) {
-        const decodedUser = decodeURIComponent(userJson);
-        const user = JSON.parse(decodedUser);
-
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        try {
-          const userId = Number(user.id);
-          const subscriptionResponse = await subscriptionService.getCurrentSubscription(userId);
-
-          if (subscriptionResponse) {
-            const subscription = subscriptionResponse.data;
-            if(subscription){
-              const planResponse = await planService.getPlanById(subscription.plan_id);
-
-              if (planResponse.data) {
-                const planData = {
-                  id: planResponse.data.id,
-                  name: planResponse.data.name,
-                  price: planResponse.data.price,
-                  duration_days: planResponse.data.duration_days,
-                  features: planResponse.data.features || []
-                };
-
-                localStorage.setItem("currentPlan", JSON.stringify(planData));
-              }
-            }
-          } else {
-            const freePlan = await planService.getFreePlan();
-            localStorage.setItem("currentPlan", JSON.stringify(freePlan));
-          }
-        } catch (error) {
-          console.error("Error fetching subscription or plan:", error);
-        }
-        await handleGoogleAuth(token, user);
-        
-        renderToastMessage("Login successful!", "success");
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const redirectPath = getRedirectPath(user.role);
-        console.log('Redirecting to:', redirectPath);
-        
-        window.location.href = redirectPath;
-      }
-    } catch (error) {
-      console.error("Erreur lors du traitement Google callback:", error);
-      renderToastMessage("Failed to log in with Google. Please try again.", "error");
     }
   };
 
