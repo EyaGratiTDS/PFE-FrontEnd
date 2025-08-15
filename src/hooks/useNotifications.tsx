@@ -225,7 +225,7 @@ export const useNotifications = (user: User | null) => {
         clearTimeout(reconnectTimeout.current);
       }
     };
-  }, [user?.id, setupWebSocket]);
+  }, []);
 
   return {
     dropdownNotifications,

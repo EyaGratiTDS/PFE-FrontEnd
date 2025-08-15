@@ -45,13 +45,32 @@ import ListSubscriptions from './pagesSuperAdmin/Subscriptions/ListSubscriptions
 import ListApiKeys from './pagesSuperAdmin/ApiKeys/ListApiKeys';
 import ListQuotes from './pagesSuperAdmin/Quote/ListQuotes';
 import AuthHandler from './authentification/AuthHandler';
+import { registerSW } from 'virtual:pwa-register'
 
 function App() {
-  const { isLoading, user } = useAuth(); 
+  const { isLoading, user } = useAuth();
 
   if (isLoading) {
     return <Spinner />;
   }
+
+  const updateSW = registerSW({
+    onNeedRefresh() {
+      console.log("****************************")
+
+      if (confirm('New version available! Reload to update?')) {
+        updateSW();
+      }
+    },
+    onOfflineReady() {
+      console.log("////////////////////")
+
+      console.log('App is ready for offline use');
+    },
+  });
+
+updateSW();
+
 
   return (
     <Router>
@@ -68,11 +87,11 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={
-            user?.role === 'superAdmin' 
-              ? <Navigate to="/super-admin/dashboard" replace /> 
+            user?.role === 'superAdmin'
+              ? <Navigate to="/super-admin/dashboard" replace />
               : <Navigate to="/admin/dashboard" replace />
           } />
-          
+
           <Route path="/admin" element={<Layout role="admin" />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard">
@@ -85,14 +104,14 @@ function App() {
             <Route path="vcard/edit-vcard/:id" element={<EditVCard />} />
             <Route path="vcard/edit-vcard/:id/blocks" element={<BlocksPage />} />
             <Route path="vcard/edit-vcard/:id/blocks/add-blocks" element={<AddBlocksPage />} />
-            
+
             <Route path="account" element={<AccountLayout />}>
               <Route path="settings" element={<Settings />} />
               <Route path="activityLogs" element={<ActivityLogs />} />
               <Route path="plan" element={<AccountPlans />} />
               <Route path="api" element={<ApiKeyManager />} />
             </Route>
-            
+
             <Route path="project">
               <Route index element={<ProjectPage />} />
               <Route path="create" element={<ProjectForm />} />
@@ -118,7 +137,7 @@ function App() {
               <Route path="profile" element={<Navigate to="/super-admin/account" replace />} />
               <Route path="notifications" element={<NotificationsPage />} />
             </Route>
-            
+
             <Route path="account" element={<AccountLayout />}>
               <Route path="settings" element={<Settings />} />
               <Route path="activityLogs" element={<ActivityLogs />} />
@@ -154,7 +173,7 @@ function App() {
             </Route>
           </Route>
         </Route>
-        
+
         <Route path="/vcard/:url" element={<VCardViewPage />} />
         <Route path="*" element={<div>Page not found</div>} />
       </Routes>

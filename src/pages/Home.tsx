@@ -12,11 +12,17 @@ import Services from "../template front/Services";
 import Team from "../template front/Team";
 import SearchModal from "../modals/SearchModal";
 import { useWowAnimations } from "../hooks/useWowAnimations";
+import { useFontOptimization, ResourcePreloader } from "../hooks/useResourceOptimization";
+import { usePerformanceOptimization, useCoreWebVitals } from "../hooks/usePerformanceOptimization";
 import CookieConsent from "../components/CookieConsent";
 import { visitorService } from "../services/api";
 
 const Home = () => {
     useWowAnimations();
+    useFontOptimization(); // Optimiser le chargement des polices
+    usePerformanceOptimization(); // Optimisations générales
+    useCoreWebVitals(); // Optimiser les Core Web Vitals
+    
     const visitorIdRef = useRef<string | null>(null);
     const [showCookieBanner, setShowCookieBanner] = useState(false);
     const trackingActive = useRef(false);
@@ -65,11 +71,25 @@ const Home = () => {
         if (trackingActive.current) return;
         
         try {
-            const response = await visitorService.trackVisitor({
-                entryTime: pageEntryTimeRef.current.toISOString()
-            });
-            visitorIdRef.current = response.visitorId;
-            trackingActive.current = true;
+            // Utiliser requestIdleCallback pour reporter le tracking
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(async () => {
+                    const response = await visitorService.trackVisitor({
+                        entryTime: pageEntryTimeRef.current.toISOString()
+                    });
+                    visitorIdRef.current = response.visitorId;
+                    trackingActive.current = true;
+                });
+            } else {
+                // Fallback pour les navigateurs qui ne supportent pas requestIdleCallback
+                setTimeout(async () => {
+                    const response = await visitorService.trackVisitor({
+                        entryTime: pageEntryTimeRef.current.toISOString()
+                    });
+                    visitorIdRef.current = response.visitorId;
+                    trackingActive.current = true;
+                }, 100);
+            }
         } catch (error) {
             console.error("Visitor tracking error:", error);
         }
@@ -82,6 +102,7 @@ const Home = () => {
 
     return (
         <>
+            <ResourcePreloader />
             <CookieConsent 
                 visible={showCookieBanner} 
                 onAccept={handleAcceptCookies} 

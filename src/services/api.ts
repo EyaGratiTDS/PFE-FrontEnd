@@ -1091,3 +1091,22 @@ export const visitorService = {
     }
   },
 };
+
+export const webNotificationsService = {
+  addWebNotification: async (subscription: {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+    expirationTime: number | null;
+  },): Promise<{ message: string }> => {
+    try {
+      const response = await api.post('/web-notifications', subscription);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding web notification:', error);
+      throw error;
+    }
+  },
+};

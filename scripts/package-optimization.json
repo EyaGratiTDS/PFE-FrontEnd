@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:analyze": "tsc && vite build --mode analyze",
+    "optimize": "npm run optimize:images && npm run build",
+    "optimize:images": "node scripts/optimize-images.js",
+    "preview": "vite preview",
+    "test:lighthouse": "lighthouse http://localhost:4173 --output=html --output-path=./lighthouse-report.html"
+  }
+}
