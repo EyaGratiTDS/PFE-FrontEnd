@@ -19,19 +19,19 @@ import { visitorService } from "../services/api";
 
 const Home = () => {
     useWowAnimations();
-    useFontOptimization(); // Optimiser le chargement des polices
-    usePerformanceOptimization(); // Optimisations générales
-    useCoreWebVitals(); // Optimiser les Core Web Vitals
-    
+    useFontOptimization();
+    usePerformanceOptimization();
+    useCoreWebVitals();
+
     const visitorIdRef = useRef<string | null>(null);
     const [showCookieBanner, setShowCookieBanner] = useState(false);
     const trackingActive = useRef(false);
-    const pageEntryTimeRef = useRef<Date>(new Date()); 
-    const hasTrackedRef = useRef(false); 
+    const pageEntryTimeRef = useRef(new Date());
+    const hasTrackedRef = useRef(false);
 
     const trackExit = async () => {
         if (!trackingActive.current || !visitorIdRef.current) return;
-        
+
         try {
             await visitorService.trackVisitorExit(visitorIdRef.current);
             trackingActive.current = false;
@@ -43,24 +43,23 @@ const Home = () => {
     useEffect(() => {
         const handleBeforeUnload = () => trackExit();
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') trackExit();
+            if (document.visibilityState === "hidden") trackExit();
         };
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => {
             trackExit();
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, []);
 
     useEffect(() => {
         const consent = localStorage.getItem("cookieConsent");
-        const shouldShowBanner = consent !== "accepted";
-        setShowCookieBanner(shouldShowBanner);
-        
+        setShowCookieBanner(consent !== "accepted");
+
         if (!hasTrackedRef.current) {
             startTracking();
             hasTrackedRef.current = true;
@@ -69,44 +68,35 @@ const Home = () => {
 
     const startTracking = async () => {
         if (trackingActive.current) return;
-        
-        try {
-            // Utiliser requestIdleCallback pour reporter le tracking
-            if ('requestIdleCallback' in window) {
-                requestIdleCallback(async () => {
-                    const response = await visitorService.trackVisitor({
-                        entryTime: pageEntryTimeRef.current.toISOString()
-                    });
-                    visitorIdRef.current = response.visitorId;
-                    trackingActive.current = true;
+
+        const track = async () => {
+            try {
+                const response = await visitorService.trackVisitor({
+                    entryTime: pageEntryTimeRef.current.toISOString()
                 });
-            } else {
-                // Fallback pour les navigateurs qui ne supportent pas requestIdleCallback
-                setTimeout(async () => {
-                    const response = await visitorService.trackVisitor({
-                        entryTime: pageEntryTimeRef.current.toISOString()
-                    });
-                    visitorIdRef.current = response.visitorId;
-                    trackingActive.current = true;
-                }, 100);
+                visitorIdRef.current = response.visitorId;
+                trackingActive.current = true;
+            } catch (error) {
+                console.error("Visitor tracking error:", error);
             }
-        } catch (error) {
-            console.error("Visitor tracking error:", error);
+        };
+
+        if ("requestIdleCallback" in window) {
+            requestIdleCallback(track);
+        } else {
+            setTimeout(track, 100);
         }
     };
 
     const handleAcceptCookies = () => {
-        //localStorage.setItem("cookieConsent", "accepted");
+        localStorage.setItem("cookieConsent", "accepted");
         setShowCookieBanner(false);
     };
 
     return (
         <>
             <ResourcePreloader />
-            <CookieConsent 
-                visible={showCookieBanner} 
-                onAccept={handleAcceptCookies} 
-            />
+            <CookieConsent visible={showCookieBanner} onAccept={handleAcceptCookies} />
             <div style={{ width: "100vw", overflowX: "hidden", minWidth: "100vw" }}>
                 <Header />
                 <div id="home">

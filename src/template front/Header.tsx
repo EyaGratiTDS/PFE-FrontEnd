@@ -1,19 +1,31 @@
 import { Link } from "react-router-dom";
-import NexCardLogoFinal from '../atoms/Logo/NexCardLogoFinal';
-import { useActiveSection } from '../hooks/useActiveSection';
+import NexCardLogoFinal from "../atoms/Logo/NexCardLogoFinal";
+import { useActiveSection } from "../hooks/useActiveSection";
+import { useCallback } from "react";
 
 const Header = () => {
   const activeSection = useActiveSection();
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
+        behavior: "smooth",
+        block: "start",
       });
     }
-  };
+  }, []);
+
+  const menuItems = [
+    { id: "home", label: "Home" },
+    { id: "about", label: "About" },
+    { id: "services", label: "Services" },
+    { id: "features", label: "Features" },
+    { id: "pricing", label: "Pricing" },
+    { id: "team", label: "Team" },
+    { id: "testimonials", label: "Testimonials" },
+    { id: "contact", label: "Contact" },
+  ];
 
   return (
     <div className="container-fluid position-relative p-0">
@@ -33,86 +45,21 @@ const Header = () => {
         </button>
         <div className="navbarfront-collapse" id="navbarfront">
           <div className="navbarfront-nav ms-auto py-0">
-            <a 
-              href="#home" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'home' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('home');
-              }}
-            >
-              Home
-            </a>
-            <a 
-              href="#about" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'about' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('about');
-              }}
-            >
-              About
-            </a>
-            <a 
-              href="#services" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'services' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('services');
-              }}
-            >
-              Services
-            </a>
-            <a 
-              href="#features" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'features' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('features');
-              }}
-            >
-              Features
-            </a>
-            <a 
-              href="#pricing" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'pricing' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('pricing');
-              }}
-            >
-              Pricing
-            </a>
-            <a 
-              href="#team" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'team' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('team');
-              }}
-            >
-              Team
-            </a>
-            <a 
-              href="#testimonials" 
-              className={`navbarfront-item navbarfront-link ${activeSection === 'testimonials' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('testimonials');
-              }}
-            >
-              Testimonials
-            </a>
-            <a 
-              href="#contact" 
-              className={`navbarfront-item navbarfront-link mr-24 ${activeSection === 'contact' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('contact');
-              }}
-            >
-              Contact
-            </a>
+            {menuItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`navbarfront-item navbarfront-link ${
+                  activeSection === item.id ? "active" : ""
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection(item.id);
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
           <Link
             to="/sign-up"
@@ -124,6 +71,6 @@ const Header = () => {
       </nav>
     </div>
   );
-}; 
+};
 
 export default Header;

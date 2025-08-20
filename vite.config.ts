@@ -71,7 +71,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          animations: ['wow.js'],
           utils: ['axios']
         }
       }
