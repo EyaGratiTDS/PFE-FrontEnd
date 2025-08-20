@@ -32,18 +32,6 @@ export default defineConfig({
           type: 'image/png',
           purpose: 'any'
         },
-        {
-          src: '/img/Logo-NexCard-192x192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'maskable'
-        },
-        {
-          src: '/img/Logo-NexCard-512x512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable'
-        }
       ]
 
     },
