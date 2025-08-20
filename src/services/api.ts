@@ -11,7 +11,7 @@ import { Quote, QuoteService as QuoteServiceEnum } from './Quote';
 import { VCard } from './vcard';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 1000000,
   headers: {
     'Content-Type': 'application/json',
@@ -116,11 +116,11 @@ export const authService = {
     }).then(res => res.data),
 
   authenticateWithGoogle: (): void => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
   },
 
   handleGoogleCallback: async (): Promise<ApiResponse<SignInResponse>> => {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/google/callback`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL }/auth/google/callback`, {
       credentials: 'include'
     });
 
