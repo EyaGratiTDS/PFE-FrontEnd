@@ -17,9 +17,10 @@
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
-    <link href="/favicon.png" rel="icon" type="image/png">
-    <link href="/favicon.png" rel="apple-touch-icon">
-    <link href="/favicon.png" rel="shortcut icon" type="image/png">
+    <!-- Favicon -->
+    <link href="/assets/logo/logo-NexCard.png" rel="icon" type="image/png">
+    <link href="/assets/logo/logo-NexCard.png" rel="apple-touch-icon">
+    <link href="/assets/logo/logo-NexCard.png" rel="shortcut icon" type="image/png">
     <meta name="theme-color" content="#3B82F6">
     
     <!-- Chargement optimisé des polices -->
@@ -30,28 +31,35 @@
     <!-- Chargement différé des CSS non-critiques -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="src/assets/styleTemplate/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="src/assets/styleTemplate/lib/animate/animate.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="src/assets/styleTemplate/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="src/assets/styleTemplate/css/style.css" rel="stylesheet">
-    <link href="src/App.css" rel="stylesheet">
-    <link rel="stylesheet" href="src/assets/styleBack/css/tailwind.output.css" />
+
+    <!-- Styles locaux déplacés dans public/assets -->
+    <link href="/assets/styleTemplate/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/assets/styleTemplate/lib/animate/animate.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/assets/styleTemplate/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/assets/styleTemplate/css/style.css" rel="stylesheet">
+    <link href="/src/App.css" rel="stylesheet">
+    <link href="/assets/styleBack/css/tailwind.output.css" rel="stylesheet" />
   </head>
 
   <body>
-    <div id="root">
-        <script type="module" src="/src/main.tsx"></script>
-        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="src/assets/styleTemplate/lib/wow/wow.min.js"></script>
-        <script src="src/assets/styleTemplate/lib/easing/easing.min.js"></script>
-        <script src="src/assets/styleTemplate/lib/waypoints/waypoints.min.js"></script>
-        <script src="src/assets/styleTemplate/lib/counterup/counterup.min.js"></script>
-        <script src="src/assets/styleTemplate/lib/owlcarousel/owl.carousel.min.js"></script>
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-        <script src="src/assets/styleTemplate/js/main.js"></script>
-        <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
-        <script src="src/assets/styleBack/js/init-alpine.js"></script>
-    </div>
+    <div id="root"></div>
+    
+    <!-- React entrypoint -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Librairies externes -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+
+    <!-- Scripts locaux déplacés dans public/assets -->
+    <script src="/assets/styleTemplate/lib/wow/wow.min.js"></script>
+    <script src="/assets/styleTemplate/lib/easing/easing.min.js"></script>
+    <script src="/assets/styleTemplate/lib/waypoints/waypoints.min.js"></script>
+    <script src="/assets/styleTemplate/lib/counterup/counterup.min.js"></script>
+    <script src="/assets/styleTemplate/lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="/assets/styleTemplate/js/main.js"></script>
+    <script src="/assets/styleBack/js/init-alpine.js"></script>
   </body>
 </html>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useColorMode from '../hooks/useColorMode';
-import pdp1 from '../assets/styleTemplate/img/pdp1.png';
 import { authService } from '../services/api';
 import { User } from '../services/user';
 import NotificationCard from '../cards/NotificationCard';
@@ -344,7 +343,7 @@ const NavBar: React.FC<NavBarProps> = ({ toggleSideMenu, isSideMenuOpen }) => {
               >
                 <img
                   className="object-cover w-8 h-8 rounded-full"
-                  src={avatarPreview ? `${API_BASE_URL}${avatarPreview}` : pdp1}
+                  src={avatarPreview ? `${API_BASE_URL}${avatarPreview}` : "/assets/styleTemplate/img/pdp1.png"}
                   alt="Avatar utilisateur"
                   aria-hidden="true"
                 />

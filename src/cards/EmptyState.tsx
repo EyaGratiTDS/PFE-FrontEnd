@@ -1,7 +1,6 @@
 import React from 'react';
 import { FaPlus } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import videImage from './../assets/styleTemplate/img/empty-vcard.png';
 
 interface EmptyStateProps {
   title?: string;
@@ -21,7 +20,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   <div className="bg-white dark:bg-gray-800 p-8 text-center rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
     <div className="mx-auto flex items-center justify-center h-24 w-24 mb-4">
       <img
-        src={videImage}
+        src="/assets/styleTemplate/img/empty-vcard.png"
         alt="No VCard"
         className="w-full h-full object-contain"
       />

@@ -11,7 +11,7 @@ const Carousel = () => {
         <div className="carousel-item active">
           <img
             className="w-100"
-            src="/img/caroussel1.jpg"
+            src="/assets/styleTemplate/img/carousel-1.jpg"
             alt="Carousel 1"
           />
           <div className="carousel-caption d-flex flex-column align-items-center justify-content-center">
@@ -41,7 +41,7 @@ const Carousel = () => {
         <div className="carousel-item">
           <img
             className="w-100"
-            src="/img/caroussel2.jpg"
+            src="/assets/styleTemplate/img/carousel-2.jpg"
             alt="Carousel 2"
           />
           <div className="carousel-caption d-flex flex-column align-items-center justify-content-center">

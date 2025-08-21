@@ -4,7 +4,7 @@ const teamMembers = [
     {
         name: "Eya Grati",
         position: "Fullstack Developer",
-        image: "src/assets/styleTemplate/img/eya.png",
+        image: "/assets/styleTemplate/img/Eya.png",
         description: "Passionate about creating innovative digital solutions and modern web applications.",
         skills: ["React", "TypeScript", "Node.js", "MySQL"],
         socialLinks: {
@@ -17,7 +17,7 @@ const teamMembers = [
     {
         name: "Ghada Tebessi",
         position: "Data Scientist",
-        image: "src/assets/styleTemplate/img/ghada.jpg",
+        image: "/assets/styleTemplate/img/ghada.jpg",
         description: "Specialized in data analysis, machine learning, and business intelligence solutions.",
         skills: ["Python", "Machine Learning", "Data Analysis", "AI"],
         socialLinks: {

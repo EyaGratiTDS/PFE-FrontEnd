@@ -1,5 +1,4 @@
 import { useState } from "react";
-import featureImg from '../assets/styleTemplate/img/feature.jpg';
 
 interface FeatureCardProps {
     icon: React.ReactNode;
@@ -140,7 +139,7 @@ const Features = () => {
                                 onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.15)"; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = ""; }}>
                                 <img className="position-absolute w-100 h-100"
-                                    src={featureImg}
+                                    src="/assets/styleTemplate/img/feature.jpg"
                                     alt="Feature"
                                     style={{ objectFit: "cover" }} />
 

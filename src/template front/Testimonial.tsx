@@ -6,37 +6,37 @@ const testimonials = [
   { 
     name: "Ahmed Benali", 
     profession: "Sales Director", 
-    image: "src/assets/styleTemplate/img/testimonial-1.jpg", 
+    image: "/assets/styleTemplate/img/testimonial-1.jpg", 
     text: "NexCard has transformed the way I network. My digital business cards are professional and I've increased my contacts by 40% in 3 months!" 
   },
   { 
     name: "Fatima El Mansouri", 
     profession: "Entrepreneur", 
-    image: "src/assets/styleTemplate/img/testimonial-2.jpg", 
+    image: "/assets/styleTemplate/img/testimonial-2.jpg", 
     text: "The project management and performance analytics are exceptional. I can track vCard engagement in real-time and optimize my strategy." 
   },
   { 
     name: "Youssef Talbi", 
     profession: "Digital Marketing Manager", 
-    image: "src/assets/styleTemplate/img/testimonial-3.jpg", 
+    image: "/assets/styleTemplate/img/testimonial-3.jpg", 
     text: "The API integration is seamless and the interface is intuitive. Our teams adopted the platform in just a few days. A real game-changer!" 
   },
   { 
     name: "Salma Ouali", 
     profession: "Business Consultant", 
-    image: "src/assets/styleTemplate/img/testimonial-4.jpg", 
+    image: "/assets/styleTemplate/img/testimonial-4.jpg", 
     text: "The authentication and security features are robust. I recommend NexCard to all professionals who want to modernize their networking." 
   },
   { 
     name: "Karim Zaidi", 
     profession: "IT Director", 
-    image: "src/assets/styleTemplate/img/testimonial-1.jpg", 
+    image: "/assets/styleTemplate/img/testimonial-1.jpg", 
     text: "The multi-platform compatibility is perfect. My cards automatically adapt to all devices. Responsive and professional customer support." 
   },
   { 
     name: "Nadia Benjelloun", 
     profession: "Business Coach", 
-    image: "src/assets/styleTemplate/img/testimonial-2.jpg", 
+    image: "/assets/styleTemplate/img/testimonial-2.jpg", 
     text: "The customizable templates and detailed statistics allowed me to optimize my digital presence. Visible ROI from the first month!" 
   }
 ];

@@ -1,4 +1,3 @@
-import aboutImg from '../assets/styleTemplate/img/about.jpg';
 
 const About = () => {
     return (
@@ -185,7 +184,7 @@ const About = () => {
                         <div className="position-relative h-100">
                             <img className="position-absolute w-100 h-100 rounded wow zoomIn" 
                                 data-wow-delay="0.9s" 
-                                src={aboutImg} 
+                                src="/assets/styleTemplate/img/about.jpg" 
                                 alt="About Us"
                                 style={{ objectFit: "cover" }} />
                         </div>
