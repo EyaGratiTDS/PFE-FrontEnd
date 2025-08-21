@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
+import caroussel1 from "../assets/styleTemplate/img/carousel-1.jpg";
+import caroussel2 from "../assets/styleTemplate/img/carousel-2.jpg";
+
 
 const Carousel = () => {
   return (
     <div id="header-carousel" className="carousel slide carousel-fade" data-bs-ride="carousel">
       <div className="carousel-inner">
         <div className="carousel-item active">
-          <img className="w-100" src="src/assets/styleTemplate/img/carousel-1.jpg" alt="Carousel 1" />
+          <img className="w-100" src={caroussel1} alt="Carousel 1" />
           <div className="carousel-caption d-flex flex-column align-items-center justify-content-center">
             <div className="p-3" style={{ maxWidth: "900px" }}>
               <h5 className="text-white text-uppercase mb-3 animated slideInDown">Creative & Innovative</h5>
@@ -21,7 +24,7 @@ const Carousel = () => {
         </div>
 
         <div className="carousel-item">
-          <img className="w-100" src="src/assets/styleTemplate/img/carousel-2.jpg" alt="Carousel 2" />
+          <img className="w-100" src={caroussel2} alt="Carousel 2" />
           <div className="carousel-caption d-flex flex-column align-items-center justify-content-center">
             <div className="p-3" style={{ maxWidth: "900px" }}>
               <h5 className="text-white text-uppercase mb-3 animated slideInDown">Creative & Innovative</h5>
