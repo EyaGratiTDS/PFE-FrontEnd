@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   FaPlus,
   FaFileExport,
@@ -17,6 +17,8 @@ import { VCard } from "../../services/vcard";
 import FilterCard from '../../cards/FilterCard';
 import ExportMenu from '../../cards/ExportMenu'; 
 import Pagination from '../../atoms/Pagination/Pagination'; 
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface RawVCard {
   id?: string | number;
@@ -37,8 +39,6 @@ interface RawVCard {
   search_engine_visibility?: boolean;
   remove_branding?: boolean;
 }
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 interface DateRange {
   start: Date | undefined;
@@ -53,7 +53,13 @@ interface ActiveFilters {
   dateRange: DateRange;
 }
 
-const downloadFile = (blob: Blob, fileName: string) => {
+interface PlanLimit {
+  current: number;
+  max: number;
+}
+
+// Utility functions
+const downloadFile = (blob: Blob, fileName: string): void => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
@@ -65,8 +71,12 @@ const downloadFile = (blob: Blob, fileName: string) => {
   URL.revokeObjectURL(url);
 };
 
-const exportToCSV = (data: any[], fileName: string) => {
+const exportToCSV = (data: any[], fileName: string): boolean => {
   try {
+    if (!data || data.length === 0) {
+      throw new Error('No data to export');
+    }
+
     const headers = Object.keys(data[0]);
     const csvRows = [];
 
@@ -94,8 +104,12 @@ const exportToCSV = (data: any[], fileName: string) => {
   }
 };
 
-const exportToJSON = (data: any[], fileName: string) => {
+const exportToJSON = (data: any[], fileName: string): boolean => {
   try {
+    if (!data || data.length === 0) {
+      throw new Error('No data to export');
+    }
+
     const jsonContent = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
     downloadFile(blob, `${fileName}.json`);
@@ -107,20 +121,24 @@ const exportToJSON = (data: any[], fileName: string) => {
 };
 
 const VCardPage: React.FC = () => {
+  // State management
   const [vcards, setVcards] = useState<VCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredVCards, setFilteredVCards] = useState<VCard[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [planLimits, setPlanLimits] = useState<PlanLimit>({ current: 0, max: 1 });
+  
+  // Refs
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
-  const [currentPlanLimit, setCurrentPlanLimit] = useState(1);
+  
   const navigate = useNavigate();
+  
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
     backgroundType: 'all',
@@ -131,8 +149,10 @@ const VCardPage: React.FC = () => {
       end: undefined
     }
   });
-  const cardsPerPage = 20;
 
+  const cardsPerPage = 16;
+
+  // Initialize current user from localStorage
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -141,22 +161,30 @@ const VCardPage: React.FC = () => {
         setCurrentUser(user);
       } catch (error) {
         console.error('Error parsing user data:', error);
+        toast.error('Error loading user data');
       }
     }
   }, []);
 
-   useEffect(() => {
-    const fetchPlanLimit = async () => {
-      try {
-        const { max } = await limitService.checkVcardLimit();
-        setCurrentPlanLimit(max === -1 ? Infinity : max);
-      } catch (error) {
-        console.error('Error fetching plan limits:', error);
-      }
-    };
-    fetchPlanLimit();
+  // Fetch plan limits
+  const fetchPlanLimits = useCallback(async () => {
+    try {
+      const limits = await limitService.checkVcardLimit();
+      setPlanLimits({
+        current: limits.current || 0,
+        max: limits.max === -1 ? Infinity : limits.max || 1
+      });
+    } catch (error) {
+      console.error('Error fetching plan limits:', error);
+      toast.error('Error loading plan limits');
+    }
   }, []);
 
+  useEffect(() => {
+    fetchPlanLimits();
+  }, [fetchPlanLimits]);
+
+  // Handle click outside for export menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -175,22 +203,25 @@ const VCardPage: React.FC = () => {
     };
   }, []);
 
-  const handleCreateClick = async () => {
+  // Handle create VCard with plan limit check
+  const handleCreateClick = useCallback(async () => {
     try {
       const { current, max } = await limitService.checkVcardLimit();
 
       if (max !== -1 && current >= max) {
         toast.warning(`You've reached the maximum of ${max} VCards. Upgrade your plan to create more.`);
-      } else {
-        navigate(`/admin/vcard/create-vcard`);
+        return;
       }
+
+      navigate(`/admin/vcard/create-vcard`);
     } catch (error) {
       console.error('Error checking VCard limits:', error);
       toast.error('Error checking plan limits. Please try again.');
     }
-  };
+  }, [navigate]);
 
-  const fetchVCards = async () => {
+  // Fetch VCards
+  const fetchVCards = useCallback(async () => {
     if (!currentUser?.id) return;
 
     try {
@@ -207,7 +238,7 @@ const VCardPage: React.FC = () => {
         new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
       );
 
-      const formattedCards = sortedCards.map((vcard: RawVCard, index: number) => ({
+      const formattedCards: VCard[] = sortedCards.map((vcard: RawVCard, index: number) => ({
         ...vcard,
         id: vcard.id || '',
         name: vcard.name || 'Untitled VCard',
@@ -226,46 +257,53 @@ const VCardPage: React.FC = () => {
         createdAt: vcard.createdAt || new Date().toISOString(),
         search_engine_visibility: vcard.search_engine_visibility !== undefined ? vcard.search_engine_visibility : true,
         remove_branding: vcard.remove_branding !== undefined ? vcard.remove_branding : false,
-        isDisabled: index >= currentPlanLimit
+        // Correctly determine if VCard should be disabled based on plan limits
+        isDisabled: planLimits.max !== Infinity && index >= planLimits.max
       }));
 
-      setVcards(formattedCards.filter((vcard: VCard) => vcard !== null));
-      setFilteredVCards(formattedCards.filter((vcard: VCard) => vcard !== null));
+      const validCards = formattedCards.filter((vcard: VCard) => vcard !== null);
+      setVcards(validCards);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error fetching VCards:', err);
+      toast.error('Error loading VCards');
       setVcards([]);
-      setFilteredVCards([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser, planLimits.max]);
 
   useEffect(() => {
     fetchVCards();
-  }, [currentUser, refreshTrigger, currentPlanLimit]);
+  }, [fetchVCards, refreshTrigger]);
 
-  const applyFilters = () => {
+  // Filter VCards based on search term and active filters
+  const filteredVCards = useMemo(() => {
     let filtered = [...vcards];
 
+    // Apply search filter
     if (searchTerm.trim() !== '') {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(vcard =>
-        vcard.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (vcard.description && vcard.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        vcard.name.toLowerCase().includes(searchLower) ||
+        (vcard.description && vcard.description.toLowerCase().includes(searchLower))
       );
     }
 
+    // Apply status filter
     if (activeFilters.status !== 'all') {
       filtered = filtered.filter(vcard =>
         activeFilters.status === 'active' ? vcard.is_active : !vcard.is_active
       );
     }
 
+    // Apply background type filter
     if (activeFilters.backgroundType !== 'all') {
       filtered = filtered.filter(vcard =>
         vcard.background_type === activeFilters.backgroundType
       );
     }
 
+    // Apply search engine visibility filter
     if (activeFilters.searchEngine !== 'all') {
       filtered = filtered.filter(vcard =>
         activeFilters.searchEngine === 'visible'
@@ -274,6 +312,7 @@ const VCardPage: React.FC = () => {
       );
     }
 
+    // Apply branding filter
     if (activeFilters.branding !== 'all') {
       filtered = filtered.filter(vcard =>
         activeFilters.branding === 'branded'
@@ -282,6 +321,7 @@ const VCardPage: React.FC = () => {
       );
     }
 
+    // Apply date range filter
     if (activeFilters.dateRange.start || activeFilters.dateRange.end) {
       filtered = filtered.filter(vcard => {
         if (!vcard.createdAt) return false;
@@ -322,22 +362,24 @@ const VCardPage: React.FC = () => {
       });
     }
 
-    setFilteredVCards(filtered);
-    setCurrentPage(1);
-  };
+    return filtered;
+  }, [vcards, searchTerm, activeFilters]);
 
+  // Reset current page when filters change
   useEffect(() => {
-    applyFilters();
-  }, [searchTerm, vcards, activeFilters]);
+    setCurrentPage(1);
+  }, [filteredVCards.length, searchTerm, activeFilters]);
 
-  const handleFilterChange = (filterType: keyof ActiveFilters, value: any) => {
+  // Handle filter changes
+  const handleFilterChange = useCallback((filterType: keyof ActiveFilters, value: any) => {
     setActiveFilters(prev => ({
       ...prev,
       [filterType]: value
     }));
-  };
+  }, []);
 
-  const resetFilters = () => {
+  // Reset all filters
+  const resetFilters = useCallback(() => {
     setActiveFilters({
       status: 'all',
       backgroundType: 'all',
@@ -349,27 +391,31 @@ const VCardPage: React.FC = () => {
       }
     });
     setSearchTerm('');
-  };
+  }, []);
 
-  const hasActiveFilters = () => {
+  // Check if there are active filters
+  const hasActiveFilters = useMemo(() => {
     return (
       activeFilters.status !== 'all' ||
       activeFilters.backgroundType !== 'all' ||
       activeFilters.searchEngine !== 'all' ||
       activeFilters.branding !== 'all' ||
       activeFilters.dateRange.start !== undefined ||
-      activeFilters.dateRange.end !== undefined
+      activeFilters.dateRange.end !== undefined ||
+      searchTerm.trim() !== ''
     );
-  };
+  }, [activeFilters, searchTerm]);
 
+  // Pagination calculations
   const indexOfLastCard = currentPage * cardsPerPage;
   const indexOfFirstCard = indexOfLastCard - cardsPerPage;
   const currentCards = filteredVCards.slice(indexOfFirstCard, indexOfLastCard);
   const totalPages = Math.ceil(filteredVCards.length / cardsPerPage);
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const paginate = useCallback((pageNumber: number) => setCurrentPage(pageNumber), []);
 
-  const handleExport = async (format: 'csv' | 'json') => {
+  // Handle export functionality
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
     if (exporting) return;
 
     try {
@@ -392,17 +438,21 @@ const VCardPage: React.FC = () => {
         'Branding': vcard.remove_branding ? 'Without Branding' : 'With Branding',
         'Background Type': vcard.background_type || 'N/A',
         'Font Family': vcard.font_family,
-        'Font Size': vcard.font_size
+        'Font Size': vcard.font_size,
+        'Views': vcard.views,
+        'Created At': vcard.createdAt ? new Date(vcard.createdAt).toLocaleDateString() : 'N/A'
       }));
 
+      // Add small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 300));
 
       let success = false;
+      const timestamp = new Date().toISOString().slice(0, 10);
 
       if (format === 'csv') {
-        success = exportToCSV(dataToExport, `vcards_export_${new Date().toISOString().slice(0, 10)}`);
+        success = exportToCSV(dataToExport, `vcards_export_${timestamp}`);
       } else {
-        success = exportToJSON(dataToExport, `vcards_export_${new Date().toISOString().slice(0, 10)}`);
+        success = exportToJSON(dataToExport, `vcards_export_${timestamp}`);
       }
 
       if (success) {
@@ -422,22 +472,26 @@ const VCardPage: React.FC = () => {
     } finally {
       setExporting(false);
     }
-  };
+  }, [filteredVCards, exporting]);
 
-  const handleDeleteSuccess = () => {
+  // Handle successful deletion
+  const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-  };
+    fetchPlanLimits(); // Refresh plan limits after deletion
+  }, [fetchPlanLimits]);
 
+  // Breadcrumb configuration
   const breadcrumbLinks = [
     { name: "VCards", path: "/admin/vcard" },
   ];
 
+  // Animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.05
       }
     }
   };
@@ -461,6 +515,7 @@ const VCardPage: React.FC = () => {
         theme="colored"
       />
 
+      {/* Breadcrumb */}
       <Breadcrumb className="mb-4 sm:mb-6">
         {breadcrumbLinks.map((link, index) => (
           <Breadcrumb.Item
@@ -468,7 +523,11 @@ const VCardPage: React.FC = () => {
             linkAs={Link}
             linkProps={{ to: link.path }}
             active={index === breadcrumbLinks.length - 1}
-            className={`text-sm font-medium ${index === breadcrumbLinks.length - 1 ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
+            className={`text-sm font-medium ${
+              index === breadcrumbLinks.length - 1 
+                ? 'text-primary' 
+                : 'text-gray-600 hover:text-primary'
+            }`}
           >
             {index < breadcrumbLinks.length - 1 ? (
               <div className="flex items-center">
@@ -482,15 +541,18 @@ const VCardPage: React.FC = () => {
         ))}
       </Breadcrumb>
 
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">My VCards</h1>
           <p className="text-primary mt-1 sm:mt-2 text-sm sm:text-base">
-            View and manage your digital business cards
+            View and manage your digital business cards ({planLimits.current}/{planLimits.max === Infinity ? '∞' : planLimits.max})
           </p>
         </div>
 
+        {/* Controls Section */}
         <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
+          {/* Search Input */}
           <div className="relative flex-1 min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FiSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
@@ -504,10 +566,12 @@ const VCardPage: React.FC = () => {
             />
           </div>
 
+          {/* Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
+            {/* Export Button */}
             <div className="relative" ref={exportButtonRef}>
               <button
-                className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
                 aria-label="Export options"
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={exporting || filteredVCards.length === 0}
@@ -525,17 +589,19 @@ const VCardPage: React.FC = () => {
               )}
             </div>
 
+            {/* Filter Button */}
             <div className="relative">
               <button
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border transition-colors duration-200 ${
-                  hasActiveFilters()
+                  hasActiveFilters
                     ? 'border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20'
                     : 'border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
+                aria-label="Filter options"
               >
                 <FaFilter className={`text-sm sm:text-base ${
-                  hasActiveFilters()
+                  hasActiveFilters
                     ? 'text-red-500'
                     : 'text-purple-600'
                 }`} />
@@ -551,6 +617,7 @@ const VCardPage: React.FC = () => {
               )}
             </div>
 
+            {/* Create Button */}
             <button
               onClick={handleCreateClick}
               className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base shadow-md hover:shadow-lg"
@@ -562,29 +629,41 @@ const VCardPage: React.FC = () => {
         </div>
       </div>
 
-      {hasActiveFilters() && (
+      {/* Active Filters Display */}
+      {hasActiveFilters && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
+          
+          {searchTerm.trim() !== '' && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+              Search: "{searchTerm}"
+            </span>
+          )}
+          
           {activeFilters.status !== 'all' && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               Status: {activeFilters.status === 'active' ? 'Active' : 'Inactive'}
             </span>
           )}
+          
           {activeFilters.backgroundType !== 'all' && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
               Background: {activeFilters.backgroundType}
             </span>
           )}
+          
           {activeFilters.searchEngine !== 'all' && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
               Search: {activeFilters.searchEngine === 'visible' ? 'Visible' : 'Hidden'}
             </span>
           )}
+          
           {activeFilters.branding !== 'all' && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
               Branding: {activeFilters.branding === 'branded' ? 'With Branding' : 'Without Branding'}
             </span>
           )}
+          
           {(activeFilters.dateRange.start || activeFilters.dateRange.end) && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200">
               Date:
@@ -592,15 +671,17 @@ const VCardPage: React.FC = () => {
               {activeFilters.dateRange.end && ` To ${activeFilters.dateRange.end.toLocaleDateString()}`}
             </span>
           )}
+          
           <button
             onClick={resetFilters}
-            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center"
+            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center transition-colors"
           >
             <FaTimes className="mr-1" /> Clear all
           </button>
         </div>
       )}
 
+      {/* Main Content */}
       <motion.div
         variants={container}
         initial="hidden"
@@ -608,6 +689,7 @@ const VCardPage: React.FC = () => {
       >
         {filteredVCards.length > 0 ? (
           <>
+            {/* VCards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
                 {currentCards.map((vcard, index) => (
@@ -618,7 +700,7 @@ const VCardPage: React.FC = () => {
                       opacity: 1, 
                       y: 0,
                       transition: {
-                        delay: index * 0.05,
+                        delay: index * 0.02,
                         duration: 0.3
                       }
                     }}
@@ -638,6 +720,7 @@ const VCardPage: React.FC = () => {
               </AnimatePresence>
             </div>
 
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-8">
                 <Pagination
@@ -655,12 +738,12 @@ const VCardPage: React.FC = () => {
             transition={{ duration: 0.5 }}
           >
             <EmptyState
-              title={searchTerm || hasActiveFilters()
+              title={hasActiveFilters
                 ? "No VCards match your filters"
                 : "No VCards yet"}
-              description={searchTerm || hasActiveFilters()
-                ? "Try adjusting your search or filters"
-                : "Get started by creating your first VCard"}
+              description={hasActiveFilters
+                ? "Try adjusting your search or filters to find VCards"
+                : "Get started by creating your first digital business card"}
               actionText="Create VCard"
               actionLink="/admin/vcard/create-vcard"
               icon={<FaPlus />}

@@ -121,7 +121,10 @@ const ProjectVCardsPage: React.FC = () => {
         setProject(projectRes);
 
         const vcardsData = Array.isArray(vcardsRes.data) ? vcardsRes.data : [];
-        const formattedCards = vcardsData.map((v: any) => ({
+        const sortedCards = vcardsData.sort((a: any, b: any) =>
+          new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
+        );
+        const formattedCards = sortedCards.map((v: any) => ({
           ...v,
           id: v.id,
           logo: v.logo,

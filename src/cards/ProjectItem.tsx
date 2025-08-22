@@ -25,6 +25,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -36,25 +37,35 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle double click to navigate to project details
   const handleDoubleClick = () => {
+    if (project.isDisabled) return;
     navigate(`/projects/${project.id}`);
   };
 
-  const handleEditClick = () => {
+  // Handle edit button click
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (project.isDisabled) return;
+    setShowDropdown(false);
     navigate(`/admin/project/edit/${project.id}`);
   };
 
+  // Handle vCard button click
   const handleVCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (project.isDisabled) return;
     navigate(`/admin/project/${project.id}/vcards`);
   };
 
+  // Handle delete button click
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteModal(true);
     setShowDropdown(false);
   };
 
+  // Confirm delete action
   const confirmDelete = async () => {
     setIsDeleting(true);
     try {
@@ -70,23 +81,37 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
     }
   };
 
+  // Cancel delete action
   const cancelDelete = () => {
     setShowDeleteModal(false);
   };
 
+  // Toggle dropdown menu
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (project.isDisabled) return;
     setShowDropdown(!showDropdown);
   };
 
-  const getStatusBadgeStyle = () => {
+  // Get status badge styling
+  const getStatusBadgeStyle = (): string => {
     switch (project.status) {
-      case 'active': return 'bg-green-500/90 text-white shadow-lg';
-      case 'archived': return 'bg-gray-500/90 text-white shadow-lg';
-      case 'pending': return 'bg-yellow-500/90 text-white shadow-lg';
-      default: return 'bg-gray-500/90 text-white shadow-lg';
+      case 'active': 
+        return 'bg-green-500/90 text-white shadow-lg';
+      case 'archived': 
+        return 'bg-gray-500/90 text-white shadow-lg';
+      case 'pending': 
+        return 'bg-yellow-500/90 text-white shadow-lg';
+      default: 
+        return 'bg-gray-500/90 text-white shadow-lg';
     }
+  };
+
+  // Handle upgrade click
+  const handleUpgradeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/admin/account/plan');
   };
 
   return (
@@ -94,21 +119,24 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -5 }}
+        whileHover={{ y: project.isDisabled ? 0 : -5 }}
         transition={{ duration: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer w-full h-80 overflow-hidden border border-gray-100 dark:border-gray-700"
+        className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 w-full h-80 overflow-hidden border border-gray-100 dark:border-gray-700 relative ${
+          project.isDisabled ? 'cursor-default' : 'cursor-pointer'
+        }`}
         onDoubleClick={handleDoubleClick}
       >
+        {/* Upgrade overlay - only show for disabled projects */}
         {project.isDisabled && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl z-10">
-            <div className="text-center p-4">
-              <FaLock className="text-white text-2xl mb-2 mx-auto" />
-              <div className="text-white text-sm font-medium mb-2">
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl z-20">
+            <div className="text-center p-6">
+              <FaLock className="text-white text-2xl mb-3 mx-auto" />
+              <div className="text-white text-sm font-medium mb-3">
                 Upgrade plan to activate
               </div>
               <button
-                onClick={() => navigate('/admin/account/plan')}
-                className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs transition-colors"
+                onClick={handleUpgradeClick}
+                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition-colors"
               >
                 Upgrade Now
               </button>
@@ -117,6 +145,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
         )}
 
         <div className="relative h-full">
+          {/* Header with gradient background */}
           <div 
             className="h-20 absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4"
             style={{
@@ -124,9 +153,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
             }}
           >
             <div className="flex items-center space-x-3">
-              <div 
-                className="w-3 h-3 rounded-full bg-white/80 shadow-sm"
-              />
+              <div className="w-3 h-3 rounded-full bg-white/80 shadow-sm" />
               <span className="text-white text-sm font-medium opacity-90">
                 Project
               </span>
@@ -139,7 +166,8 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
             </span>
           </div>
 
-*          <div className="absolute top-12 left-0 right-0 flex justify-center z-10">
+          {/* Logo/Avatar section */}
+          <div className="absolute top-12 left-0 right-0 flex justify-center z-10">
             {project.logo ? (
               <div className="relative">
                 <img
@@ -162,6 +190,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
             )}
           </div>
 
+          {/* Content section */}
           <div className="absolute top-28 left-0 right-0 bottom-20 px-6 flex flex-col items-center justify-center text-center">
             <h2 className="text-lg font-semibold mb-2 line-clamp-2 text-gray-900 dark:text-white leading-tight">
               {project.name}
@@ -176,7 +205,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   lineHeight: '1.4em',
-                  maxHeight: '2.8em' // 2 lignes × 1.4em
+                  maxHeight: '2.8em'
                 }}
               >
                 {project.description}
@@ -184,27 +213,35 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
             )}
           </div>
 
+          {/* Footer section */}
           <div className="absolute bottom-0 left-0 right-0 h-20 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 px-6">
             <div className="flex justify-between items-center h-full">
+              {/* VCards button */}
               <button
                 onClick={handleVCardClick}
-                className="flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/40 dark:hover:to-purple-700/40 transition-all duration-200 text-sm font-medium text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-600/30"
-                title="View associated vCards"
+                disabled={project.isDisabled}
+                className={`flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/40 dark:hover:to-purple-700/40 transition-all duration-200 text-sm font-medium text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-600/30 ${
+                  project.isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                title={project.isDisabled ? 'Upgrade to access vCards' : 'View associated vCards'}
               >
                 <FaAddressCard className="mr-2 text-purple-600 dark:text-purple-400" size={14} />
                 VCards
               </button>
 
+              {/* Options menu */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}
-                  className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-600"
-                  disabled={isDeleting}
+                  disabled={isDeleting || project.isDisabled}
+                  className={`p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-600 ${
+                    project.isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   <FaEllipsisV size={14} className="text-gray-500 dark:text-gray-400" />
                 </button>
 
-                {showDropdown && (
+                {showDropdown && !project.isDisabled && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -239,6 +276,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
         </div>
       </motion.div>
 
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onClose={cancelDelete}
@@ -250,6 +288,4 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
   );
 };
 
-// Export par défaut explicite
-const ProjectItemComponent = ProjectItem;
-export default ProjectItemComponent;
+export default ProjectItem;

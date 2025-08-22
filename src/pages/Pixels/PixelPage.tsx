@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   FaPlus,
   FaFilter,
@@ -21,8 +21,9 @@ import { Pixel } from '../../services/Pixel';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ExportMenu from '../../cards/ExportMenu'; 
-import Pagination from '../../atoms/Pagination/Pagination'; // Import du composant Pagination
+import Pagination from '../../atoms/Pagination/Pagination';
 
+// Utility functions moved outside component to prevent recreation on each render
 const downloadFile = (blob: Blob, fileName: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -76,50 +77,60 @@ const exportToJSON = (data: any[], fileName: string) => {
   }
 };
 
+interface FilterState {
+  status: 'all' | 'active' | 'inactive';
+  dateRange: {
+    start: Date | undefined;
+    end: Date | undefined;
+  };
+}
+
 const PixelPage: React.FC = () => {
+  // State management
   const [pixels, setPixels] = useState<Pixel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredPixels, setFilteredPixels] = useState<Pixel[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const navigate = useNavigate();
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [currentPlanLimit, setCurrentPlanLimit] = useState(1);
-  const [activeFilters, setActiveFilters] = useState({
+  const [activeFilters, setActiveFilters] = useState<FilterState>({
     status: 'all',
     dateRange: {
-      start: undefined as Date | undefined,
-      end: undefined as Date | undefined
+      start: undefined,
+      end: undefined
     }
   });
-  const cardsPerPage = 12;
-  const [exporting, setExporting] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Refs
+  const navigate = useNavigate();
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Constants
+  const cardsPerPage = 12;
+
+  // Get current user from localStorage (memoized)
+  const currentUser = useMemo(() => {
     const userData = localStorage.getItem('user');
-    if (userData) setCurrentUser(JSON.parse(userData));
+    return userData ? JSON.parse(userData) : null;
   }, []);
 
-  useEffect(() => {
-    const fetchPlanLimit = async () => {
-      try {
-        const { max } = await limitService.checkPixelLimit();
-        setCurrentPlanLimit(max === -1 ? Infinity : max);
-      } catch (error) {
-        console.error('Error fetching plan limits:', error);
-      }
-    };
-    fetchPlanLimit();
+  // Fetch plan limits only once
+  const fetchPlanLimit = useCallback(async () => {
+    try {
+      const { max } = await limitService.checkPixelLimit();
+      setCurrentPlanLimit(max === -1 ? Infinity : max);
+    } catch (error) {
+      console.error('Error fetching plan limits:', error);
+    }
   }, []);
 
-  const fetchPixels = async () => {
+  // Fetch pixels function
+  const fetchPixels = useCallback(async () => {
     if (!currentUser?.id) return;
 
     try {
@@ -140,67 +151,98 @@ const PixelPage: React.FC = () => {
         pixels = [];
       }
 
-      const sortedPixels = pixels.sort((a: Pixel, b: Pixel) =>
-        new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
-      );
+      // Sort and format pixels
+      const sortedPixels = pixels
+        .sort((a: Pixel, b: Pixel) => 
+          new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
+        )
+        .map((pixel: Pixel, index: number) => ({
+          ...pixel,
+          isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit
+        }));
 
-      const formattedPixels = sortedPixels.map((pixel: Pixel, index: number) => ({
-        ...pixel,
-        isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit
-      }));
-
-      setPixels(formattedPixels);
-      setFilteredPixels(formattedPixels);
+      setPixels(sortedPixels);
     } catch (err: any) {
       console.error('Error fetching pixels:', err);
       const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load pixels';
       toast.error(errorMessage);
       setPixels([]);
-      setFilteredPixels([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id, currentPlanLimit]);
 
-  useEffect(() => {
-    fetchPixels();
-  }, [currentUser, refreshTrigger, currentPlanLimit]);
-
-  const applyFilters = useCallback(() => {
+  // Filter and search logic (memoized)
+  const filteredPixels = useMemo(() => {
     let filtered = [...pixels];
 
-    filtered = filtered.filter(pixel =>
-      pixel.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(pixel =>
+        pixel.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
+    // Apply status filter
     if (activeFilters.status !== 'all') {
       filtered = filtered.filter(pixel =>
         pixel.is_active === (activeFilters.status === 'active')
       );
     }
 
+    // Apply date range filter
     if (activeFilters.dateRange.start || activeFilters.dateRange.end) {
       filtered = filtered.filter(pixel => {
         const pixelDate = new Date(pixel.created_at);
         const start = activeFilters.dateRange.start || new Date(0);
         const end = activeFilters.dateRange.end || new Date();
-
         return pixelDate >= start && pixelDate <= end;
       });
     }
 
-    setFilteredPixels(filtered);
-    setCurrentPage(1);
+    return filtered;
   }, [pixels, searchTerm, activeFilters]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, pixels, activeFilters]);
+  // Pagination logic (memoized)
+  const paginationData = useMemo(() => {
+    const indexOfLastCard = currentPage * cardsPerPage;
+    const indexOfFirstCard = indexOfLastCard - cardsPerPage;
+    const currentCards = filteredPixels.slice(indexOfFirstCard, indexOfLastCard);
+    const totalPages = Math.ceil(filteredPixels.length / cardsPerPage);
+    
+    return { currentCards, totalPages };
+  }, [filteredPixels, currentPage, cardsPerPage]);
 
-  const handleFilterChange = useCallback((filterType: string, value: any) => {
-    setActiveFilters(prev => ({ ...prev, [filterType]: value }));
+  // Check if filters are active (memoized)
+  const hasActiveFilters = useMemo(() => {
+    return activeFilters.status !== 'all' ||
+           activeFilters.dateRange.start !== undefined ||
+           activeFilters.dateRange.end !== undefined ||
+           searchTerm.trim() !== '';
+  }, [activeFilters, searchTerm]);
+
+  // Initialize data on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchPlanLimit();
+      fetchPixels();
+    }
+  }, [currentUser?.id, fetchPlanLimit, fetchPixels]);
+
+  // Reset current page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilters]);
+
+  // Handle filter changes
+  const handleFilterChange = useCallback((filterType: keyof FilterState, value: any) => {
+    setActiveFilters(prev => ({ 
+      ...prev, 
+      [filterType]: value 
+    }));
   }, []);
 
+  // Reset all filters
   const resetFilters = useCallback(() => {
     setActiveFilters({
       status: 'all',
@@ -209,41 +251,36 @@ const PixelPage: React.FC = () => {
     setSearchTerm('');
   }, []);
 
-  const hasActiveFilters = useCallback(() => {
-    return activeFilters.status !== 'all' ||
-           activeFilters.dateRange.start !== undefined ||
-           activeFilters.dateRange.end !== undefined;
-  }, [activeFilters]);
+  // Handle pagination
+  const handlePageChange = useCallback((pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  }, []);
 
-  const indexOfLastCard = currentPage * cardsPerPage;
-  const indexOfFirstCard = indexOfLastCard - cardsPerPage;
-  const currentCards = filteredPixels.slice(indexOfFirstCard, indexOfLastCard);
-  const totalPages = Math.ceil(filteredPixels.length / cardsPerPage);
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const handleCreatePixel = async () => {
+  // Handle pixel creation
+  const handleCreatePixel = useCallback(async () => {
     try {
       const { current, max } = await limitService.checkPixelLimit();
       if (max !== -1 && current >= max) {
-        if (max === 0) {
-          toast.warning('Pixel creation is not available on the Free plan. Upgrade to create pixels.');
-        } else {
-          toast.warning(`You've reached the maximum of ${max} Pixels. Upgrade your plan to create more.`);
-        }
+        const message = max === 0 
+          ? 'Pixel creation is not available on the Free plan. Upgrade to create pixels.'
+          : `You've reached the maximum of ${max} Pixels. Upgrade your plan to create more.`;
+        toast.warning(message);
       } else {
         navigate('/admin/pixel/create');
       }
     } catch (error) {
       toast.error('Error checking plan limits. Please try again.');
     }
-  };
+  }, [navigate]);
 
-  const handleDeletePixel = async (pixelId: string) => {
+  // Handle pixel deletion
+  const handleDeletePixel = useCallback(async (pixelId: string) => {
     try {
       const result = await pixelService.delete(pixelId);
-      if (result && result.success) {
+      if (result?.success) {
         toast.success('Pixel deleted successfully');
-        setRefreshTrigger(prev => prev + 1);
+        // Update pixels state directly instead of refetching
+        setPixels(prev => prev.filter(pixel => pixel.id !== pixelId));
       } else {
         throw new Error('Delete operation failed');
       }
@@ -252,9 +289,10 @@ const PixelPage: React.FC = () => {
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete pixel';
       toast.error(errorMessage);
     }
-  };
+  }, []);
 
-  const handleExport = async (format: 'csv' | 'json') => {
+  // Handle export
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
     if (filteredPixels.length === 0) {
       toast.warning('No pixels to export');
       return;
@@ -287,24 +325,29 @@ const PixelPage: React.FC = () => {
       setExporting(false);
       setShowExportMenu(false);
     }
-  };
+  }, [filteredPixels]);
 
+  // Handle click outside for menus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      // Handle export menu
       if (
         exportMenuRef.current &&
         exportButtonRef.current &&
-        !exportMenuRef.current.contains(event.target as Node) &&
-        !exportButtonRef.current.contains(event.target as Node)
+        !exportMenuRef.current.contains(target) &&
+        !exportButtonRef.current.contains(target)
       ) {
         setShowExportMenu(false);
       }
 
+      // Handle filter menu
       if (
         filterMenuRef.current &&
         filterButtonRef.current &&
-        !filterMenuRef.current.contains(event.target as Node) &&
-        !filterButtonRef.current.contains(event.target as Node)
+        !filterMenuRef.current.contains(target) &&
+        !filterButtonRef.current.contains(target)
       ) {
         setShowFilterMenu(false);
       }
@@ -342,6 +385,7 @@ const PixelPage: React.FC = () => {
         </div>
 
         <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
+          {/* Search Input */}
           <div className="relative flex-1 min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FiSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
@@ -356,6 +400,7 @@ const PixelPage: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
+            {/* Export Button */}
             <div className="relative" ref={exportButtonRef}>
               <button
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
@@ -376,23 +421,25 @@ const PixelPage: React.FC = () => {
               )}
             </div>
 
+            {/* Filter Button */}
             <div className="relative">
               <button
                 ref={filterButtonRef}
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border ${
-                  hasActiveFilters()
+                  hasActiveFilters
                     ? 'border-red-500'
                     : 'border-purple-500'
                 } hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200`}
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
               >
                 <FaFilter className={
-                  hasActiveFilters()
+                  hasActiveFilters
                     ? 'text-red-500'
                     : 'text-purple-500'
                 } />
               </button>
 
+              {/* Filter Menu */}
               {showFilterMenu && (
                 <div
                   ref={filterMenuRef}
@@ -409,6 +456,7 @@ const PixelPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-4">
+                    {/* Status Filter */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Status
@@ -416,7 +464,7 @@ const PixelPage: React.FC = () => {
                       <select
                         className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:[color-scheme:dark]"
                         value={activeFilters.status}
-                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                        onChange={(e) => handleFilterChange('status', e.target.value as 'all' | 'active' | 'inactive')}
                       >
                         <option value="all" className="dark:bg-gray-800 dark:text-gray-300">All Statuses</option>
                         <option value="active" className="dark:bg-gray-800 dark:text-gray-300">Active</option>
@@ -424,6 +472,7 @@ const PixelPage: React.FC = () => {
                       </select>
                     </div>
 
+                    {/* Date Range Filter */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Creation Date Range
@@ -464,6 +513,7 @@ const PixelPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Reset Filters */}
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                       <button
                         onClick={resetFilters}
@@ -477,6 +527,7 @@ const PixelPage: React.FC = () => {
               )}
             </div>
 
+            {/* Create Button */}
             <button
               onClick={handleCreatePixel}
               className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base relative"
@@ -488,7 +539,8 @@ const PixelPage: React.FC = () => {
         </div>
       </div>
 
-      {hasActiveFilters() && (
+      {/* Active Filters Display */}
+      {hasActiveFilters && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
           {activeFilters.status !== 'all' && (
@@ -503,6 +555,11 @@ const PixelPage: React.FC = () => {
               {activeFilters.dateRange.end && ` To ${activeFilters.dateRange.end.toLocaleDateString()}`}
             </span>
           )}
+          {searchTerm && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              Search: "{searchTerm}"
+            </span>
+          )}
           <button
             onClick={resetFilters}
             className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center"
@@ -512,6 +569,7 @@ const PixelPage: React.FC = () => {
         </div>
       )}
 
+      {/* Content */}
       {filteredPixels.length > 0 ? (
         <>
           <motion.div
@@ -520,7 +578,7 @@ const PixelPage: React.FC = () => {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             <AnimatePresence>
-              {currentCards.map(pixel => (
+              {paginationData.currentCards.map(pixel => (
                 <PixelItem
                   key={pixel.id}
                   pixel={pixel}
@@ -530,22 +588,22 @@ const PixelPage: React.FC = () => {
             </AnimatePresence>
           </motion.div>
 
-          {totalPages > 1 && (
+          {paginationData.totalPages > 1 && (
             <div className="mt-8">
               <Pagination
                 currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={paginate}
+                totalPages={paginationData.totalPages}
+                onPageChange={handlePageChange}
               />
             </div>
           )}
         </>
       ) : (
         <EmptyState
-          title={searchTerm || hasActiveFilters() 
+          title={hasActiveFilters 
             ? "No pixels match your filters" 
             : "No pixels yet"}
-          description={searchTerm || hasActiveFilters()
+          description={hasActiveFilters
             ? "Try adjusting your search or filters"
             : "Get started by creating your first Pixel"}
           actionText="Create Pixel"

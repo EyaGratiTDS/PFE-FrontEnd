@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { planService, subscriptionService } from '../../services/api';
 import PlanCard from '../../cards/PlanCard';
@@ -19,6 +19,20 @@ interface UserWithSubscription extends User {
 interface SubscriptionWithPlan extends Subscription {
   plan?: Plan;
 }
+
+// Optimized loader component
+const LoadingSpinner: React.FC = () => (
+  <div className="flex justify-center items-center min-h-[200px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+  </div>
+);
+
+// Memoized error component
+const ErrorMessage: React.FC<{ error: string }> = React.memo(({ error }) => (
+  <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded relative mx-4 sm:mx-6 my-4">
+    {error}
+  </div>
+));
 
 const normalizeFeatures = (plan: any): Plan => {
   if (!plan) return plan;
@@ -62,28 +76,6 @@ const AccountPlans: React.FC = () => {
   const [currentView, setCurrentView] = useState<'plans' | 'payment' | 'history'>('plans');
   const paymentFormRef = useRef<HTMLDivElement>(null);
 
-  const scrollToTop = useCallback(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  }, []);
-
-  useEffect(() => {
-    scrollToTop();
-  }, [currentView, scrollToTop]);
-
-  useEffect(() => {
-    if (currentView === 'payment' && selectedPlan) {
-      setTimeout(() => {
-        window.scrollTo(0, 0);
-        if (paymentFormRef.current) {
-          paymentFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
-  }, [currentView, selectedPlan]);
-
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -97,61 +89,145 @@ const AccountPlans: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const userId = useMemo(() => {
+    return user?.id || JSON.parse(localStorage.getItem('user') || '{}').id;
+  }, [user?.id]);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, []);
+
+  // Optimized scroll effects
+  useEffect(() => {
+    if (currentView !== 'plans') {
+      scrollToTop();
+    }
+  }, [currentView, scrollToTop]);
+
+  useEffect(() => {
+    if (currentView === 'payment' && selectedPlan && paymentFormRef.current) {
+      const timer = setTimeout(() => {
+        paymentFormRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentView, selectedPlan]);
+
+  // Optimized data fetching with better error handling and loading states
   const fetchUserData = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const userId = user?.id || JSON.parse(localStorage.getItem('user') || '{}').id;
-      if (!userId) return;
+      setError(null);
 
-      const [plansResponse, subscriptionResponse, historyResponse] = await Promise.all([
+      // Parallel requests for better performance
+      const [plansResponse, subscriptionResponse] = await Promise.all([
         planService.getAllPlans(),
-        subscriptionService.getCurrentSubscription(userId),
-        subscriptionService.getUserSubscriptions(userId)
+        subscriptionService.getCurrentSubscription(userId)
       ]);
 
       const processedPlans = (plansResponse.data || []).map(normalizeFeatures);
       setAvailablePlans(processedPlans);
 
+      // Handle subscription data
       if (subscriptionResponse.data) {
-        const planResponse = await planService.getPlanById(subscriptionResponse.data.plan_id);
-        if (planResponse.data) {
-          setCurrentPlan(normalizeFeatures(planResponse.data));
-          setCurrentSubscription(subscriptionResponse.data);
+        try {
+          const planResponse = await planService.getPlanById(subscriptionResponse.data.plan_id);
+          if (planResponse.data) {
+            setCurrentPlan(normalizeFeatures(planResponse.data));
+            setCurrentSubscription(subscriptionResponse.data);
+          }
+        } catch (planError) {
+          console.error('Error fetching plan details:', planError);
+          // Fallback to free plan if current plan fetch fails
+          const freePlan = processedPlans.find(plan => plan.price === "0.00");
+          if (freePlan) setCurrentPlan(freePlan);
         }
       } else {
         const freePlan = processedPlans.find(plan => plan.price === "0.00");
         if (freePlan) setCurrentPlan(freePlan);
       }
 
+      // Fetch history only when needed (lazy loading)
+      if (currentView === 'history') {
+        try {
+          const historyResponse = await subscriptionService.getUserSubscriptions(userId);
+          if (historyResponse.data && Array.isArray(historyResponse.data)) {
+            const subscriptionsWithPlans = await Promise.all(
+              historyResponse.data.map(async (sub: Subscription) => {
+                try {
+                  const plan = await planService.getPlanById(sub.plan_id);
+                  return {
+                    ...sub,
+                    plan: plan.data ? normalizeFeatures(plan.data) : undefined
+                  };
+                } catch {
+                  return { ...sub, plan: undefined };
+                }
+              })
+            );
+            setSubscriptionHistory(subscriptionsWithPlans);
+          }
+        } catch (historyError) {
+          console.error('Error fetching subscription history:', historyError);
+        }
+      }
+
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load subscription data';
+      setError(errorMessage);
+      console.error('Error fetching user data:', err);
+    } finally {
+      // Reduced loading time
+      setTimeout(() => setLoading(false), 300);
+    }
+  }, [userId, currentView]);
+
+  // Lazy load history data
+  const loadSubscriptionHistory = useCallback(async () => {
+    if (!userId || subscriptionHistory.length > 0) return;
+
+    try {
+      const historyResponse = await subscriptionService.getUserSubscriptions(userId);
       if (historyResponse.data && Array.isArray(historyResponse.data)) {
         const subscriptionsWithPlans = await Promise.all(
           historyResponse.data.map(async (sub: Subscription) => {
-            const plan = await planService.getPlanById(sub.plan_id);
-            return {
-              ...sub,
-              plan: plan.data ? normalizeFeatures(plan.data) : undefined
-            };
+            try {
+              const plan = await planService.getPlanById(sub.plan_id);
+              return {
+                ...sub,
+                plan: plan.data ? normalizeFeatures(plan.data) : undefined
+              };
+            } catch {
+              return { ...sub, plan: undefined };
+            }
           })
         );
         setSubscriptionHistory(subscriptionsWithPlans);
       }
-
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error loading subscription history:', error);
     }
-  }, [user]);
+  }, [userId, subscriptionHistory.length]);
 
   const handleRenewClick = useCallback(() => {
     if (!currentPlan || !currentSubscription) return;
-
     setSelectedPlan(currentPlan);
     setCurrentView('payment');
-    window.scrollTo(0, 0);
   }, [currentPlan, currentSubscription]);
 
+  // Initial data fetch
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
@@ -163,19 +239,18 @@ const AccountPlans: React.FC = () => {
       setShowSubscriptionModal(true);
     } else {
       setCurrentView('payment');
-      window.scrollTo(0, 0);
     }
   }, [currentPlan, currentSubscription]);
 
-  const handleCancelClick = () => {
+  const handleCancelClick = useCallback(() => {
     setShowCancelModal(true);
     setCancelStatus({ loading: false, error: null, success: false });
-  };
+  }, []);
 
-  const handleConfirmCancel = async () => {
+  const handleConfirmCancel = useCallback(async () => {
+    if (!user) return;
+
     try {
-      if (!user) return;
-
       setCancelStatus({ loading: true, error: null, success: false });
       await subscriptionService.cancelSubscription(user.id);
       toast.success("Subscription is canceled!");
@@ -187,7 +262,6 @@ const AccountPlans: React.FC = () => {
       });
 
       await fetchUserData();
-
       setTimeout(() => setShowCancelModal(false), 2000);
     } catch (err: any) {
       setCancelStatus({
@@ -196,7 +270,7 @@ const AccountPlans: React.FC = () => {
         success: false
       });
     }
-  };
+  }, [user, fetchUserData]);
 
   const handlePaymentSuccess = useCallback(() => {
     setCurrentView('plans');
@@ -206,47 +280,53 @@ const AccountPlans: React.FC = () => {
     fetchUserData();
   }, [selectedPlan, fetchUserData]);
 
-  const formatDate = (dateString: string | undefined) => {
+  // Memoize date formatting
+  const formatDate = useCallback((dateString: string | undefined) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-  };
+  }, []);
 
-  const handleViewHistory = () => {
+  const handleViewHistory = useCallback(async () => {
     setCurrentView('history');
     setCurrentPage(1);
-    window.scrollTo(0, 0);
-  };
+    await loadSubscriptionHistory();
+  }, [loadSubscriptionHistory]);
 
-  const handleBackToPlans = () => {
+  const handleBackToPlans = useCallback(() => {
     setCurrentView('plans');
-    window.scrollTo(0, 0);
-  };
+  }, []);
 
-  const paginate = (pageNumber: number) => {
+  const paginate = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
+    scrollToTop();
+  }, [scrollToTop]);
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-[300px]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-    </div>
-  );
+  // Memoize filtered plans
+  const filteredAvailablePlans = useMemo(() => {
+    return availablePlans.filter(plan =>
+      currentPlan ? plan.id !== currentPlan.id : true
+    );
+  }, [availablePlans, currentPlan?.id]);
 
-  if (error) return (
-    <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded relative mx-4 sm:mx-6 my-4">
-      {error}
-    </div>
-  );
+  // Memoize pagination data
+  const paginationData = useMemo(() => {
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = subscriptionHistory.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(subscriptionHistory.length / itemsPerPage);
+    
+    return { currentItems, totalPages };
+  }, [subscriptionHistory, currentPage, itemsPerPage]);
 
-  const filteredAvailablePlans = availablePlans.filter(plan =>
-    currentPlan ? plan.id !== currentPlan.id : true
-  );
+  // Early returns for different states
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
 
+  // Payment view
   if (currentView === 'payment' && selectedPlan) {
     return (
       <div className="w-full max-w-full overflow-x-hidden" ref={paymentFormRef}>
@@ -267,11 +347,9 @@ const AccountPlans: React.FC = () => {
     );
   }
 
+  // History view
   if (currentView === 'history') {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = subscriptionHistory.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(subscriptionHistory.length / itemsPerPage);
+    const { currentItems, totalPages } = paginationData;
 
     return (
       <div className="w-full py-8">
@@ -343,8 +421,9 @@ const AccountPlans: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }
 
+  // Main plans view
   return (
     <div className="w-full py-8">
       <SubscriptionModal
@@ -364,7 +443,7 @@ const AccountPlans: React.FC = () => {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
             <h2 className="text-xl sm:text-2xl font-bold dark:text-white pl-2">Your Current Plan</h2>
-            {subscriptionHistory.length > 0 && (
+            {userId && (
               <button
                 onClick={handleViewHistory}
                 className="text-purple-500 hover:underline whitespace-nowrap"

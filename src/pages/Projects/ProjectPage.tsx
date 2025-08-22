@@ -20,7 +20,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import ExportMenu from '../../cards/ExportMenu'; 
 import Pagination from '../../atoms/Pagination/Pagination';
 
-const downloadFile = (blob: Blob, fileName: string) => {
+// Utility function for file download
+const downloadFile = (blob: Blob, fileName: string): void => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
@@ -32,24 +33,25 @@ const downloadFile = (blob: Blob, fileName: string) => {
   URL.revokeObjectURL(url);
 };
 
-const exportToCSV = (data: any[], fileName: string) => {
+// Export to CSV function
+const exportToCSV = (data: any[], fileName: string): boolean => {
   try {
+    if (!data.length) return false;
+    
     const headers = Object.keys(data[0]);
-    const csvRows = [];
+    const csvRows = [headers.join(',')];
 
-    csvRows.push(headers.join(','));
-
-    for (const row of data) {
+    data.forEach(row => {
       const values = headers.map(header => {
-        const value = row[header] === null || row[header] === undefined ? '' : row[header];
-        const escaped = (`${value}`)
+        const value = row[header] ?? '';
+        const escaped = String(value)
           .replace(/"/g, '""')
           .replace(/\n/g, '\\n')
           .replace(/\r/g, '\\r');
         return `"${escaped}"`;
       });
       csvRows.push(values.join(','));
-    }
+    });
 
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -61,7 +63,8 @@ const exportToCSV = (data: any[], fileName: string) => {
   }
 };
 
-const exportToJSON = (data: any[], fileName: string) => {
+// Export to JSON function
+const exportToJSON = (data: any[], fileName: string): boolean => {
   try {
     const jsonContent = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
@@ -73,21 +76,29 @@ const exportToJSON = (data: any[], fileName: string) => {
   }
 };
 
+interface User {
+  id: string;
+  [key: string]: any;
+}
+
+interface PlanLimit {
+  current: number;
+  max: number;
+}
+
 const ProjectPage: React.FC = () => {
+  // State declarations
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const exportButtonRef = useRef<HTMLDivElement>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const [currentPlanLimit, setCurrentPlanLimit] = useState(1);
+  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(1);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
     color: 'all',
@@ -97,8 +108,15 @@ const ProjectPage: React.FC = () => {
     },
     search: ''
   });
+
+  // Refs
+  const exportButtonRef = useRef<HTMLDivElement>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+  
+  const navigate = useNavigate();
   const cardsPerPage = 12;
 
+  // Load user data from localStorage
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -107,22 +125,26 @@ const ProjectPage: React.FC = () => {
         setCurrentUser(user);
       } catch (error) {
         console.error('Error parsing user data:', error);
+        toast.error('Failed to load user data');
       }
     }
   }, []);
 
+  // Fetch plan limits
   useEffect(() => {
     const fetchPlanLimits = async () => {
       try {
-        const projectLimit = await limitService.checkProjectLimit();
+        const projectLimit: PlanLimit = await limitService.checkProjectLimit();
         setCurrentPlanLimit(projectLimit.max === -1 ? Infinity : projectLimit.max);
       } catch (error) {
         console.error('Error fetching plan limits:', error);
+        toast.error('Failed to load plan information');
       }
     };
     fetchPlanLimits();
   }, []);
 
+  // Handle click outside for export menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -136,42 +158,41 @@ const ProjectPage: React.FC = () => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle create button click with plan limit check
   const handleCreateClick = async () => {
     try {
-      const { current, max } = await limitService.checkProjectLimit();
+      const { current, max }: PlanLimit = await limitService.checkProjectLimit();
 
       if (max !== -1 && current >= max) {
         toast.warning(`You've reached the maximum of ${max} Projects. Upgrade your plan to create more.`);
-      } else {
-        navigate(`/admin/project/create`);
+        return;
       }
+      
+      navigate('/admin/project/create');
     } catch (error) {
       console.error('Error checking Project limits:', error);
       toast.error('Error checking plan limits. Please try again.');
     }
   };
 
+  // Fetch projects from API
   const fetchProjects = async () => {
     if (!currentUser?.id) return;
 
     try {
       setLoading(true);
-      const response = await projectService.getUserProjects(currentUser.id);
+      const response = await projectService.getUserProjects(Number(currentUser.id));
 
-      const projectsData = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-          ? response.data
-          : [];
-
-      const sortedProjects = projectsData.sort((a: Project, b: Project) =>
-        new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
-      );
+      const projectsData = Array.isArray(response) ? response : response?.data || [];
+      
+      const sortedProjects = projectsData.sort((a: Project, b: Project) => {
+        const dateA = new Date(a.createdAt || '').getTime();
+        const dateB = new Date(b.createdAt || '').getTime();
+        return dateA - dateB; // Oldest first (ascending order)
+      });
 
       const formattedProjects = sortedProjects.map((project: Project, index: number) => ({
         ...project,
@@ -184,10 +205,12 @@ const ProjectPage: React.FC = () => {
         isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit
       }));
 
-      setProjects(formattedProjects.filter((project: Project) => project !== null));
-      setFilteredProjects(formattedProjects.filter((project: Project) => project !== null));
+      const validProjects = formattedProjects.filter(Boolean);
+      setProjects(validProjects);
+      setFilteredProjects(validProjects);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error fetching projects:', err);
+      toast.error('Failed to load projects');
       setProjects([]);
       setFilteredProjects([]);
     } finally {
@@ -195,32 +218,35 @@ const ProjectPage: React.FC = () => {
     }
   };
 
+  // Fetch projects when dependencies change
   useEffect(() => {
     fetchProjects();
   }, [currentUser, refreshTrigger, currentPlanLimit]);
 
+  // Apply filters to projects
   const applyFilters = () => {
     let filtered = [...projects];
 
-    if (searchTerm.trim() !== '') {
+    // Search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        project.name.toLowerCase().includes(searchLower) ||
+        (project.description && project.description.toLowerCase().includes(searchLower))
       );
     }
 
+    // Status filter
     if (activeFilters.status !== 'all') {
-      filtered = filtered.filter(project =>
-        project.status === activeFilters.status
-      );
+      filtered = filtered.filter(project => project.status === activeFilters.status);
     }
 
+    // Color filter
     if (activeFilters.color !== 'all') {
-      filtered = filtered.filter(project =>
-        project.color === activeFilters.color
-      );
+      filtered = filtered.filter(project => project.color === activeFilters.color);
     }
 
+    // Date range filter
     if (activeFilters.dateRange.start || activeFilters.dateRange.end) {
       filtered = filtered.filter(project => {
         if (!project.createdAt) return false;
@@ -265,10 +291,12 @@ const ProjectPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Apply filters when dependencies change
   useEffect(() => {
     applyFilters();
   }, [searchTerm, projects, activeFilters]);
 
+  // Handle filter changes
   const handleFilterChange = (filterType: keyof ActiveFilters, value: any) => {
     setActiveFilters(prev => ({
       ...prev,
@@ -276,6 +304,7 @@ const ProjectPage: React.FC = () => {
     }));
   };
 
+  // Reset all filters
   const resetFilters = () => {
     setActiveFilters({
       status: 'all',
@@ -289,15 +318,18 @@ const ProjectPage: React.FC = () => {
     setSearchTerm('');
   };
 
-  const hasActiveFilters = () => {
+  // Check if any filters are active
+  const hasActiveFilters = (): boolean => {
     return (
       activeFilters.status !== 'all' ||
       activeFilters.color !== 'all' ||
       activeFilters.dateRange.start !== undefined ||
-      activeFilters.dateRange.end !== undefined
+      activeFilters.dateRange.end !== undefined ||
+      searchTerm.trim() !== ''
     );
   };
 
+  // Pagination calculations
   const indexOfLastCard = currentPage * cardsPerPage;
   const indexOfFirstCard = indexOfLastCard - cardsPerPage;
   const currentCards = filteredProjects.slice(indexOfFirstCard, indexOfLastCard);
@@ -305,6 +337,7 @@ const ProjectPage: React.FC = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  // Handle export functionality
   const handleExport = async (format: 'csv' | 'json') => {
     if (exporting) return;
 
@@ -329,14 +362,16 @@ const ProjectPage: React.FC = () => {
           : 'N/A'
       }));
 
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 500));
 
+      const fileName = `projects_export_${new Date().toISOString().slice(0, 10)}`;
       let success = false;
 
       if (format === 'csv') {
-        success = exportToCSV(dataToExport, `projects_export_${new Date().toISOString().slice(0, 10)}`);
+        success = exportToCSV(dataToExport, fileName);
       } else {
-        success = exportToJSON(dataToExport, `projects_export_${new Date().toISOString().slice(0, 10)}`);
+        success = exportToJSON(dataToExport, fileName);
       }
 
       if (success) {
@@ -358,14 +393,17 @@ const ProjectPage: React.FC = () => {
     }
   };
 
+  // Handle successful deletion
   const handleDeleteSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // Breadcrumb configuration
   const breadcrumbLinks = [
     { name: "Projects", path: "/projects" },
   ];
 
+  // Animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -395,6 +433,7 @@ const ProjectPage: React.FC = () => {
         theme="colored"
       />
 
+      {/* Breadcrumb */}
       <Breadcrumb className="mb-4 sm:mb-6">
         {breadcrumbLinks.map((link, index) => (
           <Breadcrumb.Item
@@ -402,7 +441,11 @@ const ProjectPage: React.FC = () => {
             linkAs={Link}
             linkProps={{ to: link.path }}
             active={index === breadcrumbLinks.length - 1}
-            className={`text-sm font-medium ${index === breadcrumbLinks.length - 1 ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
+            className={`text-sm font-medium ${
+              index === breadcrumbLinks.length - 1 
+                ? 'text-primary' 
+                : 'text-gray-600 hover:text-primary'
+            }`}
           >
             {index < breadcrumbLinks.length - 1 ? (
               <div className="flex items-center">
@@ -416,6 +459,7 @@ const ProjectPage: React.FC = () => {
         ))}
       </Breadcrumb>
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">My Projects</h1>
@@ -423,7 +467,10 @@ const ProjectPage: React.FC = () => {
             Manage and organize your development projects
           </p>
         </div>
+
+        {/* Controls */}
         <div className="w-full md:w-auto flex flex-wrap items-center gap-3">
+          {/* Search */}
           <div className="relative flex-1 min-w-[200px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FiSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
@@ -438,6 +485,7 @@ const ProjectPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
+            {/* Export Button */}
             <div className="relative" ref={exportButtonRef}>
               <button
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
@@ -458,6 +506,7 @@ const ProjectPage: React.FC = () => {
               )}
             </div>
 
+            {/* Filter Button */}
             <div className="relative">
               <button
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border transition-colors duration-200 ${
@@ -517,6 +566,7 @@ const ProjectPage: React.FC = () => {
               )}
             </div>
 
+            {/* Create Button */}
             <button
               className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base shadow-md hover:shadow-lg"
               onClick={handleCreateClick}
@@ -528,6 +578,7 @@ const ProjectPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Active Filters Display */}
       {hasActiveFilters() && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
@@ -548,6 +599,11 @@ const ProjectPage: React.FC = () => {
               {activeFilters.dateRange.end && ` To ${activeFilters.dateRange.end.toLocaleDateString()}`}
             </span>
           )}
+          {searchTerm.trim() && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+              Search: "{searchTerm}"
+            </span>
+          )}
           <button
             onClick={resetFilters}
             className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center"
@@ -557,6 +613,7 @@ const ProjectPage: React.FC = () => {
         </div>
       )}
 
+      {/* Content */}
       <motion.div
         variants={container}
         initial="hidden"
@@ -564,6 +621,7 @@ const ProjectPage: React.FC = () => {
       >
         {filteredProjects.length > 0 ? (
           <>
+            {/* Project Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
                 {currentCards.map((project, index) => (
@@ -594,6 +652,7 @@ const ProjectPage: React.FC = () => {
               </AnimatePresence>
             </div>
 
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-8">
                 <Pagination 
@@ -605,6 +664,7 @@ const ProjectPage: React.FC = () => {
             )}
           </>
         ) : (
+          /* Empty State */
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
