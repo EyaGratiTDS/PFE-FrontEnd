@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.onrender.pfe_frontend_mint.twa",
-        "sha256_cert_fingerprints": ["0C:65:B1:56:73:7E:FD:4A:F2:B2:F6:20:C6:A6:52:56:80:B0:1B:82:2A:B5:2F:71:B9:AC:69:97:EF:52:90:E2"]
+        "package_name": "com.onrender.pfe_frontend2.twa",
+        "sha256_cert_fingerprints": ["74:B0:43:5B:2D:E4:28:1D:74:AF:C3:B7:5B:12:4E:5B:F0:15:1B:EF:10:39:6B:D8:39:B9:4C:95:3D:5C:51:47"]
       }
     }]
