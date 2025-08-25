@@ -251,7 +251,7 @@ const SignUp: React.FC = () => {
             </div>
 
             <ReCAPTCHA
-              sitekey="6LdYbO8qAAAAAA0qhQ1JrqXPnH-qWs-0rsH4176x"
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
               onChange={handleRecaptchaChange}
               className="recpatcha"
             />
