@@ -199,7 +199,7 @@ const ProjectPage: React.FC = () => {
         id: project.id || '',
         name: project.name || 'Untitled Project',
         description: project.description || '',
-        logo: project.logo ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${project.logo}` : '',
+        logo: project.logo,
         color: project.color || '#4f46e5',
         status: project.status || 'active',
         isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit

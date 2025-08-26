@@ -219,6 +219,7 @@ export const vcardService = {
   getByUrl: async (url: string) => {
     try {
       const response = await api.get(`/vcard/url/${url}`);
+      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error(`Error getting vcard with url ${url}:`, error);

@@ -23,7 +23,7 @@ const AccountProfile: React.FC<AccountProfileProps> = ({
   useEffect(() => {
     setLocalUserData(userData);
     if (userData.avatar) {
-      setAvatarPreview(`http://localhost:3000${userData.avatar}`);
+      setAvatarPreview(userData.avatar);
     }
   }, [userData]);
 

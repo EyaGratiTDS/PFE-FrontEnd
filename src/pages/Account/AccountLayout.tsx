@@ -85,7 +85,7 @@ const AccountLayout = () => {
       if (avatar) {
         formData.append("avatar", avatar);
       }
-      
+      console.log('iciii');
       await authService.updateUser(formData);
       toast.success('Profile updated successfully!');
       window.dispatchEvent(new CustomEvent('userUpdated'));

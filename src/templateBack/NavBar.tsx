@@ -4,7 +4,6 @@ import { authService } from '../services/api';
 import { User } from '../services/user';
 import NotificationCard from '../cards/NotificationCard';
 import { useNotifications } from '../hooks/useNotifications';
-import { API_BASE_URL } from '../config/constants';
 import { Notification } from '../services/Notification';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -343,7 +342,7 @@ const NavBar: React.FC<NavBarProps> = ({ toggleSideMenu, isSideMenuOpen }) => {
               >
                 <img
                   className="object-cover w-8 h-8 rounded-full"
-                  src={avatarPreview ? `${API_BASE_URL}${avatarPreview}` : "/assets/styleTemplate/img/pdp1.png"}
+                  src={avatarPreview || "/assets/styleTemplate/img/pdp1.png"}
                   alt="Avatar utilisateur"
                   aria-hidden="true"
                 />

@@ -46,7 +46,7 @@ const ProjectForm: React.FC = () => {
             color: project.color || "#4f46e5",
             status: project.status || "active",
             logoFile: null,
-            logoPreview: project.logo ? `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}${project.logo}` : null,
+            logoPreview: project.logo,
             existingLogo: project.logo || ""
           });
         }

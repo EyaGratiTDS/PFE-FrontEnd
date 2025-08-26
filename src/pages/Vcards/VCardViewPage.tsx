@@ -526,7 +526,7 @@ const ViewVCard: React.FC = () => {
         blockId,
         metadata: {
           hoverStart: true,
-        },
+        }, 
       });
       sendTrackingEvent(trackingEvent);
     }
