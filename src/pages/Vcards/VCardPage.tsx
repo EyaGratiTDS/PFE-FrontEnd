@@ -136,6 +136,7 @@ const VCardPage: React.FC = () => {
   // Refs
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const isInitialLoadRef = useRef(true);
   
   const navigate = useNavigate();
   
@@ -152,7 +153,7 @@ const VCardPage: React.FC = () => {
 
   const cardsPerPage = 16;
 
-  // Initialize current user from localStorage
+  // Initialize current user from localStorage (une seule fois)
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -166,8 +167,124 @@ const VCardPage: React.FC = () => {
     }
   }, []);
 
-  // Fetch plan limits
-  const fetchPlanLimits = useCallback(async () => {
+  // Fonction pour charger les données initiales (VCards + Plan Limits) en une seule fois
+  const loadInitialData = useCallback(async (userId: string) => {
+    if (!isInitialLoadRef.current) return;
+    
+    try {
+      setLoading(true);
+      
+      // Charger les limites du plan et les VCards en parallèle
+      const [limitsResponse, vcardsResponse] = await Promise.all([
+        limitService.checkVcardLimit(),
+        vcardService.getAll(userId)
+      ]);
+
+      // Traiter les limites du plan
+      const limits = {
+        current: limitsResponse.current || 0,
+        max: limitsResponse.max === -1 ? Infinity : limitsResponse.max || 1
+      };
+      setPlanLimits(limits);
+
+      // Traiter les VCards
+      const cards = Array.isArray(vcardsResponse)
+        ? vcardsResponse
+        : Array.isArray(vcardsResponse?.data)
+          ? vcardsResponse.data
+          : [];
+
+      const sortedCards = cards.sort((a: RawVCard, b: RawVCard) =>
+        new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
+      );
+
+      const formattedCards: VCard[] = sortedCards.map((vcard: RawVCard, index: number) => ({
+        ...vcard,
+        id: vcard.id || '',
+        name: vcard.name || 'Untitled VCard',
+        description: vcard.description || '',
+        logo: vcard.logo,
+        favicon: vcard.favicon,
+        background_value: vcard.background_value,
+        background_type: vcard.background_type,
+        font_family: vcard.font_family || 'Arial, sans-serif',
+        font_size: vcard.font_size || 16,
+        is_active: vcard.is_active !== undefined ? vcard.is_active : true,
+        is_share: vcard.is_share !== undefined ? vcard.is_share : true,
+        is_downloaded: vcard.is_downloaded !== undefined ? vcard.is_downloaded : true,
+        views: vcard.views || 0,
+        url: vcard.url || '#',
+        createdAt: vcard.createdAt || new Date().toISOString(),
+        search_engine_visibility: vcard.search_engine_visibility !== undefined ? vcard.search_engine_visibility : true,
+        remove_branding: vcard.remove_branding !== undefined ? vcard.remove_branding : false,
+        // Déterminer si la VCard doit être désactivée en fonction des limites du plan
+        isDisabled: limits.max !== Infinity && index >= limits.max
+      }));
+
+      const validCards = formattedCards.filter((vcard: VCard) => vcard !== null);
+      setVcards(validCards);
+      
+    } catch (err) {
+      console.error('Error loading initial data:', err);
+      toast.error('Error loading data');
+      setVcards([]);
+    } finally {
+      setLoading(false);
+      isInitialLoadRef.current = false;
+    }
+  }, []);
+
+  // Fonction pour recharger uniquement les VCards (après suppression par exemple)
+  const reloadVCards = useCallback(async () => {
+    if (!currentUser?.id || isInitialLoadRef.current) return;
+
+    try {
+      const response = await vcardService.getAll(currentUser.id);
+      
+      const cards = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      const sortedCards = cards.sort((a: RawVCard, b: RawVCard) =>
+        new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
+      );
+
+      const formattedCards: VCard[] = sortedCards.map((vcard: RawVCard, index: number) => ({
+        ...vcard,
+        id: vcard.id || '',
+        name: vcard.name || 'Untitled VCard',
+        description: vcard.description || '',
+        logo: vcard.logo,
+        favicon: vcard.favicon,
+        background_value: vcard.background_value,
+        background_type: vcard.background_type,
+        font_family: vcard.font_family || 'Arial, sans-serif',
+        font_size: vcard.font_size || 16,
+        is_active: vcard.is_active !== undefined ? vcard.is_active : true,
+        is_share: vcard.is_share !== undefined ? vcard.is_share : true,
+        is_downloaded: vcard.is_downloaded !== undefined ? vcard.is_downloaded : true,
+        views: vcard.views || 0,
+        url: vcard.url || '#',
+        createdAt: vcard.createdAt || new Date().toISOString(),
+        search_engine_visibility: vcard.search_engine_visibility !== undefined ? vcard.search_engine_visibility : true,
+        remove_branding: vcard.remove_branding !== undefined ? vcard.remove_branding : false,
+        // Utiliser les limites actuelles du plan
+        isDisabled: planLimits.max !== Infinity && index >= planLimits.max
+      }));
+
+      const validCards = formattedCards.filter((vcard: VCard) => vcard !== null);
+      setVcards(validCards);
+      
+    } catch (err) {
+      console.error('Error reloading VCards:', err);
+      toast.error('Error reloading VCards');
+    }
+  }, [currentUser, planLimits.max]);
+
+  // Fonction pour recharger uniquement les limites du plan
+  const reloadPlanLimits = useCallback(async () => {
     try {
       const limits = await limitService.checkVcardLimit();
       setPlanLimits({
@@ -180,9 +297,19 @@ const VCardPage: React.FC = () => {
     }
   }, []);
 
+  // Charger les données initiales quand l'utilisateur est disponible
   useEffect(() => {
-    fetchPlanLimits();
-  }, [fetchPlanLimits]);
+    if (currentUser?.id && isInitialLoadRef.current) {
+      loadInitialData(currentUser.id);
+    }
+  }, [currentUser, loadInitialData]);
+
+  // Recharger les VCards seulement quand refreshTrigger change (après suppression)
+  useEffect(() => {
+    if (refreshTrigger > 0 && !isInitialLoadRef.current) {
+      reloadVCards();
+    }
+  }, [refreshTrigger, reloadVCards]);
 
   // Handle click outside for export menu
   useEffect(() => {
@@ -219,62 +346,6 @@ const VCardPage: React.FC = () => {
       toast.error('Error checking plan limits. Please try again.');
     }
   }, [navigate]);
-
-  // Fetch VCards
-  const fetchVCards = useCallback(async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      setLoading(true);
-      const response = await vcardService.getAll(currentUser.id);
-
-      const cards = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-          ? response.data
-          : [];
-
-      const sortedCards = cards.sort((a: RawVCard, b: RawVCard) =>
-        new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
-      );
-
-      const formattedCards: VCard[] = sortedCards.map((vcard: RawVCard, index: number) => ({
-        ...vcard,
-        id: vcard.id || '',
-        name: vcard.name || 'Untitled VCard',
-        description: vcard.description || '',
-        logo: vcard.logo,
-        favicon: vcard.favicon,
-        background_value: vcard.background_value,
-        background_type: vcard.background_type,
-        font_family: vcard.font_family || 'Arial, sans-serif',
-        font_size: vcard.font_size || 16,
-        is_active: vcard.is_active !== undefined ? vcard.is_active : true,
-        is_share: vcard.is_share !== undefined ? vcard.is_share : true,
-        is_downloaded: vcard.is_downloaded !== undefined ? vcard.is_downloaded : true,
-        views: vcard.views || 0,
-        url: vcard.url || '#',
-        createdAt: vcard.createdAt || new Date().toISOString(),
-        search_engine_visibility: vcard.search_engine_visibility !== undefined ? vcard.search_engine_visibility : true,
-        remove_branding: vcard.remove_branding !== undefined ? vcard.remove_branding : false,
-        // Correctly determine if VCard should be disabled based on plan limits
-        isDisabled: planLimits.max !== Infinity && index >= planLimits.max
-      }));
-
-      const validCards = formattedCards.filter((vcard: VCard) => vcard !== null);
-      setVcards(validCards);
-    } catch (err) {
-      console.error('Error fetching VCards:', err);
-      toast.error('Error loading VCards');
-      setVcards([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, planLimits.max]);
-
-  useEffect(() => {
-    fetchVCards();
-  }, [fetchVCards, refreshTrigger]);
 
   // Filter VCards based on search term and active filters
   const filteredVCards = useMemo(() => {
@@ -474,11 +545,12 @@ const VCardPage: React.FC = () => {
     }
   }, [filteredVCards, exporting]);
 
-  // Handle successful deletion
+  // Handle successful deletion - maintenant optimisé
   const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-    fetchPlanLimits(); // Refresh plan limits after deletion
-  }, [fetchPlanLimits]);
+    // Recharger les limites du plan après suppression
+    reloadPlanLimits();
+  }, [reloadPlanLimits]);
 
   // Breadcrumb configuration
   const breadcrumbLinks = [

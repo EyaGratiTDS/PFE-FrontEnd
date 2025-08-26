@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   FaPlus,
   FaFileExport,
@@ -94,7 +94,6 @@ const ProjectPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -112,11 +111,12 @@ const ProjectPage: React.FC = () => {
   // Refs
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const isInitialLoadRef = useRef(true);
   
   const navigate = useNavigate();
   const cardsPerPage = 12;
 
-  // Load user data from localStorage
+  // Initialize current user from localStorage (une seule fois)
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -130,19 +130,114 @@ const ProjectPage: React.FC = () => {
     }
   }, []);
 
-  // Fetch plan limits
-  useEffect(() => {
-    const fetchPlanLimits = async () => {
-      try {
-        const projectLimit: PlanLimit = await limitService.checkProjectLimit();
-        setCurrentPlanLimit(projectLimit.max === -1 ? Infinity : projectLimit.max);
-      } catch (error) {
-        console.error('Error fetching plan limits:', error);
-        toast.error('Failed to load plan information');
-      }
-    };
-    fetchPlanLimits();
+  // Fonction pour charger les données initiales (Projects + Plan Limits) en une seule fois
+  const loadInitialData = useCallback(async (userId: string) => {
+    if (!isInitialLoadRef.current) return;
+    
+    try {
+      setLoading(true);
+      
+      // Charger les limites du plan et les projets en parallèle
+      const [limitsResponse, projectsResponse] = await Promise.all([
+        limitService.checkProjectLimit(),
+        projectService.getUserProjects(Number(userId))
+      ]);
+
+      // Traiter les limites du plan
+      const planLimit = limitsResponse.max === -1 ? Infinity : limitsResponse.max;
+      setCurrentPlanLimit(planLimit);
+
+      // Traiter les projets
+      const projectsData = Array.isArray(projectsResponse) ? projectsResponse : projectsResponse?.data || [];
+      
+      const sortedProjects = projectsData.sort((a: Project, b: Project) => {
+        const dateA = new Date(a.createdAt || '').getTime();
+        const dateB = new Date(b.createdAt || '').getTime();
+        return dateA - dateB; // Oldest first (ascending order)
+      });
+
+      const formattedProjects = sortedProjects.map((project: Project, index: number) => ({
+        ...project,
+        id: project.id || '',
+        name: project.name || 'Untitled Project',
+        description: project.description || '',
+        logo: project.logo,
+        color: project.color || '#4f46e5',
+        status: project.status || 'active',
+        isDisabled: planLimit !== Infinity && index >= planLimit
+      }));
+
+      const validProjects = formattedProjects.filter(Boolean);
+      setProjects(validProjects);
+      
+    } catch (err) {
+      console.error('Error loading initial data:', err);
+      toast.error('Failed to load data');
+      setProjects([]);
+    } finally {
+      setLoading(false);
+      isInitialLoadRef.current = false;
+    }
   }, []);
+
+  // Fonction pour recharger uniquement les projets (après suppression par exemple)
+  const reloadProjects = useCallback(async () => {
+    if (!currentUser?.id || isInitialLoadRef.current) return;
+
+    try {
+      const response = await projectService.getUserProjects(Number(currentUser.id));
+      const projectsData = Array.isArray(response) ? response : response?.data || [];
+      
+      const sortedProjects = projectsData.sort((a: Project, b: Project) => {
+        const dateA = new Date(a.createdAt || '').getTime();
+        const dateB = new Date(b.createdAt || '').getTime();
+        return dateA - dateB;
+      });
+
+      const formattedProjects = sortedProjects.map((project: Project, index: number) => ({
+        ...project,
+        id: project.id || '',
+        name: project.name || 'Untitled Project',
+        description: project.description || '',
+        logo: project.logo,
+        color: project.color || '#4f46e5',
+        status: project.status || 'active',
+        isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit
+      }));
+
+      const validProjects = formattedProjects.filter(Boolean);
+      setProjects(validProjects);
+      
+    } catch (err) {
+      console.error('Error reloading projects:', err);
+      toast.error('Failed to reload projects');
+    }
+  }, [currentUser, currentPlanLimit]);
+
+  // Fonction pour recharger uniquement les limites du plan
+  const reloadPlanLimits = useCallback(async () => {
+    try {
+      const projectLimit: PlanLimit = await limitService.checkProjectLimit();
+      setCurrentPlanLimit(projectLimit.max === -1 ? Infinity : projectLimit.max);
+    } catch (error) {
+      console.error('Error fetching plan limits:', error);
+      toast.error('Failed to load plan information');
+    }
+  }, []);
+
+  // Charger les données initiales quand l'utilisateur est disponible
+  useEffect(() => {
+    if (currentUser?.id && isInitialLoadRef.current) {
+      loadInitialData(currentUser.id);
+    }
+  }, [currentUser, loadInitialData]);
+
+  // Recharger les projets seulement quand refreshTrigger change (après suppression)
+  useEffect(() => {
+    if (refreshTrigger > 0 && !isInitialLoadRef.current) {
+      reloadProjects();
+    }
+  }, [refreshTrigger, reloadProjects]);
 
   // Handle click outside for export menu
   useEffect(() => {
@@ -162,7 +257,7 @@ const ProjectPage: React.FC = () => {
   }, []);
 
   // Handle create button click with plan limit check
-  const handleCreateClick = async () => {
+  const handleCreateClick = useCallback(async () => {
     try {
       const { current, max }: PlanLimit = await limitService.checkProjectLimit();
 
@@ -176,55 +271,10 @@ const ProjectPage: React.FC = () => {
       console.error('Error checking Project limits:', error);
       toast.error('Error checking plan limits. Please try again.');
     }
-  };
+  }, [navigate]);
 
-  // Fetch projects from API
-  const fetchProjects = async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      setLoading(true);
-      const response = await projectService.getUserProjects(Number(currentUser.id));
-
-      const projectsData = Array.isArray(response) ? response : response?.data || [];
-      
-      const sortedProjects = projectsData.sort((a: Project, b: Project) => {
-        const dateA = new Date(a.createdAt || '').getTime();
-        const dateB = new Date(b.createdAt || '').getTime();
-        return dateA - dateB; // Oldest first (ascending order)
-      });
-
-      const formattedProjects = sortedProjects.map((project: Project, index: number) => ({
-        ...project,
-        id: project.id || '',
-        name: project.name || 'Untitled Project',
-        description: project.description || '',
-        logo: project.logo,
-        color: project.color || '#4f46e5',
-        status: project.status || 'active',
-        isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit
-      }));
-
-      const validProjects = formattedProjects.filter(Boolean);
-      setProjects(validProjects);
-      setFilteredProjects(validProjects);
-    } catch (err) {
-      console.error('Error fetching projects:', err);
-      toast.error('Failed to load projects');
-      setProjects([]);
-      setFilteredProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch projects when dependencies change
-  useEffect(() => {
-    fetchProjects();
-  }, [currentUser, refreshTrigger, currentPlanLimit]);
-
-  // Apply filters to projects
-  const applyFilters = () => {
+  // Filter projects based on search term and active filters (memoized)
+  const filteredProjects = useMemo(() => {
     let filtered = [...projects];
 
     // Search filter
@@ -287,25 +337,24 @@ const ProjectPage: React.FC = () => {
       });
     }
 
-    setFilteredProjects(filtered);
-    setCurrentPage(1);
-  };
+    return filtered;
+  }, [projects, searchTerm, activeFilters]);
 
-  // Apply filters when dependencies change
+  // Reset current page when filters change
   useEffect(() => {
-    applyFilters();
-  }, [searchTerm, projects, activeFilters]);
+    setCurrentPage(1);
+  }, [filteredProjects.length, searchTerm, activeFilters]);
 
   // Handle filter changes
-  const handleFilterChange = (filterType: keyof ActiveFilters, value: any) => {
+  const handleFilterChange = useCallback((filterType: keyof ActiveFilters, value: any) => {
     setActiveFilters(prev => ({
       ...prev,
       [filterType]: value
     }));
-  };
+  }, []);
 
   // Reset all filters
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setActiveFilters({
       status: 'all',
       color: 'all',
@@ -316,10 +365,10 @@ const ProjectPage: React.FC = () => {
       search: ''
     });
     setSearchTerm('');
-  };
+  }, []);
 
-  // Check if any filters are active
-  const hasActiveFilters = (): boolean => {
+  // Check if any filters are active (memoized)
+  const hasActiveFilters = useMemo(() => {
     return (
       activeFilters.status !== 'all' ||
       activeFilters.color !== 'all' ||
@@ -327,7 +376,7 @@ const ProjectPage: React.FC = () => {
       activeFilters.dateRange.end !== undefined ||
       searchTerm.trim() !== ''
     );
-  };
+  }, [activeFilters, searchTerm]);
 
   // Pagination calculations
   const indexOfLastCard = currentPage * cardsPerPage;
@@ -335,10 +384,10 @@ const ProjectPage: React.FC = () => {
   const currentCards = filteredProjects.slice(indexOfFirstCard, indexOfLastCard);
   const totalPages = Math.ceil(filteredProjects.length / cardsPerPage);
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const paginate = useCallback((pageNumber: number) => setCurrentPage(pageNumber), []);
 
   // Handle export functionality
-  const handleExport = async (format: 'csv' | 'json') => {
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
     if (exporting) return;
 
     try {
@@ -363,7 +412,7 @@ const ProjectPage: React.FC = () => {
       }));
 
       // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const fileName = `projects_export_${new Date().toISOString().slice(0, 10)}`;
       let success = false;
@@ -391,12 +440,14 @@ const ProjectPage: React.FC = () => {
     } finally {
       setExporting(false);
     }
-  };
+  }, [filteredProjects, exporting]);
 
-  // Handle successful deletion
-  const handleDeleteSuccess = () => {
+  // Handle successful deletion - maintenant optimisé
+  const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-  };
+    // Recharger les limites du plan après suppression
+    reloadPlanLimits();
+  }, [reloadPlanLimits]);
 
   // Breadcrumb configuration
   const breadcrumbLinks = [
@@ -488,7 +539,7 @@ const ProjectPage: React.FC = () => {
             {/* Export Button */}
             <div className="relative" ref={exportButtonRef}>
               <button
-                className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
                 aria-label="Export options"
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={exporting || filteredProjects.length === 0}
@@ -510,14 +561,14 @@ const ProjectPage: React.FC = () => {
             <div className="relative">
               <button
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border transition-colors duration-200 ${
-                  hasActiveFilters()
+                  hasActiveFilters
                     ? 'border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20'
                     : 'border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
               >
                 <FaFilter className={`text-sm sm:text-base ${
-                  hasActiveFilters()
+                  hasActiveFilters
                     ? 'text-red-500'
                     : 'text-purple-600'
                 }`} />
@@ -579,7 +630,7 @@ const ProjectPage: React.FC = () => {
       </div>
 
       {/* Active Filters Display */}
-      {hasActiveFilters() && (
+      {hasActiveFilters && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
           {activeFilters.status !== 'all' && (
@@ -606,7 +657,7 @@ const ProjectPage: React.FC = () => {
           )}
           <button
             onClick={resetFilters}
-            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center"
+            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 flex items-center transition-colors"
           >
             <FaTimes className="mr-1" /> Clear all
           </button>
@@ -632,7 +683,7 @@ const ProjectPage: React.FC = () => {
                       opacity: 1, 
                       y: 0,
                       transition: {
-                        delay: index * 0.05,
+                        delay: index * 0.02,
                         duration: 0.3
                       }
                     }}
@@ -671,10 +722,10 @@ const ProjectPage: React.FC = () => {
             transition={{ duration: 0.5 }}
           >
             <EmptyState
-              title={searchTerm || hasActiveFilters()
+              title={searchTerm || hasActiveFilters
                 ? "No Projects match your filters"
                 : "No Projects yet"}
-              description={searchTerm || hasActiveFilters()
+              description={searchTerm || hasActiveFilters
                 ? "Try adjusting your search or filters"
                 : "Get started by creating your first Project"}
               actionText="Create Project"

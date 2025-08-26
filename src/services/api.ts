@@ -116,7 +116,7 @@ export const authService = {
     }).then(res => res.data),
 
   authenticateWithGoogle: (): void => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   },
 
   handleGoogleCallback: async (): Promise<ApiResponse<SignInResponse>> => {

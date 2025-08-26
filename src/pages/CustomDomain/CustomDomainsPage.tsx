@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   FaPlus,
   FaTimes,
@@ -79,7 +79,6 @@ const CustomDomainsPage: React.FC = () => {
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredDomains, setFilteredDomains] = useState<CustomDomain[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [createdAtStart, setCreatedAtStart] = useState<string>('');
@@ -104,55 +103,71 @@ const CustomDomainsPage: React.FC = () => {
     { value: 'disabled', label: 'Disabled' }
   ];
 
-  // Récupérer la limite du plan
-  useEffect(() => {
-    const fetchPlanLimit = async () => {
-      try {
-        const { max } = await limitService.checkCustomDomainLimit();
-        setCurrentPlanLimit(max === -1 ? Infinity : max);
-      } catch (error) {
-        console.error('Error fetching plan limits:', error);
-        toast.error('Failed to load subscription limits');
-      }
-    };
-    fetchPlanLimit();
+  // Fonction pour traiter les domaines avec la logique de limite
+  const processDomainsWithLimit = useCallback((domainsData: CustomDomain[], planLimit: number) => {
+    // Trier par date de création (du plus ancien au plus récent)
+    const sortedByDate = [...domainsData].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    // Trouver l'index du plus ancien domaine
+    const oldestDomainIndex = sortedByDate.length > 0 ? 0 : -1;
+
+    // Marquer les domaines au-delà de la limite, sauf le plus ancien
+    return sortedByDate.map((domain, index) => ({
+      ...domain,
+      // Désactiver tous sauf le plus ancien si la limite est atteinte
+      isDisabled: index !== oldestDomainIndex && index >= planLimit
+    }));
   }, []);
 
-  const fetchCustomDomains = async () => {
+  // Fonction unifiée pour charger les données initiales
+  const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const domainsData = await customDomainService.getUserDomains();
       
-      // Trier par date de création (du plus ancien au plus récent)
-      const sortedByDate = [...domainsData].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
+      // Faire les deux appels en parallèle
+      const [limitData, domainsData] = await Promise.all([
+        limitService.checkCustomDomainLimit(),
+        customDomainService.getUserDomains()
+      ]);
 
-      // Trouver l'index du plus ancien domaine
-      const oldestDomainIndex = sortedByDate.length > 0 ? 0 : -1;
+      const planLimit = limitData.max === -1 ? Infinity : limitData.max;
+      setCurrentPlanLimit(planLimit);
 
-      // Marquer les domaines au-delà de la limite, sauf le plus ancien
-      const domainsWithDisabled = sortedByDate.map((domain, index) => ({
-        ...domain,
-        // Désactiver tous sauf le plus ancien si la limite est atteinte
-        isDisabled: index !== oldestDomainIndex && index >= currentPlanLimit
-      }));
+      // Traiter les domaines avec la limite
+      const processedDomains = processDomainsWithLimit(domainsData, planLimit);
+      setDomains(processedDomains);
 
-      setDomains(domainsWithDisabled);
     } catch (error) {
-      console.error('Error fetching custom domains:', error);
-      toast.error('Error loading domains');
+      console.error('Error loading initial data:', error);
+      toast.error('Error loading data');
       setDomains([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [processDomainsWithLimit]);
 
-  useEffect(() => {
-    fetchCustomDomains();
-  }, [currentPlanLimit]);
+  // Fonction pour recharger uniquement les domaines
+  const refreshDomains = useCallback(async () => {
+    try {
+      const domainsData = await customDomainService.getUserDomains();
+      const processedDomains = processDomainsWithLimit(domainsData, currentPlanLimit);
+      setDomains(processedDomains);
+    } catch (error) {
+      console.error('Error refreshing domains:', error);
+      toast.error('Error loading domains');
+      setDomains([]);
+    }
+  }, [currentPlanLimit, processDomainsWithLimit]);
 
+  // Effet pour charger les données initiales une seule fois
   useEffect(() => {
+    loadInitialData();
+  }, []); // Pas de dépendances pour éviter les rechargements
+
+  // Calcul mémorisé des domaines filtrés
+  const filteredDomains = useMemo(() => {
     let result = domains;
     
     if (searchTerm) {
@@ -189,57 +204,68 @@ const CustomDomainsPage: React.FC = () => {
       return orderBy === 'asc' ? dateA - dateB : dateB - dateA;
     });
     
-    setFilteredDomains(result);
-    setCurrentPage(1);
+    return result;
   }, [domains, searchTerm, statusFilter, createdAtStart, createdAtEnd, orderBy]);
 
-  const handleDelete = async (id: number) => {
+  // Réinitialiser la page quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, createdAtStart, createdAtEnd, orderBy]);
+
+  const handleDelete = useCallback(async (id: number) => {
     if (window.confirm('Are you sure you want to delete this domain?')) {
       try {
         await customDomainService.delete(id);
         toast.success('Domain deleted successfully');
-        fetchCustomDomains();
+        refreshDomains();
       } catch (error) {
         console.error('Error deleting domain:', error);
         toast.error('Failed to delete domain');
       }
     }
-  };
+  }, [refreshDomains]);
 
-  const handleVerify = async (id: number) => {
+  const handleVerify = useCallback(async (id: number) => {
     try {
       const response = await customDomainService.verify(id);
       toast.success(response.message || 'Domain verified successfully');
-      fetchCustomDomains();
+      refreshDomains();
     } catch (error: any) {
       console.error('Error verifying domain:', error);
       toast.error(error.response?.data?.message || 'Failed to verify domain');
     }
-  };
+  }, [refreshDomains]);
 
-  const indexOfLastDomain = currentPage * domainsPerPage;
-  const indexOfFirstDomain = indexOfLastDomain - domainsPerPage;
-  const currentDomains = filteredDomains.slice(indexOfFirstDomain, indexOfLastDomain);
-  const totalPages = Math.ceil(filteredDomains.length / domainsPerPage);
+  // Calculs de pagination mémorisés
+  const paginationData = useMemo(() => {
+    const indexOfLastDomain = currentPage * domainsPerPage;
+    const indexOfFirstDomain = indexOfLastDomain - domainsPerPage;
+    const currentDomains = filteredDomains.slice(indexOfFirstDomain, indexOfLastDomain);
+    const totalPages = Math.ceil(filteredDomains.length / domainsPerPage);
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+    return { currentDomains, totalPages };
+  }, [filteredDomains, currentPage]);
 
-  const resetAllFilters = () => {
+  const paginate = useCallback((pageNumber: number) => setCurrentPage(pageNumber), []);
+
+  const resetAllFilters = useCallback(() => {
     setSearchTerm('');
     setStatusFilter('all');
     setCreatedAtStart('');
     setCreatedAtEnd('');
     setOrderBy('asc');
-  };
+  }, []);
 
-  const hasActiveFilters = searchTerm || statusFilter !== 'all' || createdAtStart || createdAtEnd || orderBy !== 'asc';
+  const hasActiveFilters = useMemo(() => {
+    return searchTerm || statusFilter !== 'all' || createdAtStart || createdAtEnd || orderBy !== 'asc';
+  }, [searchTerm, statusFilter, createdAtStart, createdAtEnd, orderBy]);
 
   const breadcrumbLinks = [
     { name: "Custom Domains", path: "/admin/custom-domains" },
   ];
 
   // Gestion de la création avec vérification de limite
-  const handleCreateClick = async () => {
+  const handleCreateClick = useCallback(async () => {
     try {
       const { current, max } = await limitService.checkCustomDomainLimit();
 
@@ -252,9 +278,9 @@ const CustomDomainsPage: React.FC = () => {
       console.error('Error checking domain limits:', error);
       toast.error('Error checking plan limits. Please try again.');
     }
-  };
+  }, [navigate]);
 
-  const handleExport = async (format: 'csv' | 'json') => {
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
     if (filteredDomains.length === 0) {
       toast.warning('No domains to export');
       return;
@@ -287,8 +313,9 @@ const CustomDomainsPage: React.FC = () => {
       setExporting(false);
       setShowExportMenu(false);
     }
-  };
+  }, [filteredDomains]);
 
+  // Gestion des clics extérieurs optimisée
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -312,8 +339,10 @@ const CustomDomainsPage: React.FC = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (showFilterMenu || showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
   }, [showFilterMenu, showExportMenu]);
 
   if (loading) {
@@ -499,23 +528,23 @@ const CustomDomainsPage: React.FC = () => {
             animate="show"
           >
             <AnimatePresence>
-              {currentDomains.map((domain) => (
+              {paginationData.currentDomains.map((domain) => (
                 <CustomDomainCard
                   key={domain.id}
                   domain={domain}
                   onDelete={handleDelete}
                   onVerify={handleVerify}
-                  onRefresh={fetchCustomDomains}
+                  onRefresh={refreshDomains}
                 />
               ))}
             </AnimatePresence>
           </motion.div>
 
-          {totalPages > 1 && (
+          {paginationData.totalPages > 1 && (
             <div className="mt-4">
               <Pagination 
                 currentPage={currentPage}
-                totalPages={totalPages}
+                totalPages={paginationData.totalPages}
                 onPageChange={paginate}
               />
             </div>

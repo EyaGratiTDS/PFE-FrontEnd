@@ -94,7 +94,6 @@ const PixelPage: React.FC = () => {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [currentPlanLimit, setCurrentPlanLimit] = useState(1);
   const [activeFilters, setActiveFilters] = useState<FilterState>({
     status: 'all',
     dateRange: {
@@ -109,6 +108,7 @@ const PixelPage: React.FC = () => {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const initializationRef = useRef(false);
 
   // Constants
   const cardsPerPage = 12;
@@ -118,59 +118,6 @@ const PixelPage: React.FC = () => {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   }, []);
-
-  // Fetch plan limits only once
-  const fetchPlanLimit = useCallback(async () => {
-    try {
-      const { max } = await limitService.checkPixelLimit();
-      setCurrentPlanLimit(max === -1 ? Infinity : max);
-    } catch (error) {
-      console.error('Error fetching plan limits:', error);
-    }
-  }, []);
-
-  // Fetch pixels function
-  const fetchPixels = useCallback(async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      setLoading(true);
-      const response = await pixelService.getUserPixels(currentUser.id);
-
-      let pixels: Pixel[] = [];
-      if (Array.isArray(response)) {
-        pixels = response;
-      } else if (response && Array.isArray(response.data)) {
-        pixels = response.data;
-      } else if (response && Array.isArray(response.pixels)) {
-        pixels = response.pixels;
-      } else if (response === null || response === undefined) {
-        pixels = [];
-      } else {
-        console.warn('Unexpected response format:', response);
-        pixels = [];
-      }
-
-      // Sort and format pixels
-      const sortedPixels = pixels
-        .sort((a: Pixel, b: Pixel) => 
-          new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
-        )
-        .map((pixel: Pixel, index: number) => ({
-          ...pixel,
-          isDisabled: currentPlanLimit !== Infinity && index >= currentPlanLimit
-        }));
-
-      setPixels(sortedPixels);
-    } catch (err: any) {
-      console.error('Error fetching pixels:', err);
-      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load pixels';
-      toast.error(errorMessage);
-      setPixels([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.id, currentPlanLimit]);
 
   // Filter and search logic (memoized)
   const filteredPixels = useMemo(() => {
@@ -221,13 +168,70 @@ const PixelPage: React.FC = () => {
            searchTerm.trim() !== '';
   }, [activeFilters, searchTerm]);
 
-  // Initialize data on mount
+  // Initialize data on mount - SOLUTION PRINCIPALE POUR ÉVITER DOUBLE RELOAD
   useEffect(() => {
-    if (currentUser?.id) {
-      fetchPlanLimit();
-      fetchPixels();
-    }
-  }, [currentUser?.id, fetchPlanLimit, fetchPixels]);
+    if (!currentUser?.id || initializationRef.current) return;
+    
+    initializationRef.current = true;
+
+    const initializeData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch plan limit et pixels en parallèle
+        const [limitResponse, pixelsResponse] = await Promise.all([
+          limitService.checkPixelLimit().catch(err => {
+            console.error('Error fetching plan limits:', err);
+            return { max: 1 };
+          }),
+          pixelService.getUserPixels(currentUser.id).catch(err => {
+            console.error('Error fetching pixels:', err);
+            const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load pixels';
+            toast.error(errorMessage);
+            return [];
+          })
+        ]);
+
+        // Set plan limit
+        const planLimit = limitResponse.max === -1 ? Infinity : limitResponse.max;
+        
+        // Process pixels response
+        let pixels: Pixel[] = [];
+        if (Array.isArray(pixelsResponse)) {
+          pixels = pixelsResponse;
+        } else if (pixelsResponse && Array.isArray(pixelsResponse.data)) {
+          pixels = pixelsResponse.data;
+        } else if (pixelsResponse && Array.isArray(pixelsResponse.pixels)) {
+          pixels = pixelsResponse.pixels;
+        } else if (pixelsResponse === null || pixelsResponse === undefined) {
+          pixels = [];
+        } else {
+          console.warn('Unexpected response format:', pixelsResponse);
+          pixels = [];
+        }
+
+        // Sort and format pixels
+        const sortedPixels = pixels
+          .sort((a: Pixel, b: Pixel) => 
+            new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
+          )
+          .map((pixel: Pixel, index: number) => ({
+            ...pixel,
+            isDisabled: planLimit !== Infinity && index >= planLimit
+          }));
+
+        setPixels(sortedPixels);
+      } catch (error) {
+        console.error('Error during initialization:', error);
+        toast.error('Failed to load data');
+        setPixels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeData();
+  }, [currentUser?.id]);
 
   // Reset current page when filters change
   useEffect(() => {
