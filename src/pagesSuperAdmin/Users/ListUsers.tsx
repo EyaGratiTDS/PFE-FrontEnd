@@ -33,7 +33,7 @@ const ListUsers: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     status: 'all',
-    role: 'all',
+    role: 'all', // On peut garder 'all' pour le filtre, mais on filtrera par défaut sur admin/superAdmin
     verified: 'all',
     search: ''
   });
@@ -49,6 +49,7 @@ const ListUsers: React.FC = () => {
     superAdmins: 0
   });
   
+  // Changer de 25 à 10 items par page
   const itemsPerPage = 10;
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
@@ -56,11 +57,13 @@ const ListUsers: React.FC = () => {
 
   useEffect(() => {
     if (allUsers.length > 0) {
-      const total = allUsers.length;
-      const active = allUsers.filter(user => user.isActive).length;
-      const verified = allUsers.filter(user => user.isVerified).length;
-      const admins = allUsers.filter(user => user.role === 'admin').length;
-      const superAdmins = allUsers.filter(user => user.role === 'superAdmin').length;
+      // Filtrer seulement les admins et super-admins pour les stats
+      const adminUsers = allUsers.filter(user => user.role === 'admin' || user.role === 'superAdmin');
+      const total = adminUsers.length;
+      const active = adminUsers.filter(user => user.isActive).length;
+      const verified = adminUsers.filter(user => user.isVerified).length;
+      const admins = adminUsers.filter(user => user.role === 'admin').length;
+      const superAdmins = adminUsers.filter(user => user.role === 'superAdmin').length;
       
       setStats({ total, active, verified, admins, superAdmins });
     } else {
@@ -127,8 +130,12 @@ const ListUsers: React.FC = () => {
   const filteredUsers = useMemo(() => {
     if (!allUsers || allUsers.length === 0) return [];
 
-    let result = [...allUsers];
+    // FILTRER D'ABORD SEULEMENT LES ADMINS ET SUPER-ADMINS
+    let result = allUsers.filter(user => 
+      user.role === 'admin' || user.role === 'superAdmin'
+    );
     
+    // Puis appliquer les autres filtres
     if (activeFilters.search) {
       result = result.filter(user => 
         (user.name?.toLowerCase().includes(activeFilters.search.toLowerCase())) ||
@@ -142,6 +149,7 @@ const ListUsers: React.FC = () => {
       );
     }
     
+    // Filtre de rôle spécifique (admin OU superAdmin)
     if (activeFilters.role !== 'all') {
       result = result.filter(user => user.role === activeFilters.role);
     }
@@ -152,6 +160,7 @@ const ListUsers: React.FC = () => {
       );
     }
     
+    // Trier par rôle puis par nom
     result.sort((a, b) => {
       const roleOrder: Record<string, number> = {
         'superAdmin': 0,
@@ -176,7 +185,10 @@ const ListUsers: React.FC = () => {
     return result;
   }, [activeFilters, allUsers]);
 
+  // Calculer le nombre total de pages basé sur les utilisateurs filtrés
   const totalPages = Math.ceil((filteredUsers?.length || 0) / itemsPerPage);
+  
+  // Obtenir les utilisateurs pour la page actuelle
   const currentPageUsers = useMemo(() => {
     if (!filteredUsers || filteredUsers.length === 0) return [];
     
@@ -190,7 +202,7 @@ const ListUsers: React.FC = () => {
       ...prev,
       [filterType]: value
     }));
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const resetFilters = () => {
@@ -200,7 +212,7 @@ const ListUsers: React.FC = () => {
       verified: 'all',
       search: ''
     });
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when filters are reset
   };
 
   const hasActiveFilters = () => {
@@ -212,7 +224,10 @@ const ListUsers: React.FC = () => {
     );
   };
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  // Fonction pour changer de page
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
   const toggleUserStatus = async (userId: string, isActive: boolean) => {
     try {
@@ -369,7 +384,7 @@ const ListUsers: React.FC = () => {
       setShowExportMenu(false);
       
       const date = new Date().toISOString().slice(0, 10);
-      const filename = `users_export_${date}`;
+      const filename = `admin_users_export_${date}`;
       
       if (format === 'csv') {
         exportToCsv(filteredUsers.map(formatUserData), filename);
@@ -483,9 +498,9 @@ const ListUsers: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
         <div className="w-full md:w-auto">
-          <h1 className="text-xl sm:text-2xl pt-4 font-bold text-gray-800 dark:text-white">User Management</h1>
+          <h1 className="text-xl sm:text-2xl pt-4 font-bold text-gray-800 dark:text-white">Admin Management</h1>
           <p className="text-primary mt-1 sm:mt-2 text-xs sm:text-sm">
-            View and manage all system users
+            View and manage administrators and super-administrators ({filteredUsers.length} total)
           </p>
         </div>
 
@@ -496,7 +511,7 @@ const ListUsers: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search admins..."
               className="w-full pl-9 sm:pl-10 pr-4 py-1.5 sm:py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm sm:text-base h-12 sm:h-auto"
               value={activeFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -555,7 +570,7 @@ const ListUsers: React.FC = () => {
               className="flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base relative"
             >
               <FaPlus className="absolute left-1/2 transform -translate-x-1/2 sm:static sm:transform-none sm:mr-2 w-10" />
-              <span className="hidden xs:inline sm:ml-0">Add User</span>
+              <span className="hidden xs:inline sm:ml-0">Add Admin</span>
             </button>
           </div>
         </div>
@@ -572,25 +587,39 @@ const ListUsers: React.FC = () => {
         />
       )}
 
-      <UserTable
-        filteredUsers={currentPageUsers}
-        hasActiveFilters={hasActiveFilters()}
-        onToggleStatus={toggleUserStatus}
-        onChangePlan={handleChangePlan}
-      />
-
-      {filteredUsers && filteredUsers.length > 0 && totalPages > 1 && (
-        <div className="mt-6">
-          <Pagination 
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={paginate}
+      {filteredUsers && filteredUsers.length > 0 ? (
+        <>
+          <UserTable
+            filteredUsers={currentPageUsers}
+            hasActiveFilters={hasActiveFilters()}
+            onToggleStatus={toggleUserStatus}
+            onChangePlan={handleChangePlan}
           />
+
+          {/* Afficher la pagination seulement s'il y a plus d'une page */}
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-lg border">
+          <p className="text-gray-500 dark:text-gray-400 text-lg">
+            No administrators found
+          </p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+            Try adjusting your search filters or add new administrators
+          </p>
         </div>
       )}
 
       <div className="mt-6 sm:mt-8 mobile-charts-reduce">
-        <UserCharts users={allUsers} />
+        <UserCharts users={allUsers.filter(user => user.role === 'admin' || user.role === 'superAdmin')} />
       </div>
 
       <AddUserModal 
@@ -604,7 +633,8 @@ const ListUsers: React.FC = () => {
         onClose={() => setShowAssignPlanModal(false)}
         onAssignPlan={handleAssignPlan}
         planName={selectedPlan}
-      /> </div>
+      /> 
+    </div>
   );
 };
 

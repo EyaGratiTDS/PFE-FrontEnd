@@ -119,7 +119,7 @@ const UserRow: React.FC<{
             {user.avatar ? (
               <img 
                 className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 lg:h-6 lg:w-6 xl:h-10 xl:w-10 rounded-full object-cover border border-gray-200" 
-                src={`${API_BASE_URL}${user.avatar}`} 
+                src={user.avatar} 
                 alt={user.name || 'User'} 
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = '/default-avatar.png';

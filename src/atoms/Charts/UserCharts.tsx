@@ -29,23 +29,21 @@ const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
     return () => observer.disconnect();
   }, []);
 
+  // Pie chart data without "Users" - only Admins and Super Admins
   const roleData = {
-    labels: ['Users', 'Admins', 'Super Admins'],
+    labels: ['Admins', 'Super Admins'],
     datasets: [
       {
-        label: 'User Roles',
+        label: 'Admin Roles',
         data: [
-          users.filter(u => u.role === 'user').length,
           users.filter(u => u.role === 'admin').length,
           users.filter(u => u.role === 'superAdmin').length,
         ],
         backgroundColor: [
-          'rgba(54, 162, 235, 0.7)',
           'rgba(75, 192, 192, 0.7)',
           'rgba(153, 102, 255, 0.7)',
         ],
         borderColor: [
-          'rgba(54, 162, 235, 1)',
           'rgba(75, 192, 192, 1)',
           'rgba(153, 102, 255, 1)',
         ],
@@ -97,7 +95,7 @@ const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
       },
       title: {
         display: true,
-        text: 'User Roles Distribution',
+        text: 'Admin Roles Distribution',
         color: textColor,
         font: {
           size: 16,
@@ -121,7 +119,7 @@ const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
       },
       title: {
         display: true,
-        text: 'User Status Overview',
+        text: 'Admin Status Overview',
         color: textColor,
         font: {
           size: 16,
@@ -161,7 +159,7 @@ const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">User Roles Distribution</h3>
+        <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">Admin Roles Distribution</h3>
         <div className="h-72">
           <Pie 
             data={roleData} 
@@ -171,7 +169,7 @@ const UserCharts: React.FC<UserChartsProps> = ({ users }) => {
       </div>
       
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">User Status Overview</h3>
+        <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">Admin Status Overview</h3>
         <div className="h-72">
           <Bar 
             data={statusData} 
