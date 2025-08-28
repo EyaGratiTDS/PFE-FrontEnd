@@ -64,7 +64,7 @@ const ProjectRow: React.FC<{
           {project.logo ? (
             <img 
               className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-8 lg:w-8 xl:h-10 xl:w-10 rounded-full object-cover border border-gray-200" 
-              src={`${API_BASE_URL}${project.logo}`} 
+              src={project.logo}
               alt={project.name} 
             />
           ) : (

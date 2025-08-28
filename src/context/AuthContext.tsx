@@ -120,13 +120,13 @@ export const useAuth = () => {
   const handleGoogleAuth = async (token: string, userData: User) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
-      
+      console.log('Google authentication successful:', userData);
       if (!token || !userData) {
         throw new Error('Invalid token or user data');
       }
       
       storeToken(token, true);
-      
+      console.log('Google authentication successful:', userData);
       // Mettre à jour l'état d'authentification de manière synchrone
       setState({
         user: userData,

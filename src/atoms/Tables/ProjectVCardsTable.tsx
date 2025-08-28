@@ -2,7 +2,6 @@ import React from 'react';
 import { FaEye, FaImage, FaBan, FaCheck, FaAddressCard } from 'react-icons/fa';
 import { VCard } from '../../services/vcard';
 import { formatDate } from '../../services/dateUtils';
-import { API_BASE_URL } from '../../config/constants';
 
 interface ProjectVCardsTableProps {
   vcards: VCard[];
@@ -37,7 +36,7 @@ const renderBlockedBadge = (isBlocked: boolean) => {
 const getImageUrl = (path: string | null | undefined): string => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
-  return `${API_BASE_URL}${path.startsWith('/') ? path : '/' + path}`;
+  return `${path.startsWith('/') ? path : '/' + path}`;
 };
 
 const MobileVCardItem: React.FC<{ 

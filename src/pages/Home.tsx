@@ -5,7 +5,7 @@ import Facts from "../template front/Facts";
 import Footer from "../template front/Footer";
 import About from "../template front/About";
 import Features from "../template front/Features";
-import PircingPlan from "../template front/PircingPlan";
+import PricingPlan from "../template front/PircingPlan"; 
 import Quote from "../template front/Quote";
 import Testimonial from "../template front/Testimonial";
 import Services from "../template front/Services";
@@ -114,7 +114,7 @@ const Home = () => {
                     <Services />
                 </div>
                 <div id="pricing">
-                    <PircingPlan />
+                    <PricingPlan /> {/* Correction du nom du composant */}
                 </div>
                 <div id="contact">
                     <Quote />

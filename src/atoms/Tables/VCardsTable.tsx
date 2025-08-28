@@ -47,7 +47,7 @@ const VCardRow: React.FC<{
         {vcard.logo ? (
           <div className="flex-shrink-0 h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-6 lg:w-6 xl:h-8 xl:w-8">
             <img 
-              src={`${API_BASE_URL}${vcard.logo}`} 
+              src={vcard.logo}
               alt={`${vcard.name} logo`}
               className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-6 lg:w-6 xl:h-8 xl:w-8 rounded-full object-cover border border-gray-200"
             />

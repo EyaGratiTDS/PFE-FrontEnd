@@ -1,7 +1,6 @@
 import React from 'react';
 import { FaUser, FaUserSlash, FaUserCheck, FaCrown, FaUserTie, FaUserAlt } from 'react-icons/fa';
 import { User } from '../../services/user';
-import { API_BASE_URL } from '../../config/constants';
 
 interface UserTableProps {
   filteredUsers: User[];
@@ -201,7 +200,7 @@ const MobileUserItem: React.FC<{
         <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3">
           {user.avatar ? (
             <img 
-              src={`${API_BASE_URL}${user.avatar}`} 
+              src={user.avatar}
               alt={user.name || 'User'}
               className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover border border-gray-200"
               onError={(e) => {

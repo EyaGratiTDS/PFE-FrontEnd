@@ -83,7 +83,7 @@ updateSW();
         <Route path="/reset-password" element={<NewPassword />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivatePolicy />} />
-        <Route path="/auth/handler" element={<AuthHandler />} />
+        <Route path="/auth/google/redirect" element={<AuthHandler />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={

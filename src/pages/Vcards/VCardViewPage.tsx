@@ -25,6 +25,7 @@ import FloatingButtons from './../../atoms/buttons/FloatingButtons';
 import { motion, AnimatePresence } from "framer-motion";
 import usePixelTracker from '../../hooks/usePixelTracker';
 import { Pixel } from '../../services/Pixel';
+import { mapToMetaEvent, trackMetaEvent } from '../../utils/MetaPixel';
 
 interface TrackingEvent {
   eventType: 'click' | 'mousemove' | 'hover' | 'scroll' | 'focus' | 'blur';
@@ -182,6 +183,11 @@ const ViewVCard: React.FC = () => {
       shadow: 'shadow-gray-500/20'
     }
   };
+
+   useEffect(() => {
+    // Tracker l'événement "ViewContent" quand la vCard est affichée
+    trackMetaEvent(mapToMetaEvent('view'), { vcardId: vcard?.id });
+  }, [vcard?.id]);
 
   useEffect(() => {
     const fetchPlanLimits = async () => {
