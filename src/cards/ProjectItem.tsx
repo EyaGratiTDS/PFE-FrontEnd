@@ -22,20 +22,66 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
   const [showDropdown, setShowDropdown] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>('top');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
   // Handle click outside dropdown
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Calculate dropdown position based on button position and screen size
+  const calculateDropdownPosition = () => {
+    if (!dropdownButtonRef.current) return;
+
+    const buttonRect = dropdownButtonRef.current.getBoundingClientRect();
+    const screenHeight = window.innerHeight;
+    const dropdownHeight = 180; // Approximate height of dropdown
+    
+    // Check if there's enough space above the button
+    const spaceAbove = buttonRect.top;
+    const spaceBelow = screenHeight - buttonRect.bottom;
+    
+    // For mobile and desktop, prefer showing above (top) unless there's not enough space
+    if (spaceAbove >= dropdownHeight) {
+      setDropdownPosition('top');
+    } else if (spaceBelow >= 120) {
+      setDropdownPosition('bottom');
+    } else {
+      setDropdownPosition('top'); // Default to top even if cramped
+    }
+  };
+
+  // Get dropdown classes based on position and screen size
+  const getDropdownClasses = () => {
+    // Base classes with improved mobile visibility
+    const baseClasses = "absolute right-0 min-w-[200px] w-56 sm:w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm";
+    
+    // Different z-index strategy for mobile vs desktop
+    const zIndex = window.innerWidth < 768 ? "z-[9999]" : "z-[60]";
+    
+    if (dropdownPosition === 'bottom') {
+      return `${baseClasses} ${zIndex} top-full mt-2`;
+    } else {
+      return `${baseClasses} ${zIndex} bottom-full mb-2`;
+    }
+  };
 
   // Handle double click to navigate to project details
   const handleDoubleClick = () => {
@@ -91,6 +137,9 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
     e.stopPropagation();
     e.preventDefault();
     if (project.isDisabled) return;
+    if (!showDropdown) {
+      calculateDropdownPosition();
+    }
     setShowDropdown(!showDropdown);
   };
 
@@ -128,7 +177,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
       >
         {/* Upgrade overlay - only show for disabled projects */}
         {project.isDisabled && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl z-20">
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl z-10">
             <div className="text-center p-6">
               <FaLock className="text-white text-2xl mb-3 mx-auto" />
               <div className="text-white text-sm font-medium mb-3">
@@ -167,7 +216,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
           </div>
 
           {/* Logo/Avatar section */}
-          <div className="absolute top-12 left-0 right-0 flex justify-center z-10">
+          <div className="absolute top-12 left-0 right-0 flex justify-center z-5">
             {project.logo ? (
               <div className="relative">
                 <img
@@ -232,6 +281,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
               {/* Options menu */}
               <div className="relative" ref={dropdownRef}>
                 <button
+                  ref={dropdownButtonRef}
                   onClick={toggleDropdown}
                   disabled={isDeleting || project.isDisabled}
                   className={`p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-600 ${
@@ -242,33 +292,43 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, onDeleteSuccess }) =
                 </button>
 
                 {showDropdown && !project.isDisabled && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden backdrop-blur-sm"
-                  >
-                    <div className="py-1">
-                      <button
-                        onClick={handleEditClick}
-                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-200"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
-                          <FaEdit className="text-blue-600 dark:text-blue-400" size={12} />
-                        </div>
-                        <span className="font-medium">Edit Project</span>
-                      </button>
-                      <button
-                        onClick={handleDeleteClick}
-                        disabled={isDeleting}
-                        className="flex items-center w-full px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 dark:hover:from-red-900/20 dark:hover:to-red-800/20 transition-all duration-200 disabled:opacity-50"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
-                          <FaTrash className="text-red-600 dark:text-red-400" size={12} />
-                        </div>
-                        <span className="font-medium">Delete</span>
-                      </button>
-                    </div>
-                  </motion.div>
+                  <>
+                    {/* Mobile backdrop - covers entire screen */}
+                    <div 
+                      className="fixed inset-0 bg-black/40 z-[9998] md:hidden" 
+                      onClick={() => setShowDropdown(false)}
+                    />
+                    
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className={getDropdownClasses()}
+                    >
+                      <div className="py-1">
+                        <button
+                          onClick={handleEditClick}
+                          className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-200 touch-manipulation"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3 flex-shrink-0">
+                            <FaEdit className="text-blue-600 dark:text-blue-400" size={12} />
+                          </div>
+                          <span className="font-medium">Edit Project</span>
+                        </button>
+                        <button
+                          onClick={handleDeleteClick}
+                          disabled={isDeleting}
+                          className="flex items-center w-full px-4 py-2 text-base md:text-sm text-red-600 dark:text-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 dark:hover:from-red-900/20 dark:hover:to-red-800/20 transition-all duration-200 disabled:opacity-50 touch-manipulation"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3 flex-shrink-0">
+                            <FaTrash className="text-red-600 dark:text-red-400" size={12} />
+                          </div>
+                          <span className="font-medium">Delete</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
                 )}
               </div>
             </div>

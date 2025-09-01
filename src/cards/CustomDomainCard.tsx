@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FaGlobe, FaTrash, FaSync, FaEdit, FaLock } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from 'react';
+import { FaGlobe, FaTrash, FaSync, FaEdit, FaLock, FaEllipsisV } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import StatusBadge from './../atoms/Badge/StatusBadge';
@@ -22,9 +22,77 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>('top');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Calculate dropdown position based on button position and screen size
+  const calculateDropdownPosition = () => {
+    if (!dropdownButtonRef.current) return;
+
+    const buttonRect = dropdownButtonRef.current.getBoundingClientRect();
+    const screenHeight = window.innerHeight;
+    const dropdownHeight = domain.status === 'pending' ? 160 : 120; // More height if verify button is present
+    
+    // Check if there's enough space above the button
+    const spaceAbove = buttonRect.top;
+    const spaceBelow = screenHeight - buttonRect.bottom;
+    
+    // For mobile and desktop, prefer showing above (top) unless there's not enough space
+    if (spaceAbove >= dropdownHeight) {
+      setDropdownPosition('top');
+    } else if (spaceBelow >= 80) {
+      setDropdownPosition('bottom');
+    } else {
+      setDropdownPosition('top'); // Default to top even if cramped
+    }
+  };
+
+  // Get dropdown classes based on position and screen size
+  const getDropdownClasses = () => {
+    // Base classes with improved mobile visibility
+    const baseClasses = "absolute right-0 min-w-[180px] w-48 sm:w-44 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden";
+    
+    // Different z-index strategy for mobile vs desktop
+    const zIndex = window.innerWidth < 768 ? "z-[9999]" : "z-[60]";
+    
+    if (dropdownPosition === 'bottom') {
+      return `${baseClasses} ${zIndex} top-full mt-2`;
+    } else {
+      return `${baseClasses} ${zIndex} bottom-full mb-2`;
+    }
+  };
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!showDropdown) {
+      calculateDropdownPosition();
+    }
+    setShowDropdown(!showDropdown);
+  };
 
   const handleEdit = () => {
     if (!domain.isDisabled) {
+      setShowDropdown(false);
       navigate(`/admin/custom-domains/edit/${domain.id}`);
     }
   };
@@ -32,7 +100,17 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setShowDropdown(false);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleVerifyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowDropdown(false);
+    if (domain.id) {
+      onVerify(domain.id);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -87,7 +165,7 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
                 <div className="bg-indigo-100 dark:bg-indigo-900/30 p-3 rounded-full">
                   <FaGlobe className="text-indigo-600 dark:text-indigo-400 text-xl" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="font-bold text-xl text-gray-800 dark:text-white flex items-center gap-2">
                     {domain.domain}
                   </h3>
@@ -95,6 +173,61 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
                     <StatusBadge status={domain.status} />
                   </div>
                 </div>
+                
+                {/* Dropdown menu */}
+                {!domain.isDisabled && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      ref={dropdownButtonRef}
+                      onClick={toggleDropdown}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <FaEllipsisV className="w-4 h-4" />
+                    </button>
+
+                    {showDropdown && (
+                      <>
+                        {/* Mobile backdrop - covers entire screen */}
+                        <div 
+                          className="fixed inset-0 bg-black/40 z-[9998] md:hidden" 
+                          onClick={() => setShowDropdown(false)}
+                        />
+                        
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className={getDropdownClasses()}
+                        >
+                          {domain.status === 'pending' && (
+                            <button
+                              onClick={handleVerifyClick}
+                              className="flex items-center w-full px-4 py-2 text-base md:text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors touch-manipulation"
+                            >
+                              <FaSync className="mr-3 flex-shrink-0" />
+                              <span>Verify Domain</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={handleEdit}
+                            className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                          >
+                            <FaEdit className="mr-3 text-blue-500 flex-shrink-0" />
+                            <span>Edit Domain</span>
+                          </button>
+                          <button
+                            onClick={handleDeleteClick}
+                            className="flex items-center w-full px-4 py-2 text-base md:text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                          >
+                            <FaTrash className="mr-3 flex-shrink-0" />
+                            <span>Delete</span>
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 pl-2 border-l-2 border-indigo-200 dark:border-indigo-800">
@@ -127,53 +260,6 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3">
-            {domain.status === 'pending' && !domain.isDisabled && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  domain.id && onVerify(domain.id);
-                }}
-                className="flex items-center justify-center px-3 py-2 text-sm bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-all border border-blue-500/30"
-              >
-                <FaSync className="mr-1.5" />
-                Verify Domain
-              </button>
-            )}
-            
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleEdit}
-                disabled={domain.isDisabled}
-                className={`flex items-center justify-center flex-1 px-3 py-2 text-sm rounded-lg transition-all border ${
-                  domain.isDisabled
-                    ? 'bg-gray-300/10 text-gray-500 border-gray-500/20 cursor-not-allowed'
-                    : 'bg-gray-500/10 hover:bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30'
-                }`}
-              >
-                <FaEdit className="mr-1.5" />
-                Edit
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                disabled={domain.isDisabled}
-                className={`flex items-center justify-center flex-1 px-3 py-2 text-sm rounded-lg transition-all border ${
-                  domain.isDisabled
-                    ? 'bg-gray-300/10 text-gray-500 border-gray-500/20 cursor-not-allowed'
-                    : 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30'
-                }`}
-              >
-                <FaTrash className="mr-1.5" />
-                Delete
-              </button>
             </div>
           </div>
         </div>

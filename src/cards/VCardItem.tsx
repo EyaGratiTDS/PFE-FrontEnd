@@ -30,20 +30,51 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>('top');
   
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Calculate dropdown position based on button position and screen size
+  const calculateDropdownPosition = useCallback(() => {
+    if (!dropdownButtonRef.current) return;
+
+    const buttonRect = dropdownButtonRef.current.getBoundingClientRect();
+    const screenHeight = window.innerHeight;
+    const dropdownHeight = 220; // Reduced height due to smaller padding
+    
+    // Check if there's enough space above the button
+    const spaceAbove = buttonRect.top;
+    const spaceBelow = screenHeight - buttonRect.bottom;
+    
+    // For mobile and desktop, prefer showing above (top) unless there's not enough space
+    if (spaceAbove >= dropdownHeight) {
+      setDropdownPosition('top');
+    } else if (spaceBelow >= 120) {
+      setDropdownPosition('bottom');
+    } else {
+      setDropdownPosition('top'); // Default to top even if cramped
+    }
   }, []);
 
   // Memoized background style calculation
@@ -89,24 +120,28 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
     if (!vcard.isDisabled) {
       navigate(`/admin/vcard/edit-vcard/${vcard.id}`);
     }
+    setShowDropdown(false);
   }, [vcard.id, vcard.isDisabled, navigate]);
 
   const handleViewVCard = useCallback(() => {
     if (vcard.url && !vcard.isDisabled) {
       window.open(`/vcard/${vcard.url}`, '_blank');
     }
+    setShowDropdown(false);
   }, [vcard.url, vcard.isDisabled]);
 
   const handleBlocksClick = useCallback(() => {
     if (!vcard.isDisabled) {
       navigate(`/admin/vcard/edit-vcard/${vcard.id}/blocks`);
     }
+    setShowDropdown(false);
   }, [vcard.id, vcard.isDisabled, navigate]);
 
   const handleStatsClick = useCallback(() => {
     if (!vcard.isDisabled) {
       navigate(`/admin/vcard/stats/${vcard.id}`);
     }
+    setShowDropdown(false);
   }, [vcard.id, vcard.isDisabled, navigate]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
@@ -141,9 +176,12 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
   const toggleDropdown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (!vcard.isDisabled) {
+      if (!showDropdown) {
+        calculateDropdownPosition();
+      }
       setShowDropdown(!showDropdown);
     }
-  }, [showDropdown, vcard.isDisabled]);
+  }, [showDropdown, vcard.isDisabled, calculateDropdownPosition]);
 
   const handleUpgradeClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -187,6 +225,21 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
     }
   }, [vcard.isDisabled]);
 
+  // Get dropdown classes based on position and screen size
+  const getDropdownClasses = () => {
+    // Base classes with improved mobile visibility
+    const baseClasses = "absolute right-0 min-w-[200px] w-56 sm:w-48 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden";
+    
+    // Different z-index strategy for mobile vs desktop
+    const zIndex = window.innerWidth < 768 ? "z-[9999]" : "z-[60]";
+    
+    if (dropdownPosition === 'bottom') {
+      return `${baseClasses} ${zIndex} top-full mt-2`;
+    } else {
+      return `${baseClasses} ${zIndex} bottom-full mb-2`;
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -225,7 +278,7 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
 
         {/* Favicon */}
         {vcard.favicon && vcard.favicon !== 'default' && !faviconError && (
-          <div className="absolute top-3 right-3 w-8 h-8 rounded-full overflow-hidden border-2 border-white/80 bg-white shadow-sm z-20">
+          <div className="absolute top-3 right-3 w-8 h-8 rounded-full overflow-hidden border-2 border-white/80 bg-white shadow-sm z-10">
             <img 
               src={vcard.favicon} 
               alt="Favicon" 
@@ -348,6 +401,7 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
                 {/* Dropdown menu */}
                 <div className="relative" ref={dropdownRef}>
                   <button 
+                    ref={dropdownButtonRef}
                     onClick={toggleDropdown}
                     className={`p-2 rounded-full transition-colors ${
                       vcard.isDisabled 
@@ -364,54 +418,64 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
                     } />
                   </button>
                   
-                  {/* Dropdown menu */}
+                  {/* Dropdown menu with dynamic positioning */}
                   {showDropdown && !vcard.isDisabled && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
-                    >
+                    <>
+                      {/* Mobile backdrop - covers entire screen */}
+                      <div 
+                        className="fixed inset-0 bg-black/40 z-[9998] md:hidden" 
+                        onClick={() => setShowDropdown(false)}
+                      />
+                      
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className={getDropdownClasses()}
+                      >
                       <button
                         onClick={handleViewVCard}
-                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 touch-manipulation"
                       >
-                        <FaIdCard className="mr-3 text-blue-500" />
-                        View VCard
+                        <FaIdCard className="mr-3 text-blue-500 flex-shrink-0" size={16} />
+                        <span>View VCard</span>
                       </button>
                       
                       <button
                         onClick={handleBlocksClick}
-                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 touch-manipulation"
                       >
-                        <FaTh className="mr-3 text-green-500" />
-                        VCard Blocks
+                        <FaTh className="mr-3 text-green-500 flex-shrink-0" size={16} />
+                        <span>VCard Blocks</span>
                       </button>
                       
                       <button
                         onClick={handleStatsClick}
-                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 touch-manipulation"
                       >
-                        <FaChartLine className="mr-3 text-purple-500" />
-                        Statistics
+                        <FaChartLine className="mr-3 text-purple-500 flex-shrink-0" size={16} />
+                        <span>Statistics</span>
                       </button>
                       
                       <button
                         onClick={handleEditClick}
-                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 touch-manipulation"
                       >
-                        <FaEdit className="mr-3 text-blue-500" />
-                        Edit
+                        <FaEdit className="mr-3 text-blue-500 flex-shrink-0" size={16} />
+                        <span>Edit</span>
                       </button>
                       
                       <button
                         onClick={handleDeleteClick}
                         disabled={isDeleting}
-                        className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 active:bg-red-100 dark:active:bg-red-900/30 touch-manipulation"
                       >
-                        <FaTrash className="mr-3" />
-                        Delete
+                        <FaTrash className="mr-3 flex-shrink-0" size={16} />
+                        <span>Delete</span>
                       </button>
                     </motion.div>
+                    </>
                   )}
                 </div>
               </div>

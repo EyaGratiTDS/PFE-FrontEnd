@@ -22,21 +22,68 @@ const PixelItem: React.FC<PixelItemProps> = ({ pixel, onDelete }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>('top');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Calculate dropdown position based on button position and screen size
+  const calculateDropdownPosition = () => {
+    if (!dropdownButtonRef.current) return;
+
+    const buttonRect = dropdownButtonRef.current.getBoundingClientRect();
+    const screenHeight = window.innerHeight;
+    const dropdownHeight = 120; // Approximate height of dropdown (2 buttons)
+    
+    // Check if there's enough space above the button
+    const spaceAbove = buttonRect.top;
+    const spaceBelow = screenHeight - buttonRect.bottom;
+    
+    // For mobile and desktop, prefer showing above (top) unless there's not enough space
+    if (spaceAbove >= dropdownHeight) {
+      setDropdownPosition('top');
+    } else if (spaceBelow >= 80) {
+      setDropdownPosition('bottom');
+    } else {
+      setDropdownPosition('top'); // Default to top even if cramped
+    }
+  };
+
+  // Get dropdown classes based on position and screen size
+  const getDropdownClasses = () => {
+    // Base classes with improved mobile visibility
+    const baseClasses = "absolute right-0 min-w-[180px] w-48 sm:w-44 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden";
+    
+    // Different z-index strategy for mobile vs desktop
+    const zIndex = window.innerWidth < 768 ? "z-[9999]" : "z-[60]";
+    
+    if (dropdownPosition === 'bottom') {
+      return `${baseClasses} ${zIndex} top-full mt-2`;
+    } else {
+      return `${baseClasses} ${zIndex} bottom-full mb-2`;
+    }
+  };
 
   const handleEditClick = () => {
+    setShowDropdown(false);
     navigate(`/admin/pixel/edit/${pixel.id}`);
   };
 
@@ -62,6 +109,9 @@ const PixelItem: React.FC<PixelItemProps> = ({ pixel, onDelete }) => {
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!showDropdown) {
+      calculateDropdownPosition();
+    }
     setShowDropdown(!showDropdown);
   };
 
@@ -99,6 +149,7 @@ const PixelItem: React.FC<PixelItemProps> = ({ pixel, onDelete }) => {
 
               <div className="relative" ref={dropdownRef}>
                 <button
+                  ref={dropdownButtonRef}
                   onClick={toggleDropdown}
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   disabled={isDeleting}
@@ -107,28 +158,37 @@ const PixelItem: React.FC<PixelItemProps> = ({ pixel, onDelete }) => {
                 </button>
 
                 {showDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-10 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
-                  >
-                    <button
-                      onClick={handleEditClick}
-                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  <>
+                    {/* Mobile backdrop - covers entire screen */}
+                    <div 
+                      className="fixed inset-0 bg-black/40 z-[9998] md:hidden" 
+                      onClick={() => setShowDropdown(false)}
+                    />
+                    
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: dropdownPosition === 'bottom' ? -20 : 20 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className={getDropdownClasses()}
                     >
-                      <FaEdit className="mr-3 text-blue-500" />
-                      Edit Pixel
-                    </button>
-                    <button
-                      onClick={handleDeleteClick}
-                      disabled={isDeleting}
-                      className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                    >
-                      <FaTrash className="mr-3" />
-                      Delete
-                    </button>
-                  </motion.div>
+                      <button
+                        onClick={handleEditClick}
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                      >
+                        <FaEdit className="mr-3 text-blue-500 flex-shrink-0" />
+                        <span>Edit Pixel</span>
+                      </button>
+                      <button
+                        onClick={handleDeleteClick}
+                        disabled={isDeleting}
+                        className="flex items-center w-full px-4 py-2 text-base md:text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 touch-manipulation"
+                      >
+                        <FaTrash className="mr-3 flex-shrink-0" />
+                        <span>Delete</span>
+                      </button>
+                    </motion.div>
+                  </>
                 )}
               </div>
             </div>
