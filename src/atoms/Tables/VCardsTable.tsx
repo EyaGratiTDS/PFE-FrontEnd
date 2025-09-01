@@ -65,7 +65,7 @@ const VCardRow: React.FC<{
         {vcard.favicon ? (
           <div className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 lg:h-5 lg:w-5 xl:h-6 xl:w-6">
             <img 
-              src={`${API_BASE_URL}${vcard.favicon}`} 
+              src={vcard.favicon} 
               alt={`${vcard.name} favicon`}
               className="h-5 w-5 sm:h-6 sm:w-6 lg:h-5 lg:w-5 xl:h-6 xl:w-6 rounded-full object-cover border border-gray-200"
             />
