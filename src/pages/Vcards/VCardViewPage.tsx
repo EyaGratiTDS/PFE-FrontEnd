@@ -238,26 +238,13 @@ const ViewVCard: React.FC = () => {
 
         if (vcardData.id) {
           try {
-            const response = await pixelService.getUserPixels(vcardData.userId);
-
-            let pixels: Pixel[] = [];
-            if (Array.isArray(response)) {
-              pixels = response;
-            } else if (response && Array.isArray(response.data)) {
-              pixels = response.data;
-            } else if (response && Array.isArray(response.pixels)) {
-              pixels = response.pixels;
-            } else {
-              console.warn('Unexpected pixel response format:', response);
-              pixels = [];
-            }
-
-            const activePixel = pixels.find((p: Pixel) => p.is_active) || null;
-            setVcardPixel(activePixel);
-
+            const response = await pixelService.getPixelsByVCard(vcardData.id);
+            console.log('API Response:', response.data);
+            setVcardPixel(response.data);
+            console.log('VCard Pixel set to:', response.data); // Utiliser response.data au lieu de vcardPixel
             // Initialiser le Meta Pixel si disponible
-            if (activePixel && activePixel.metaPixelId && activePixel.is_active) {
-              await initializeMetaPixel(activePixel);
+            if (response.data && response.data.metaPixelId && response.data.is_active) {
+              await initializeMetaPixel(response.data); // Utiliser response.data au lieu de vcardPixel
             }
           } catch (error) {
             console.error("Error loading pixel:", error);
@@ -322,6 +309,18 @@ const ViewVCard: React.FC = () => {
 
     fetchData();
   }, [url, currentPlanLimit, initializeMetaPixel]);
+
+  // Effect pour surveiller les changements de vcardPixel
+  useEffect(() => {
+    if (vcardPixel) {
+      console.log('VCard Pixel state updated:', vcardPixel);
+      if (!vcardPixel.metaPixelId) {
+        console.warn('metaPixelId is missing from vcardPixel state');
+      } else {
+        console.log('metaPixelId found in state:', vcardPixel.metaPixelId);
+      }
+    }
+  }, [vcardPixel]);
 
   // Effect pour le scroll automatique
   useEffect(() => {
@@ -1071,7 +1070,8 @@ END:VCARD`;
         closeButton={false}
       />
 
-      {vcardPixel && (
+      {/* Debug info pour le développement */}
+      {process.env.NODE_ENV === 'development' && vcardPixel && (
         <div className="fixed top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs z-50">
           <div>Pixel ID: {vcardPixel.metaPixelId}</div>
           <div>Initialized: {pixelInitialized ? 'Yes' : 'No'}</div>

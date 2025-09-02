@@ -219,7 +219,6 @@ export const vcardService = {
   getByUrl: async (url: string) => {
     try {
       const response = await api.get(`/vcard/url/${url}`);
-      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error(`Error getting vcard with url ${url}:`, error);
@@ -799,7 +798,7 @@ export const pixelService = {
   getPixelsByVCard: async (vcardId: string) => {
       try {
         const response = await api.get(`/pixel/vcard/${vcardId}`);
-        return response.data.pixels || [];
+        return response.data;
       } catch (error) {
         console.error('Error fetching pixels for vCard:', error);
         return [];
