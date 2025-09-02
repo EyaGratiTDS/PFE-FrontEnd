@@ -136,6 +136,8 @@ const VCardPage: React.FC = () => {
   // Refs
   const exportButtonRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
   const isInitialLoadRef = useRef(true);
   
   const navigate = useNavigate();
@@ -311,9 +313,10 @@ const VCardPage: React.FC = () => {
     }
   }, [refreshTrigger, reloadVCards]);
 
-  // Handle click outside for export menu
+  // Handle click outside for export menu and filter menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Handle export menu
       if (
         exportMenuRef.current &&
         exportButtonRef.current &&
@@ -321,6 +324,16 @@ const VCardPage: React.FC = () => {
         !exportButtonRef.current.contains(event.target as Node)
       ) {
         setShowExportMenu(false);
+      }
+
+      // Handle filter menu
+      if (
+        filterMenuRef.current &&
+        filterButtonRef.current &&
+        !filterMenuRef.current.contains(event.target as Node) &&
+        !filterButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowFilterMenu(false);
       }
     };
 
@@ -641,7 +654,7 @@ const VCardPage: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
             {/* Export Button */}
-            <div className="relative" ref={exportButtonRef}>
+            <div className="relative overflow-visible" ref={exportButtonRef}>
               <button
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
                 aria-label="Export options"
@@ -664,6 +677,7 @@ const VCardPage: React.FC = () => {
             {/* Filter Button */}
             <div className="relative">
               <button
+                ref={filterButtonRef}
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border transition-colors duration-200 ${
                   hasActiveFilters
                     ? 'border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20'
@@ -680,12 +694,14 @@ const VCardPage: React.FC = () => {
               </button>
 
               {showFilterMenu && (
-                <FilterCard
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  onResetFilters={resetFilters}
-                  onClose={() => setShowFilterMenu(false)}
-                />
+                <div ref={filterMenuRef}>
+                  <FilterCard
+                    activeFilters={activeFilters}
+                    onFilterChange={handleFilterChange}
+                    onResetFilters={resetFilters}
+                    onClose={() => setShowFilterMenu(false)}
+                  />
+                </div>
               )}
             </div>
 

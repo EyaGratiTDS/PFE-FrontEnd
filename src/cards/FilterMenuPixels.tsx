@@ -11,20 +11,21 @@ const FilterMenuPixels = forwardRef<HTMLDivElement, {
   return (
     <div 
       ref={ref}
-      className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700"
+      className="fixed sm:absolute inset-0 sm:inset-auto sm:right-0 sm:mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-none sm:rounded-lg shadow-lg z-50 border border-gray-200 dark:border-gray-700 overflow-y-auto"
     >
       <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-gray-800 py-2 z-10">
           <h3 className="text-lg font-medium text-gray-800 dark:text-white">Filter Pixels</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300 p-1"
+            aria-label="Close filters"
           >
-            <FaTimes />
+            <FaTimes className="w-6 h-6" />
           </button>
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Status

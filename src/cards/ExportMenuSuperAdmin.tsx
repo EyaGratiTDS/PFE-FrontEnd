@@ -1,15 +1,15 @@
 import React from 'react';
 import { FaFileCsv, FaFileCode, FaSpinner } from 'react-icons/fa';
 
-interface ExportMenuProps {
+interface ExportMenuSuperAdminProps {
   onExport: (format: 'csv' | 'json') => void;
   exporting: boolean;
 }
 
-const ExportMenu: React.FC<ExportMenuProps> = ({ onExport, exporting }) => {
+const ExportMenuSuperAdmin: React.FC<ExportMenuSuperAdminProps> = ({ onExport, exporting }) => {
   return (
     <div 
-      className="absolute mt-2 w-48 min-w-[12rem] max-w-[90vw] rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-[9999] left-0 sm:right-0 sm:left-auto"
+      className="absolute mt-2 w-48 min-w-[12rem] max-w-[90vw] rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-[9999] right-0"
     >
       <div className="py-1">
         <button
@@ -49,4 +49,4 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ onExport, exporting }) => {
   );
 };
 
-export default ExportMenu;
+export default ExportMenuSuperAdmin;

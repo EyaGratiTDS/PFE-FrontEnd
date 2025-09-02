@@ -60,8 +60,6 @@ export const requestNotificationPermission = async () => {
       });
     }
 
-    console.log('Push subscription object:', subscription);
-
     const subscriptionObject = {
       endpoint: subscription.endpoint,
       keys: {
@@ -78,8 +76,6 @@ export const requestNotificationPermission = async () => {
       },
       expirationTime: subscription.expirationTime,
     };
-
-    console.log('Sending subscription to backend:', subscriptionObject);
 
     await webNotificationsService.addWebNotification(subscriptionObject);
   } catch (error) {

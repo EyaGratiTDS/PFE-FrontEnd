@@ -227,7 +227,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <Transition show={isSideMenuOpen}>
         <Transition.Child
           as="div"
-          className="fixed inset-y-0 z-20 flex-shrink-0 w-64 mt-16 bg-white dark:bg-gray-800 lg:hidden h-screen overflow-y-auto custom-scrollbar"
+          className="fixed inset-y-0 z-20 flex-shrink-0 w-64 mt-16 bg-white dark:bg-gray-800 lg:hidden"
+          style={{ height: 'calc(100vh - 4rem)' }}
           enter="transition-transform duration-300 ease-in-out"
           enterFrom="-translate-x-full"
           enterTo="translate-x-0"
@@ -235,14 +236,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           leaveFrom="translate-x-0"
           leaveTo="-translate-x-full"
         >
-          <div ref={sidebarRef} className="py-4 text-gray-500 dark:text-gray-400 h-full overflow-y-auto">
+          <div ref={sidebarRef} className="py-4 text-gray-500 dark:text-gray-400 h-full overflow-y-auto custom-scrollbar">
             <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <Link to={`${basePath}/dashboard`} className="block" onClick={handleMobileLinkClick}>
                 <NexCardLogoFinal size="md" showText={true} />
               </Link>
             </div>
             
-            <ul className="mt-6">
+            <ul className="mt-6 pb-6">
               {menuItems.map(renderMenuItem)}
             </ul>
           </div>

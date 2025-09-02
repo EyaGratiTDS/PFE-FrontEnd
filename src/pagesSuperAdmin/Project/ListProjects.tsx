@@ -7,7 +7,7 @@ import LoadingSpinner from '../../Loading/LoadingSpinner';
 import { Project } from '../../services/Project';
 import StatsCardsProjects from '../../cards/StatsCardsProjects';
 import FilterMenuProjects from '../../cards/FilterCardProjects';
-import ExportMenu from '../../cards/ExportMenu';
+import ExportMenuSuperAdmin from '../../cards/ExportMenuSuperAdmin';
 import ProjectTable from '../../atoms/Tables/ProjectTable';
 import Pagination from '../../atoms/Pagination/Pagination';
 import ProjectCharts from '../../atoms/Charts/ProjectCharts';
@@ -331,7 +331,7 @@ const ListProjects: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
-            <div className="relative">
+            <div className="relative overflow-visible">
               <button
                 ref={filterButtonRef}
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border ${
@@ -359,7 +359,7 @@ const ListProjects: React.FC = () => {
               )}
             </div>
 
-            <div className="relative" ref={exportMenuRef}>
+            <div className="relative overflow-visible" ref={exportMenuRef}>
               <button
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 aria-label="Export options"
@@ -370,7 +370,7 @@ const ListProjects: React.FC = () => {
               </button>
 
               {showExportMenu && (
-                <ExportMenu 
+                <ExportMenuSuperAdmin 
                   onExport={handleExport}
                   exporting={exporting}
                 />

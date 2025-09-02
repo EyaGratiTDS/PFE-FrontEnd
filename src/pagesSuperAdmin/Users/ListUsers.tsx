@@ -7,7 +7,7 @@ import LoadingSpinner from '../../Loading/LoadingSpinner';
 import { User } from '../../services/user';
 import StatsCards from '../../cards/StatsCard';
 import FilterMenu from '../../cards/FilterCardUsers';
-import ExportMenu from '../../cards/ExportMenu';
+import ExportMenuSuperAdmin from '../../cards/ExportMenuSuperAdmin';
 import UserTable from '../../atoms/Tables/UsersTable';
 import Pagination from '../../atoms/Pagination/Pagination';
 import ActiveFilters from '../../cards/ActiveFilters';
@@ -547,7 +547,7 @@ const ListUsers: React.FC = () => {
               )}
             </div>
 
-            <div className="relative" ref={exportMenuRef}>
+            <div className="relative overflow-visible" ref={exportMenuRef}>
               <button
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 aria-label="Export options"
@@ -558,7 +558,7 @@ const ListUsers: React.FC = () => {
               </button>
 
               {showExportMenu && (
-                <ExportMenu 
+                <ExportMenuSuperAdmin 
                   onExport={handleExport}
                   exporting={exporting}
                 />

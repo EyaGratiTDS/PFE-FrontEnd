@@ -20,14 +20,15 @@ const FilterMenu = forwardRef<HTMLDivElement, FilterMenuProps>((props, ref) => {
   return (
     <div 
       ref={ref} 
-      className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700"
+      className="fixed sm:absolute inset-0 sm:inset-auto sm:right-0 sm:mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-none sm:rounded-lg shadow-lg z-50 border border-gray-200 dark:border-gray-700 overflow-y-auto"
     >
       <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-gray-800 py-2 z-10">
           <h3 className="font-medium text-gray-900 dark:text-white">Filters</h3>
           <button 
             onClick={onClose} 
-            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 p-1"
+            aria-label="Close filters"
           >
             <svg 
               className="h-5 w-5" 

@@ -5,7 +5,6 @@ import {
   FaTimes,
   FaChartLine,
   FaFileExport,
-  FaCalendarAlt,
 } from 'react-icons/fa';
 import { FiSearch } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,12 +13,11 @@ import { Breadcrumb } from 'react-bootstrap';
 import PixelItem from '../../cards/PixelItem';
 import EmptyState from '../../cards/EmptyState';
 import LoadingSpinner from '../../Loading/LoadingSpinner';
+import FilterCardPixels from '../../cards/FilterCardPixels';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { pixelService, limitService } from '../../services/api';
 import { Pixel } from '../../services/Pixel';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import ExportMenu from '../../cards/ExportMenu'; 
 import Pagination from '../../atoms/Pagination/Pagination';
 
@@ -405,7 +403,7 @@ const PixelPage: React.FC = () => {
           
           <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
             {/* Export Button */}
-            <div className="relative" ref={exportButtonRef}>
+            <div className="relative overflow-visible" ref={exportButtonRef}>
               <button
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border border-purple-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 aria-label="Export options"
@@ -426,7 +424,7 @@ const PixelPage: React.FC = () => {
             </div>
 
             {/* Filter Button */}
-            <div className="relative">
+            <div className="relative overflow-visible">
               <button
                 ref={filterButtonRef}
                 className={`p-2 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border ${
@@ -445,89 +443,12 @@ const PixelPage: React.FC = () => {
 
               {/* Filter Menu */}
               {showFilterMenu && (
-                <div
-                  ref={filterMenuRef}
-                  className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 w-72 p-4"
-                >
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filters</h3>
-                    <button
-                      onClick={() => setShowFilterMenu(false)}
-                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <FaTimes className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Status Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Status
-                      </label>
-                      <select
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:[color-scheme:dark]"
-                        value={activeFilters.status}
-                        onChange={(e) => handleFilterChange('status', e.target.value as 'all' | 'active' | 'inactive')}
-                      >
-                        <option value="all" className="dark:bg-gray-800 dark:text-gray-300">All Statuses</option>
-                        <option value="active" className="dark:bg-gray-800 dark:text-gray-300">Active</option>
-                        <option value="inactive" className="dark:bg-gray-800 dark:text-gray-300">Inactive</option>
-                      </select>
-                    </div>
-
-                    {/* Date Range Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Creation Date Range
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="relative">
-                          <DatePicker
-                            selected={activeFilters.dateRange.start}
-                            onChange={(date: Date | null) => handleFilterChange('dateRange', {
-                              ...activeFilters.dateRange,
-                              start: date || undefined
-                            })}
-                            selectsStart
-                            startDate={activeFilters.dateRange.start}
-                            endDate={activeFilters.dateRange.end}
-                            maxDate={activeFilters.dateRange.end || new Date()}
-                            placeholderText="Start date"
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:[color-scheme:dark]"
-                          />
-                          <FaCalendarAlt className="absolute right-3 top-2.5 text-gray-400" />
-                        </div>
-                        <div className="relative">
-                          <DatePicker
-                            selected={activeFilters.dateRange.end}
-                            onChange={(date: Date | null) => handleFilterChange('dateRange', {
-                              ...activeFilters.dateRange,
-                              end: date || undefined
-                            })}
-                            selectsEnd
-                            startDate={activeFilters.dateRange.start}
-                            endDate={activeFilters.dateRange.end}
-                            minDate={activeFilters.dateRange.start}
-                            placeholderText="End date"
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:[color-scheme:dark]"
-                          />
-                          <FaCalendarAlt className="absolute right-3 top-2.5 text-gray-400" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Reset Filters */}
-                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <button
-                        onClick={resetFilters}
-                        className="w-full bg-red-100 dark:bg-gray-700 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center"
-                      >
-                        <FaTimes className="mr-2" /> Reset Filters
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <FilterCardPixels
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  onResetFilters={resetFilters}
+                  onClose={() => setShowFilterMenu(false)}
+                />
               )}
             </div>
 
