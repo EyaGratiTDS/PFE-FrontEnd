@@ -396,10 +396,6 @@ const ListProjects: React.FC = () => {
         onShowVcards={handleShowVcards}
       />
 
-      <div className="mt-6 sm:mt-8">
-        <ProjectCharts projects={allProjects} />
-      </div>
-
       {filteredProjects && filteredProjects.length > 0 && totalPages > 1 && (
         <Pagination 
           currentPage={currentPage}
@@ -407,6 +403,10 @@ const ListProjects: React.FC = () => {
           onPageChange={paginate}
         />
       )}
+
+      <div className="mt-6 sm:mt-8">
+        <ProjectCharts projects={allProjects} />
+      </div>
     </div>
   );
 };

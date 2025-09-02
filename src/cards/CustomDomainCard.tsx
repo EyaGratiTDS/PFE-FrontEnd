@@ -53,17 +53,17 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
     const screenHeight = window.innerHeight;
     const dropdownHeight = domain.status === 'pending' ? 160 : 120; // More height if verify button is present
     
-    // Check if there's enough space above the button
+    // Check if there's enough space below and above the button
     const spaceAbove = buttonRect.top;
     const spaceBelow = screenHeight - buttonRect.bottom;
     
-    // For mobile and desktop, prefer showing above (top) unless there's not enough space
-    if (spaceAbove >= dropdownHeight) {
-      setDropdownPosition('top');
-    } else if (spaceBelow >= 80) {
+    // Prefer showing below (bottom) unless there's not enough space
+    if (spaceBelow >= dropdownHeight) {
       setDropdownPosition('bottom');
+    } else if (spaceAbove >= 80) {
+      setDropdownPosition('top');
     } else {
-      setDropdownPosition('top'); // Default to top even if cramped
+      setDropdownPosition('bottom'); // Default to bottom even if cramped
     }
   };
 
