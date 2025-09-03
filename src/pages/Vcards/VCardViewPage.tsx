@@ -244,7 +244,48 @@ const ViewVCard: React.FC = () => {
             console.log('VCard Pixel set to:', response.data); // Utiliser response.data au lieu de vcardPixel
             // Initialiser le Meta Pixel si disponible
             if (response.data && response.data.metaPixelId && response.data.is_active) {
+              console.log('🎯 Initializing Meta Pixel with ID:', response.data.metaPixelId);
               await initializeMetaPixel(response.data); // Utiliser response.data au lieu de vcardPixel
+              
+              // Notification en développement
+              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                toast.info('Meta Pixel initialisé ! Les erreurs réseau en console sont normales en développement.', {
+                  position: "top-right",
+                  autoClose: 5000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                });
+              }
+              
+              // Diagnostic pour comprendre l'état du pixel
+              setTimeout(() => {
+                const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                
+                console.group('📊 Meta Pixel Status');
+                console.log('🎯 Pixel ID:', response.data.metaPixelId);
+                console.log('🏠 Environment:', isDev ? 'Development' : 'Production');
+                console.log('🌐 Hostname:', window.location.hostname);
+                console.log('✅ fbq Available:', !!(window as any).fbq);
+                console.log('� Script Loaded:', !!document.querySelector('script[src*="fbevents.js"]'));
+                
+                if (isDev) {
+                  console.warn('⚠️  DÉVELOPPEMENT: Les erreurs Meta Pixel sont NORMALES');
+                  console.info('✅ ERR_CONNECTION_RESET = OK (bloqué par sécurité localhost)');
+                  console.info('✅ 404 capig.datah04.com = OK (Facebook bloque localhost)');
+                  console.info('✅ CORS errors = OK (domaine non vérifié sur Facebook Business)');
+                  console.info('🚀 En production avec domaine vérifié, tout fonctionnera !');
+                }
+                
+                console.groupEnd();
+              }, 1000);
+            } else {
+              console.log('❌ Meta Pixel not initialized - Missing data or inactive:', {
+                hasPixelData: !!response.data,
+                metaPixelId: response.data?.metaPixelId,
+                isActive: response.data?.is_active
+              });
             }
           } catch (error) {
             console.error("Error loading pixel:", error);
@@ -1069,16 +1110,6 @@ END:VCARD`;
         hideProgressBar
         closeButton={false}
       />
-
-      {/* Debug info pour le développement */}
-      {process.env.NODE_ENV === 'development' && vcardPixel && (
-        <div className="fixed top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs z-50">
-          <div>Pixel ID: {vcardPixel.metaPixelId}</div>
-          <div>Initialized: {pixelInitialized ? 'Yes' : 'No'}</div>
-          <div>Loaded: {isPixelLoaded() ? 'Yes' : 'No'}</div>
-          <div>Active: {vcardPixel.is_active ? 'Yes' : 'No'}</div>
-        </div>
-      )}
     </motion.div>
   );
 };

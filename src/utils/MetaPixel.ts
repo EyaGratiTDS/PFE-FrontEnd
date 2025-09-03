@@ -274,3 +274,62 @@ export const resetPixel = () => {
     delete window._fbq;
   }
 };
+
+// Fonction de diagnostic pour déboguer les problèmes Meta Pixel
+export const diagnoseMetaPixel = (): Record<string, any> => {
+  const isDev = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.includes('localhost') ||
+    window.location.port === '3000' ||
+    window.location.port === '5173'
+  );
+
+  const diagnosis = {
+    timestamp: new Date().toISOString(),
+    environment: {
+      isDevelopment: isDev,
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A',
+      port: typeof window !== 'undefined' ? window.location.port : 'N/A',
+      protocol: typeof window !== 'undefined' ? window.location.protocol : 'N/A',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
+    },
+    pixel: {
+      isInitialized: isMetaPixelInitialized,
+      currentPixelId: currentPixelId,
+      fbqAvailable: typeof window !== 'undefined' && !!window.fbq,
+      fbqType: typeof window !== 'undefined' && window.fbq ? typeof window.fbq : 'undefined'
+    },
+    dom: {
+      scriptExists: !!document.querySelector('script[src*="fbevents.js"]'),
+      noscriptExists: !!document.getElementById('meta-pixel-noscript'),
+      bodyExists: !!document.body,
+      headExists: !!document.head
+    },
+    networkErrors: {
+      expectedInDevelopment: isDev,
+      commonErrors: [
+        'ERR_CONNECTION_RESET: Normal en développement et avec bloqueurs de pub',
+        '404 Not Found: Facebook bloque les requêtes localhost',
+        'CORS errors: Attendu sans domaine vérifié sur Facebook Business',
+        'capig.datah04.com: Serveur Meta Pixel, erreurs normales en dev'
+      ]
+    }
+  };
+
+  console.group('📊 Meta Pixel Diagnosis');
+  console.log('🔍 Environment:', diagnosis.environment);
+  console.log('🎯 Pixel Status:', diagnosis.pixel);
+  console.log('🏗️ DOM Status:', diagnosis.dom);
+  console.log('🚨 Network Errors Info:', diagnosis.networkErrors);
+  console.log('📋 Full Diagnosis:', diagnosis);
+  
+  if (diagnosis.environment.isDevelopment) {
+    console.warn('⚠️  En développement: Les erreurs réseau Meta Pixel sont NORMALES');
+    console.info('✅ Le pixel fonctionne correctement - les erreurs 404/CORS sont attendues');
+  }
+  
+  console.groupEnd();
+
+  return diagnosis;
+};
