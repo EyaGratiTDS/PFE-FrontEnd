@@ -105,6 +105,12 @@ const CustomDomainsPage: React.FC = () => {
 
   // Fonction pour traiter les domaines avec la logique de limite
   const processDomainsWithLimit = useCallback((domainsData: CustomDomain[], planLimit: number) => {
+    // Vérification de sécurité
+    if (!Array.isArray(domainsData) || domainsData.length === 0) {
+      console.log('No domains data to process');
+      return [];
+    }
+
     // Trier par date de création (du plus ancien au plus récent)
     const sortedByDate = [...domainsData].sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -135,14 +141,25 @@ const CustomDomainsPage: React.FC = () => {
       const planLimit = limitData.max === -1 ? Infinity : limitData.max;
       setCurrentPlanLimit(planLimit);
 
+      // Vérifier que domainsData est un tableau
+      const validDomainsData = Array.isArray(domainsData) ? domainsData : [];
+      console.log('Domains data received from API:', domainsData);
+      console.log('Valid domains data (array):', validDomainsData);
+      console.log('Number of domains:', validDomainsData.length);
+
       // Traiter les domaines avec la limite
-      const processedDomains = processDomainsWithLimit(domainsData, planLimit);
+      const processedDomains = processDomainsWithLimit(validDomainsData, planLimit);
       setDomains(processedDomains);
 
     } catch (error) {
       console.error('Error loading initial data:', error);
-      toast.error('Error loading data');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      toast.error('Error loading domains data');
       setDomains([]);
+      setCurrentPlanLimit(0);
     } finally {
       setLoading(false);
     }
@@ -152,10 +169,19 @@ const CustomDomainsPage: React.FC = () => {
   const refreshDomains = useCallback(async () => {
     try {
       const domainsData = await customDomainService.getUserDomains();
-      const processedDomains = processDomainsWithLimit(domainsData, currentPlanLimit);
+      
+      // Vérifier que domainsData est un tableau
+      const validDomainsData = Array.isArray(domainsData) ? domainsData : [];
+      console.log('Refreshed domains data:', validDomainsData);
+      
+      const processedDomains = processDomainsWithLimit(validDomainsData, currentPlanLimit);
       setDomains(processedDomains);
     } catch (error) {
       console.error('Error refreshing domains:', error);
+      console.error('Refresh error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast.error('Error loading domains');
       setDomains([]);
     }

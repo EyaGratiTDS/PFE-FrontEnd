@@ -1,9 +1,10 @@
-// MetaPixel.ts - Version corrigée
+// MetaPixel.ts - Version corrigée pour usage page par page
 
 declare global {
   interface Window {
     fbq: any;
     _fbq?: any;
+    __metaPixelInstances?: Set<string>; // Tracker les instances actives
   }
 }
 
@@ -16,129 +17,212 @@ interface FbqFunction {
   version: string;
 }
 
-// Variable pour éviter les initialisations multiples
-let isMetaPixelInitialized = false;
-let currentPixelId: string | null = null;
+// Gestionnaire d'instances pour usage multi-pages
+class MetaPixelManager {
+  private static instance: MetaPixelManager;
+  private pixelInstances: Map<string, boolean> = new Map();
+  private scriptLoaded: boolean = false;
 
-export const initMetaPixel = (pixelId: string): Promise<void> => {
+  static getInstance(): MetaPixelManager {
+    if (!MetaPixelManager.instance) {
+      MetaPixelManager.instance = new MetaPixelManager();
+    }
+    return MetaPixelManager.instance;
+  }
+
+  isPixelInitialized(pixelId: string): boolean {
+    return this.pixelInstances.get(pixelId) || false;
+  }
+
+  setPixelInitialized(pixelId: string, status: boolean): void {
+    this.pixelInstances.set(pixelId, status);
+  }
+
+  removePixel(pixelId: string): void {
+    this.pixelInstances.delete(pixelId);
+  }
+
+  isScriptLoaded(): boolean {
+    return this.scriptLoaded;
+  }
+
+  setScriptLoaded(status: boolean): void {
+    this.scriptLoaded = status;
+  }
+
+  getActivePixels(): string[] {
+    return Array.from(this.pixelInstances.keys()).filter(pixelId => 
+      this.pixelInstances.get(pixelId)
+    );
+  }
+}
+
+const pixelManager = MetaPixelManager.getInstance();
+
+// Fonction pour charger le script Meta Pixel (une seule fois)
+const loadMetaPixelScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (!pixelId) {
-      reject(new Error('Pixel ID is required'));
+    // Si le script est déjà chargé
+    if (pixelManager.isScriptLoaded() && window.fbq) {
+      resolve();
       return;
     }
 
-    // Si le même pixel est déjà initialisé, ne pas réinitialiser
-    if (isMetaPixelInitialized && currentPixelId === pixelId) {
-      console.log('Meta Pixel already initialized for this ID:', pixelId);
+    // Si fbq existe déjà (script déjà injecté par autre moyen)
+    if (window.fbq) {
+      pixelManager.setScriptLoaded(true);
       resolve();
       return;
     }
 
     try {
-      // Injection du script Meta Pixel
-      if (!window.fbq) {
-        // Création de la fonction fbq
-        const fbq: FbqFunction = function (...args: any[]) {
-          if (fbq.callMethod) {
-            fbq.callMethod.apply(fbq, args);
-          } else {
-            fbq.queue.push(args);
-          }
-        } as FbqFunction;
-
-        // Configuration de fbq
-        window.fbq = fbq;
-        if (!window._fbq) window._fbq = fbq;
-        fbq.push = fbq;
-        fbq.loaded = true;
-        fbq.version = '2.0';
-        fbq.queue = [];
-
-        // Création et injection du script
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://connect.facebook.net/en_US/fbevents.js';
-        
-        // Gestionnaires d'événements pour le script
-        script.onload = () => {
-          console.log('Meta Pixel script loaded successfully');
-          initializePixel();
-        };
-        
-        script.onerror = () => {
-          console.error('Failed to load Meta Pixel script');
-          reject(new Error('Failed to load Meta Pixel script'));
-        };
-
-        // Injection dans le head
-        const firstScript = document.getElementsByTagName('script')[0];
-        if (firstScript && firstScript.parentNode) {
-          firstScript.parentNode.insertBefore(script, firstScript);
+      // Création de la fonction fbq
+      const fbq: FbqFunction = function (...args: any[]) {
+        if (fbq.callMethod) {
+          fbq.callMethod.apply(fbq, args);
         } else {
-          document.head.appendChild(script);
+          fbq.queue.push(args);
         }
-      } else {
-        // fbq existe déjà, initialiser directement
-        initializePixel();
-      }
+      } as FbqFunction;
 
-      function initializePixel() {
-        try {
-          // Initialisation du pixel
-          window.fbq('init', pixelId);
-          
-          // Track PageView
-          window.fbq('track', 'PageView');
-          
-          // Ajouter le fallback noscript
-          addNoscriptFallback(pixelId);
-          
-          // Marquer comme initialisé
-          isMetaPixelInitialized = true;
-          currentPixelId = pixelId;
-          
-          console.log('Meta Pixel initialized successfully:', pixelId);
-          
-          // Vérifier que le pixel fonctionne
-          setTimeout(() => {
-            if (window.fbq && typeof window.fbq === 'function') {
-              console.log('Meta Pixel verification: OK');
-              resolve();
-            } else {
-              reject(new Error('Meta Pixel verification failed'));
-            }
-          }, 100);
-          
-        } catch (error) {
-          console.error('Error initializing Meta Pixel:', error);
-          reject(error);
-        }
-      }
+      // Configuration de fbq
+      window.fbq = fbq;
+      if (!window._fbq) window._fbq = fbq;
+      fbq.push = fbq;
+      fbq.loaded = true;
+      fbq.version = '2.0';
+      fbq.queue = [];
+
+      // Création et injection du script
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+      script.id = 'meta-pixel-script';
+      
+      script.onload = () => {
+        console.log('Meta Pixel script loaded successfully');
+        pixelManager.setScriptLoaded(true);
+        resolve();
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load Meta Pixel script');
+        reject(new Error('Failed to load Meta Pixel script'));
+      };
+
+      // Injection dans le head
+      document.head.appendChild(script);
 
     } catch (error) {
-      console.error('Error in Meta Pixel setup:', error);
+      console.error('Error loading Meta Pixel script:', error);
       reject(error);
     }
   });
 };
 
-// Fonction pour ajouter le fallback noscript
-const addNoscriptFallback = (pixelId: string) => {
+// Fonction principale pour initialiser un pixel sur une page spécifique
+export const initMetaPixel = async (pixelId: string): Promise<void> => {
+  if (!pixelId) {
+    throw new Error('Pixel ID is required');
+  }
+
+  // Si ce pixel est déjà initialisé, ne pas réinitialiser
+  if (pixelManager.isPixelInitialized(pixelId)) {
+    console.log('Meta Pixel already initialized for this ID:', pixelId);
+    return;
+  }
+
+  try {
+    // Charger le script si nécessaire
+    await loadMetaPixelScript();
+
+    // Initialiser le pixel spécifique
+    window.fbq('init', pixelId, {
+      autoConfig: true,
+      debug: false
+    });
+
+    // Marquer ce pixel comme initialisé
+    pixelManager.setPixelInitialized(pixelId, true);
+
+    // Track PageView pour ce pixel
+    window.fbq('track', 'PageView');
+
+    // Ajouter le fallback noscript
+    addNoscriptFallback(pixelId);
+
+    console.log('Meta Pixel initialized successfully:', pixelId);
+
+    // Diagnostic en développement
+    const isDev = window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1' ||
+                 window.location.hostname.includes('localhost');
+                 
+    if (isDev) {
+      setTimeout(() => {
+        console.group('Meta Pixel Status');
+        console.log('Pixel ID:', pixelId);
+        console.log('Environment: Development');
+        console.log('Active Pixels:', pixelManager.getActivePixels());
+        console.warn('Note: Les erreurs 404 sur capig.datah04.com sont normales en développement');
+        console.groupEnd();
+      }, 1000);
+    }
+
+  } catch (error) {
+    console.error('Error initializing Meta Pixel:', error);
+    throw error;
+  }
+};
+
+// Fonction pour nettoyer un pixel spécifique (à appeler lors du démontage du composant)
+export const cleanupMetaPixel = (pixelId: string): void => {
+  if (!pixelId) return;
+
+  // Retirer ce pixel de la liste des pixels actifs
+  pixelManager.removePixel(pixelId);
+
+  // Supprimer le noscript spécifique à ce pixel
+  const noscriptId = `meta-pixel-noscript-${pixelId}`;
+  const existingNoscript = document.getElementById(noscriptId);
+  if (existingNoscript) {
+    existingNoscript.remove();
+  }
+
+  console.log('Meta Pixel cleaned up:', pixelId);
+
+  // Si c'était le dernier pixel, optionnellement nettoyer le script global
+  if (pixelManager.getActivePixels().length === 0) {
+    // Optionnel : garder le script pour de futures initialisations
+    console.log('All Meta Pixels cleaned up');
+  }
+};
+
+// Fonction pour ajouter le fallback noscript spécifique à un pixel
+const addNoscriptFallback = (pixelId: string): void => {
+  const noscriptId = `meta-pixel-noscript-${pixelId}`;
+  
   // Supprimer l'ancien noscript s'il existe
-  const existingNoscript = document.getElementById('meta-pixel-noscript');
+  const existingNoscript = document.getElementById(noscriptId);
   if (existingNoscript) {
     existingNoscript.remove();
   }
 
   // Créer le nouveau noscript
   const noscript = document.createElement('noscript');
-  noscript.id = 'meta-pixel-noscript';
+  noscript.id = noscriptId;
   
   const img = document.createElement('img');
   img.height = 1;
   img.width = 1;
   img.style.display = 'none';
   img.src = `https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`;
+  
+  // Gestion d'erreur pour l'image
+  img.onerror = () => {
+    // Ignorer silencieusement les erreurs d'image (normal en dev)
+    img.style.display = 'none';
+  };
   
   noscript.appendChild(img);
   document.body.appendChild(noscript);
@@ -164,7 +248,7 @@ export const mapToMetaEvent = (eventType: string): string => {
 };
 
 // Track Meta Pixel events avec vérification renforcée
-export const trackMetaEvent = (eventName: string, eventData?: Record<string, any>) => {
+export const trackMetaEvent = (eventName: string, eventData?: Record<string, any>): void => {
   if (typeof window === 'undefined') {
     console.warn('Meta Pixel: Window object not available');
     return;
@@ -175,8 +259,8 @@ export const trackMetaEvent = (eventName: string, eventData?: Record<string, any
     return;
   }
 
-  if (!isMetaPixelInitialized) {
-    console.warn('Meta Pixel: Pixel not initialized yet');
+  if (!pixelManager.isScriptLoaded()) {
+    console.warn('Meta Pixel: Script not loaded yet');
     return;
   }
 
@@ -190,20 +274,31 @@ export const trackMetaEvent = (eventName: string, eventData?: Record<string, any
       )
     } : undefined;
 
-    if (cleanedEventData && Object.keys(cleanedEventData).length > 0) {
-      window.fbq('track', eventName, cleanedEventData);
-      console.log(`Meta Pixel event tracked: ${eventName}`, cleanedEventData);
-    } else {
-      window.fbq('track', eventName);
-      console.log(`Meta Pixel event tracked: ${eventName}`);
-    }
+    // Ajouter un petit délai pour éviter les erreurs de timing
+    setTimeout(() => {
+      try {
+        if (cleanedEventData && Object.keys(cleanedEventData).length > 0) {
+          window.fbq('track', eventName, cleanedEventData);
+          console.log(`Meta Pixel event tracked: ${eventName}`, cleanedEventData);
+        } else {
+          window.fbq('track', eventName);
+          console.log(`Meta Pixel event tracked: ${eventName}`);
+        }
+      } catch (error) {
+        // Ignorer silencieusement les erreurs de tracking
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Meta Pixel tracking error:', error);
+        }
+      }
+    }, 50);
+
   } catch (error) {
     console.error('Error tracking Meta Pixel event:', error);
   }
 };
 
 // Track custom Meta Pixel events
-export const trackCustomMetaEvent = (eventName: string, eventData?: Record<string, any>) => {
+export const trackCustomMetaEvent = (eventName: string, eventData?: Record<string, any>): void => {
   if (typeof window === 'undefined') {
     console.warn('Meta Pixel: Window object not available');
     return;
@@ -214,8 +309,8 @@ export const trackCustomMetaEvent = (eventName: string, eventData?: Record<strin
     return;
   }
 
-  if (!isMetaPixelInitialized) {
-    console.warn('Meta Pixel: Pixel not initialized yet');
+  if (!pixelManager.isScriptLoaded()) {
+    console.warn('Meta Pixel: Script not loaded yet');
     return;
   }
 
@@ -227,52 +322,42 @@ export const trackCustomMetaEvent = (eventName: string, eventData?: Record<strin
       )
     } : undefined;
 
-    if (cleanedEventData && Object.keys(cleanedEventData).length > 0) {
-      window.fbq('trackCustom', eventName, cleanedEventData);
-      console.log(`Custom Meta Pixel event tracked: ${eventName}`, cleanedEventData);
-    } else {
-      window.fbq('trackCustom', eventName);
-      console.log(`Custom Meta Pixel event tracked: ${eventName}`);
-    }
+    setTimeout(() => {
+      try {
+        if (cleanedEventData && Object.keys(cleanedEventData).length > 0) {
+          window.fbq('trackCustom', eventName, cleanedEventData);
+          console.log(`Custom Meta Pixel event tracked: ${eventName}`, cleanedEventData);
+        } else {
+          window.fbq('trackCustom', eventName);
+          console.log(`Custom Meta Pixel event tracked: ${eventName}`);
+        }
+      } catch (error) {
+        // Ignorer silencieusement les erreurs de tracking
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Custom Meta Pixel tracking error:', error);
+        }
+      }
+    }, 50);
+
   } catch (error) {
     console.error('Error tracking custom Meta Pixel event:', error);
   }
 };
 
-// Fonction pour vérifier si le pixel est correctement chargé
-export const isPixelLoaded = (): boolean => {
-  return !!(window.fbq && typeof window.fbq === 'function' && isMetaPixelInitialized);
+// Fonction pour vérifier si un pixel spécifique est correctement chargé
+export const isPixelLoaded = (pixelId?: string): boolean => {
+  const scriptLoaded = pixelManager.isScriptLoaded() && window.fbq && typeof window.fbq === 'function';
+  
+  if (pixelId) {
+    return scriptLoaded && pixelManager.isPixelInitialized(pixelId);
+  }
+  
+  return scriptLoaded;
 };
 
-// Fonction pour obtenir l'ID du pixel actuel
-export const getCurrentPixelId = (): string | null => {
-  return currentPixelId;
-};
-
-// Fonction pour réinitialiser le pixel (utile pour les tests)
-export const resetPixel = () => {
-  isMetaPixelInitialized = false;
-  currentPixelId = null;
-  
-  // Supprimer le script existant
-  const existingScript = document.querySelector('script[src*="fbevents.js"]');
-  if (existingScript) {
-    existingScript.remove();
-  }
-  
-  // Supprimer le noscript
-  const existingNoscript = document.getElementById('meta-pixel-noscript');
-  if (existingNoscript) {
-    existingNoscript.remove();
-  }
-  
-  // Supprimer fbq de window
-  if (window.fbq) {
-    delete window.fbq;
-  }
-  if (window._fbq) {
-    delete window._fbq;
-  }
+// Fonction pour obtenir les IDs des pixels actifs
+export const getActivePixelIds = (): string[] => {
+  return pixelManager.getActivePixels();
 };
 
 // Fonction de diagnostic pour déboguer les problèmes Meta Pixel
@@ -295,16 +380,16 @@ export const diagnoseMetaPixel = (): Record<string, any> => {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
     },
     pixel: {
-      isInitialized: isMetaPixelInitialized,
-      currentPixelId: currentPixelId,
+      scriptLoaded: pixelManager.isScriptLoaded(),
+      activePixels: pixelManager.getActivePixels(),
       fbqAvailable: typeof window !== 'undefined' && !!window.fbq,
       fbqType: typeof window !== 'undefined' && window.fbq ? typeof window.fbq : 'undefined'
     },
     dom: {
-      scriptExists: !!document.querySelector('script[src*="fbevents.js"]'),
-      noscriptExists: !!document.getElementById('meta-pixel-noscript'),
+      scriptExists: !!document.querySelector('#meta-pixel-script'),
       bodyExists: !!document.body,
-      headExists: !!document.head
+      headExists: !!document.head,
+      noscriptCount: document.querySelectorAll('[id^="meta-pixel-noscript-"]').length
     },
     networkErrors: {
       expectedInDevelopment: isDev,
@@ -317,16 +402,15 @@ export const diagnoseMetaPixel = (): Record<string, any> => {
     }
   };
 
-  console.group('📊 Meta Pixel Diagnosis');
-  console.log('🔍 Environment:', diagnosis.environment);
-  console.log('🎯 Pixel Status:', diagnosis.pixel);
-  console.log('🏗️ DOM Status:', diagnosis.dom);
-  console.log('🚨 Network Errors Info:', diagnosis.networkErrors);
-  console.log('📋 Full Diagnosis:', diagnosis);
+  console.group('Meta Pixel Diagnosis');
+  console.log('Environment:', diagnosis.environment);
+  console.log('Pixel Status:', diagnosis.pixel);
+  console.log('DOM Status:', diagnosis.dom);
+  console.log('Network Errors Info:', diagnosis.networkErrors);
   
   if (diagnosis.environment.isDevelopment) {
-    console.warn('⚠️  En développement: Les erreurs réseau Meta Pixel sont NORMALES');
-    console.info('✅ Le pixel fonctionne correctement - les erreurs 404/CORS sont attendues');
+    console.warn('En développement: Les erreurs réseau Meta Pixel sont NORMALES');
+    console.info('Le pixel fonctionne correctement - les erreurs 404/CORS sont attendues');
   }
   
   console.groupEnd();

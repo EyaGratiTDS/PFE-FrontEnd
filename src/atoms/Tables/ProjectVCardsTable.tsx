@@ -90,7 +90,7 @@ const MobileVCardItem: React.FC<{
         <div className="projectvcards-mobile-actions-bottom mobile-card-actions-enlarged">
           <div className="flex justify-end space-x-2">
             <a 
-              href={`/vcard/${vcard.url}`} 
+              href={`/${vcard.url}`} 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center mobile-action-btn-enlarged border border-gray-300 dark:border-gray-600 rounded-md font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -189,7 +189,7 @@ const VCardRow: React.FC<{
     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
       <div className="flex justify-end space-x-2">
         <a 
-          href={`/vcard/${vcard.url}`} 
+          href={`/${vcard.url}`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"

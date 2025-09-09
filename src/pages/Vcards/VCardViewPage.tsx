@@ -25,7 +25,7 @@ import FloatingButtons from './../../atoms/buttons/FloatingButtons';
 import { motion, AnimatePresence } from "framer-motion";
 import usePixelTracker from '../../hooks/usePixelTracker';
 import { Pixel } from '../../services/Pixel';
-import { mapToMetaEvent, trackMetaEvent, initMetaPixel, isPixelLoaded } from '../../utils/MetaPixel';
+import { mapToMetaEvent, trackMetaEvent, initMetaPixel, isPixelLoaded, diagnoseMetaPixel, cleanupMetaPixel } from '../../utils/MetaPixel';
 
 interface TrackingEvent {
   eventType: 'click' | 'mousemove' | 'hover' | 'scroll' | 'focus' | 'blur';
@@ -55,6 +55,7 @@ const ViewVCard: React.FC = () => {
   const [vcard, setVCard] = useState<VCard | null>(null);
   const [vcardPixel, setVcardPixel] = useState<Pixel | null>(null);
   const [pixelInitialized, setPixelInitialized] = useState(false);
+  const pixelIdRef = useRef<string | null>(null);
   const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,35 +187,57 @@ const ViewVCard: React.FC = () => {
     }
   };
 
-  // Initialisation du Meta Pixel avec gestion d'erreur améliorée
-  const initializeMetaPixel = useCallback(async (pixel: Pixel) => {
+ const initializeMetaPixel = useCallback(async (pixel: Pixel) => {
     if (!pixel?.metaPixelId || pixelInitialized) return;
 
     try {
       console.log('Initializing Meta Pixel:', pixel.metaPixelId);
+      
+      // Stocker l'ID du pixel pour le cleanup
+      pixelIdRef.current = pixel.metaPixelId;
+      
+      // Initialiser le pixel
       await initMetaPixel(pixel.metaPixelId);
       setPixelInitialized(true);
       
-      // Vérifier que le pixel est bien chargé
+      // Vérification avec délai
       setTimeout(() => {
-        if (isPixelLoaded()) {
-          console.log('Meta Pixel verification successful');
-          // Tracker l'événement ViewContent après initialisation réussie
+        if (pixel.metaPixelId && isPixelLoaded(pixel.metaPixelId)) {
+          console.log('Meta Pixel loaded successfully');
+          
+          // Tracker ViewContent après initialisation
           trackMetaEvent(mapToMetaEvent('view'), { 
             vcardId: vcard?.id,
             content_type: 'vcard',
             content_ids: [vcard?.id].filter(Boolean)
           });
-        } else {
-          console.error('Meta Pixel verification failed');
+          
+          // Diagnostic en développement
+          const isDev = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+          if (isDev) {
+            setTimeout(() => {
+              diagnoseMetaPixel();
+            }, 2000);
+          }
         }
-      }, 500);
+      }, 1000);
       
     } catch (error) {
-      console.error('Error initializing Meta Pixel:', error);
+      console.error('Meta Pixel initialization error:', error);
       setPixelInitialized(false);
     }
   }, [pixelInitialized, vcard?.id]);
+
+   useEffect(() => {
+    return () => {
+      if (pixelIdRef.current) {
+        console.log('Cleaning up Meta Pixel:', pixelIdRef.current);
+        cleanupMetaPixel(pixelIdRef.current);
+        pixelIdRef.current = null;
+      }
+    };
+  }, []);
 
   // Effect pour l'initialisation des limites du plan
   useEffect(() => {
@@ -241,51 +264,27 @@ const ViewVCard: React.FC = () => {
             const response = await pixelService.getPixelsByVCard(vcardData.id);
             console.log('API Response:', response.data);
             setVcardPixel(response.data);
-            console.log('VCard Pixel set to:', response.data); // Utiliser response.data au lieu de vcardPixel
+            
             // Initialiser le Meta Pixel si disponible
             if (response.data && response.data.metaPixelId && response.data.is_active) {
-              console.log('🎯 Initializing Meta Pixel with ID:', response.data.metaPixelId);
-              await initializeMetaPixel(response.data); // Utiliser response.data au lieu de vcardPixel
+              await initializeMetaPixel(response.data);
               
               // Notification en développement
-              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                toast.info('Meta Pixel initialisé ! Les erreurs réseau en console sont normales en développement.', {
-                  position: "top-right",
-                  autoClose: 5000,
-                  hideProgressBar: false,
-                  closeOnClick: true,
-                  pauseOnHover: true,
-                  draggable: true,
-                });
+              const isDev = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1';
+              if (isDev) {
+                toast.info(
+                  'Meta Pixel initialisé ! Les erreurs réseau en console sont normales en développement.', 
+                  {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                  }
+                );
               }
-              
-              // Diagnostic pour comprendre l'état du pixel
-              setTimeout(() => {
-                const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                
-                console.group('📊 Meta Pixel Status');
-                console.log('🎯 Pixel ID:', response.data.metaPixelId);
-                console.log('🏠 Environment:', isDev ? 'Development' : 'Production');
-                console.log('🌐 Hostname:', window.location.hostname);
-                console.log('✅ fbq Available:', !!(window as any).fbq);
-                console.log('� Script Loaded:', !!document.querySelector('script[src*="fbevents.js"]'));
-                
-                if (isDev) {
-                  console.warn('⚠️  DÉVELOPPEMENT: Les erreurs Meta Pixel sont NORMALES');
-                  console.info('✅ ERR_CONNECTION_RESET = OK (bloqué par sécurité localhost)');
-                  console.info('✅ 404 capig.datah04.com = OK (Facebook bloque localhost)');
-                  console.info('✅ CORS errors = OK (domaine non vérifié sur Facebook Business)');
-                  console.info('🚀 En production avec domaine vérifié, tout fonctionnera !');
-                }
-                
-                console.groupEnd();
-              }, 1000);
-            } else {
-              console.log('❌ Meta Pixel not initialized - Missing data or inactive:', {
-                hasPixelData: !!response.data,
-                metaPixelId: response.data?.metaPixelId,
-                isActive: response.data?.is_active
-              });
             }
           } catch (error) {
             console.error("Error loading pixel:", error);
@@ -597,21 +596,19 @@ const ViewVCard: React.FC = () => {
     addToTrackingBuffer(trackingEvent);
   }, [isTracking, vcardPixel?.is_active, createTrackingEvent, addToTrackingBuffer]);
 
-  const handleBlockHover = useCallback((blockId: string) => {
+   const handleBlockHover = useCallback((blockId: string) => {
     hoverStartTime.current = Date.now();
     currentHoveredBlock.current = blockId;
 
-    // Tracking de l'événement hover
-    if (isTracking && vcardPixel?.is_active && pixelInitialized && isPixelLoaded()) {
+    // Tracking avec Meta Pixel
+    if (isTracking && vcardPixel?.is_active && pixelInitialized) {
       const trackingEvent = createTrackingEvent('hover', undefined, {
         blockId,
-        metadata: {
-          hoverStart: true,
-        },
+        metadata: { hoverStart: true },
       });
       sendTrackingEvent(trackingEvent);
       
-      // Aussi tracker avec Meta Pixel
+      // Meta Pixel tracking
       trackMetaEvent('Lead', {
         action: 'hover_start',
         blockId,
@@ -657,8 +654,8 @@ const ViewVCard: React.FC = () => {
         metadata: { action: type, target: value }
       });
 
-      // Tracker avec Meta Pixel
-      if (pixelInitialized && isPixelLoaded()) {
+      // Meta Pixel tracking
+      if (pixelInitialized) {
         trackMetaEvent('Contact', {
           action: type.toLowerCase(),
           blockId,

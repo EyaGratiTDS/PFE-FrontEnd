@@ -226,6 +226,17 @@ export const vcardService = {
     }
   },
 
+  getByCustomDomain: async (domain: string) => {
+    try {
+      // Essayer d'abord avec l'endpoint spécialisé pour les domaines personnalisés
+      const response = await api.get(`/vcard/domain/${encodeURIComponent(domain)}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting vcard with domain ${domain}:`, error);
+      throw error;
+    }
+  },
+
   update: async (id: string, formData: FormData) => {
     try {
       const response = await api.put(`/vcard/${id}`, formData, {
@@ -844,9 +855,59 @@ export const customDomainService = {
   getUserDomains: async (): Promise<CustomDomain[]> => { 
     try {
       const response = await api.get('/custom-domain');
-      return response.data.domains; 
+      
+      // La réponse du backend a la structure: { success: true, data: { domains: [...], pagination: {...} } }
+      const domains = response.data?.data?.domains || response.data?.domains;
+      
+      if (Array.isArray(domains)) {
+        console.log('Domains fetched successfully:', domains);
+        return domains;
+      } else {
+        console.warn('API returned non-array domains data. Full response:', response.data);
+        return [];
+      }
     } catch (error) {
       console.error('Error fetching user domains:', error);
+      throw error;
+    }
+  },
+
+  // Nouvelle fonction pour récupérer les domaines avec pagination
+  getUserDomainsWithPagination: async (page: number = 1, limit: number = 10, status?: string): Promise<{
+    domains: CustomDomain[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      
+      if (status) {
+        params.append('status', status);
+      }
+      
+      const response = await api.get(`/custom-domain?${params.toString()}`);
+      
+      // Structure attendue: { success: true, data: { domains: [...], pagination: {...} } }
+      const responseData = response.data?.data || response.data;
+      
+      return {
+        domains: Array.isArray(responseData.domains) ? responseData.domains : [],
+        pagination: responseData.pagination || {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching user domains with pagination:', error);
       throw error;
     }
   },
@@ -947,7 +1008,15 @@ export const customDomainService = {
   getDomains: async () => {
     try {
       const response = await api.get('/custom-domain/domains');
-      return response.data;
+      
+      // Vérification de sécurité pour les données de domaines SuperAdmin
+      const data = response.data;
+      if (data && typeof data === 'object') {
+        return data;
+      } else {
+        console.warn('API returned invalid domains data for SuperAdmin:', response.data);
+        return { domains: [], pagination: null };
+      }
     } catch (error) {
       console.error('Error getting custom domains with user information:', error);
       throw error;
@@ -960,6 +1029,16 @@ export const customDomainService = {
       return response.data;
     } catch (error) {
       console.error(`Error toggling status for custom domain ${id}:`, error);
+      throw error;
+    }
+  },
+
+  getVCardByDomain: async (domain: string): Promise<ApiResponse<VCard>> => {
+    try {
+      const response = await api.get(`/custom-domain/vcard-by-domain?domain=${encodeURIComponent(domain)}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting vCard for domain ${domain}:`, error);
       throw error;
     }
   },

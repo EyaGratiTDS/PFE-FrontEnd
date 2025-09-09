@@ -38,7 +38,7 @@ const MobilePixelItem: React.FC<{
 }> = ({ pixel, onToggleBlocked }) => {
   const userName = pixel.vcard?.user?.name || 'N/A';
   const userEmail = pixel.vcard?.user?.email || 'N/A';
-  const vcardUrl = pixel.vcard?.url ? `/vcard/${pixel.vcard.url}` : '#';
+  const vcardUrl = pixel.vcard?.url ? `/${pixel.vcard.url}` : '#';
 
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pixels-mobile-item-reduced mobile-card-content-reduced min-w-0 w-full" style={{maxWidth: '100%', overflow: 'hidden'}}>
@@ -118,7 +118,7 @@ const PixelRow: React.FC<{
 }> = ({ pixel, onToggleBlocked }) => {
   const userName = pixel.vcard?.user?.name || 'N/A';
   const userEmail = pixel.vcard?.user?.email || 'N/A';
-  const vcardUrl = pixel.vcard?.url ? `/vcard/${pixel.vcard.url}` : '#';
+  const vcardUrl = pixel.vcard?.url ? `/${pixel.vcard.url}` : '#';
   
   return (
     <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">

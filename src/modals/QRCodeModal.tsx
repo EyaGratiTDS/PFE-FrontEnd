@@ -14,7 +14,7 @@ interface QRCodeModalProps {
 const QRCodeModal: React.FC<QRCodeModalProps> = ({ vcard, isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const vcardUrl = `${window.location.origin}/vcard/${vcard.url.split('/').pop()}`;
+  const vcardUrl = `${window.location.origin}/${vcard.url.split('/').pop()}`;
 
   const handleDownloadQRCode = () => {
     const svg = document.getElementById('qr-code-svg');

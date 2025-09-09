@@ -114,7 +114,7 @@ const VCardRow: React.FC<{
     <td className="px-2 sm:px-4 md:px-6 lg:px-2 xl:px-6 py-2 sm:py-3 md:py-4 lg:py-1.5 xl:py-4 whitespace-nowrap text-right text-xs sm:text-sm md:text-sm lg:text-xs xl:text-sm font-medium">
       <div className="flex justify-end space-x-0.5 sm:space-x-1 lg:space-x-0.5 xl:space-x-1">
         <a 
-          href={`/vcard/${vcard.url}`} 
+          href={`/${vcard.url}`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-0.5 sm:p-1 lg:p-0.5 xl:p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -202,7 +202,7 @@ const MobileVCardItem: React.FC<{
         
         <div className="flex space-x-1 sm:space-x-2 flex-shrink-0 ml-2">
           <a 
-            href={`/vcard/${vcard.url}`} 
+            href={`/${vcard.url}`} 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 sm:p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"

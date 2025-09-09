@@ -119,7 +119,6 @@ const PixelForm: React.FC = () => {
       } else {
         response = await pixelService.create(payload);
       }
-      console.log(response);
       if (response) {
         toast.success(`Pixel ${isEditMode ? 'updated' : 'created'} successfully!`);
         setTimeout(() => navigate("/admin/pixel"), 2000);

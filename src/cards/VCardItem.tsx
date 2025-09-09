@@ -112,7 +112,7 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
   // Event handlers
   const handleDoubleClick = useCallback(() => {
     if (vcard.url && !vcard.isDisabled) {
-      navigate(`/vcard/${vcard.url}`);
+      navigate(`/${vcard.url}`);
     }
   }, [vcard.url, vcard.isDisabled, navigate]);
 
@@ -125,7 +125,7 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
 
   const handleViewVCard = useCallback(() => {
     if (vcard.url && !vcard.isDisabled) {
-      window.open(`/vcard/${vcard.url}`, '_blank');
+      window.open(`/${vcard.url}`, '_blank');
     }
     setShowDropdown(false);
   }, [vcard.url, vcard.isDisabled]);
@@ -206,11 +206,11 @@ const VCardItem: React.FC<VCardItemProps> = ({ vcard, onDeleteSuccess }) => {
         navigator.share({
           title: vcard.name,
           text: vcard.description || `Check out ${vcard.name}'s digital business card`,
-          url: `${window.location.origin}/vcard/${vcard.url}`
+          url: `${window.location.origin}/${vcard.url}`
         });
       } else {
         // Fallback: copy to clipboard
-        navigator.clipboard.writeText(`${window.location.origin}/vcard/${vcard.url}`);
+        navigator.clipboard.writeText(`${window.location.origin}/${vcard.url}`);
         toast.success('VCard URL copied to clipboard');
       }
     }

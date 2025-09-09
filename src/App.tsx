@@ -174,7 +174,7 @@ updateSW();
           </Route>
         </Route>
 
-        <Route path="/vcard/:url" element={<VCardViewPage />} />
+        <Route path="/:url" element={<VCardViewPage />} />
         <Route path="*" element={<div>Page not found</div>} />
       </Routes>
     </Router>

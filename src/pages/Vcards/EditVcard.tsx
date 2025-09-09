@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { vcardService, authService, projectService } from "../../services/api";
+import { vcardService, authService, projectService, limitService } from "../../services/api";
 import { FaCopy, FaCube, FaSyncAlt } from "react-icons/fa";
 import { FiChevronRight } from "react-icons/fi";
 import LogoUploader from "../../atoms/uploads/LogoUploader";
@@ -95,17 +95,42 @@ const EditVCard: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedPixelId, setSelectedPixelId] = useState<string>("");
 
+  // Custom domain state
+  const [hasCustomDomain, setHasCustomDomain] = useState(false);
+  const [customDomainInfo, setCustomDomainInfo] = useState<any>(null);
+  
+  // User subscription state
+  const [userPlan, setUserPlan] = useState<string>('free'); // 'free', 'pro', 'premium', etc.
+
+  // Helper function to check if user has URL customization access
+  const hasUrlAccess = useMemo(() => {
+    return userPlan !== 'free';
+  }, [userPlan]);
+
+  // Memoized CSS classes for URL field to avoid recalculation
+  const urlFieldClasses = useMemo(() => ({
+    container: `inputForm-vcard ${!hasUrlAccess ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-800'}`,
+    icon: `h-5 w-5 ${!hasUrlAccess ? 'text-gray-400' : 'text-gray-500'}`,
+    input: `input-vcard w-full ${!hasUrlAccess ? 'cursor-not-allowed opacity-50' : ''}`,
+    placeholder: !hasUrlAccess ? 'Upgrade to Basic/Pro to customize URL' : 'Enter your custom URL'
+  }), [hasUrlAccess]);
+
   // Memoized breadcrumb links
   const breadcrumbLinks = useMemo(() => [
     { name: "vCard", path: "/admin/vcard" },
     { name: "Edit vCard", path: `/admin/vcard/edit-vcard/${id}` },
   ], [id]);
 
-  // Memoized full URL
-  const fullUrl = useMemo(() => 
-    `${window.location.origin}/vcard/${vcard.url.split('/').pop()}`, 
-    [vcard.url]
-  );
+  // Memoized full URL with custom domain logic - minimal recalculation
+  const fullUrl = useMemo(() => {
+    if (hasCustomDomain && customDomainInfo?.custom_index_url) {
+      return customDomainInfo.custom_index_url;
+    }
+    // Use a simple, fast calculation without complex operations
+    const baseUrl = window.location.origin;
+    const urlValue = vcard.url || '';
+    return `${baseUrl}/${urlValue}`;
+  }, [hasCustomDomain, customDomainInfo?.custom_index_url, vcard.url]);
 
   // Utility function to extract colors from gradient
   const extractColorsFromGradient = useCallback((gradient: string) => {
@@ -183,9 +208,41 @@ const EditVCard: React.FC = () => {
           const activeProjects = projectsData.filter((project: any) => project.status === 'active');
           setProjects(activeProjects || []);
         }
+
+        // Load user plan using fast limitService approach (same as VCardPage.tsx)
+        if (isMounted) {
+          try {
+
+            
+            // Use limitService like VCardPage.tsx - much faster than subscription API calls
+            const limits = await limitService.checkVcardLimit();
+            console.log('� VCard limits received:', limits);
+            
+            // Determine plan based on limits (same logic as VCardPage.tsx)
+            // If max is 1 or very low, it's likely a free plan
+            // If max is higher or unlimited, it's a paid plan
+            let detectedPlan = 'free';
+            if (limits.max === -1 || limits.max === Infinity) {
+              detectedPlan = 'premium'; // Unlimited
+            } else if (limits.max > 3) {
+              detectedPlan = 'pro'; // Multiple vcards allowed
+            } else if (limits.max > 1) {
+              detectedPlan = 'basic'; // Few vcards allowed
+            }
+            // else remains 'free' for max = 1
+            
+            setUserPlan(detectedPlan);
+            
+          } catch (limitError) {
+            console.error('❌ Error fetching plan limits:', limitError);
+            setUserPlan('free');
+          }
+        }
       } catch (error) {
         console.error("Error loading user/projects:", error);
-        if (isMounted) toast.error("Failed to load projects");
+        if (isMounted) {
+          toast.error("Failed to load projects");
+        }
       }
     };
 
@@ -212,6 +269,15 @@ const EditVCard: React.FC = () => {
         if (!isMounted) return;
 
         setVCard(data);
+
+        // Gérer les informations du domaine personnalisé
+        if (data.hasCustomDomain && data.customDomainInfo) {
+          setHasCustomDomain(true);
+          setCustomDomainInfo(data.customDomainInfo);
+        } else {
+          setHasCustomDomain(false);
+          setCustomDomainInfo(null);
+        }
 
         // Set pixel ID if exists
         if (data.pixel?.id) {
@@ -262,10 +328,17 @@ const EditVCard: React.FC = () => {
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
+    // Optimize by avoiding object spread for every keystroke
     if (type === "checkbox") {
-      setVCard(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+      setVCard(prev => {
+        if (prev[name as keyof VCard] === (e.target as HTMLInputElement).checked) return prev;
+        return { ...prev, [name]: (e.target as HTMLInputElement).checked };
+      });
     } else {
-      setVCard(prev => ({ ...prev, [name]: value }));
+      setVCard(prev => {
+        if (prev[name as keyof VCard] === value) return prev;
+        return { ...prev, [name]: value };
+      });
     }
   }, []);
 
@@ -323,8 +396,8 @@ const EditVCard: React.FC = () => {
   }, [fullUrl]);
 
   const handleBlocks = useCallback(() => {
-    navigate(`/admin/vcard/edit-vcard/${vcard.id}/blocks`);
-  }, [navigate, vcard.id]);
+    navigate(`/admin/vcard/edit-vcard/${id}/blocks`);
+  }, [navigate, id]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,6 +410,7 @@ const EditVCard: React.FC = () => {
       const formFields = [
         ['name', vcard.name],
         ['description', vcard.description],
+        ['url', vcard.url],
         ['remove_branding', vcard.remove_branding.toString()],
         ['search_engine_visibility', vcard.search_engine_visibility.toString()],
         ['is_share', vcard.is_share.toString()],
@@ -367,7 +441,9 @@ const EditVCard: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [vcard, selectedPixelId, logoFile, backgroundFile, faviconFile]);
+  }, [selectedPixelId, logoFile, backgroundFile, faviconFile]);
+
+
 
   // Render JSX
   return (
@@ -412,14 +488,27 @@ const EditVCard: React.FC = () => {
                 Edit {vcard.name} vCard
               </h3>
               <div className="flex justify-center items-center gap-2 flex-wrap">
-                <a
-                  href={`/vcard/${vcard.url.split('/').pop()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-purple-400 text-sm sm:text-base break-all"
-                >
-                  {fullUrl}
-                </a>
+                {hasCustomDomain && customDomainInfo?.custom_index_url ? (
+                  // Afficher l'URL personnalisée
+                  <a
+                    href={customDomainInfo.custom_index_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-purple-400 text-sm sm:text-base break-all"
+                  >
+                    {customDomainInfo.custom_index_url}
+                  </a>
+                ) : (
+                  // Afficher l'URL par défaut
+                  <a
+                    href={`/${vcard.url.split('/').pop()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-purple-400 text-sm sm:text-base break-all"
+                  >
+                    {fullUrl}
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={copyToClipboard}
@@ -429,6 +518,17 @@ const EditVCard: React.FC = () => {
                   <FaCopy className="w-4 h-4" />
                 </button>
               </div>
+              {/* Afficher un badge pour le domaine personnalisé */}
+              {hasCustomDomain && customDomainInfo && (
+                <div className="mt-2 flex justify-center">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Custom Domain: {customDomainInfo.domain}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Form */}
@@ -472,6 +572,45 @@ const EditVCard: React.FC = () => {
                       onChange={handleInputChange}
                     />
                   </div>
+                </div>
+
+                {/* URL Alias Field */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    URL Alias
+                    {!hasUrlAccess && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Basic/Pro Feature
+                      </span>
+                    )}
+                  </label>
+                  <div className={urlFieldClasses.container}>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className={urlFieldClasses.icon} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      className={urlFieldClasses.input}
+                      placeholder={urlFieldClasses.placeholder}
+                      name="url"
+                      value={vcard.url}
+                      onChange={handleInputChange}
+                      disabled={!hasUrlAccess}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    The main URL that your vcard is going to be able accessed from.
+                    {!hasUrlAccess && (
+                      <span className="block text-yellow-600 dark:text-yellow-400 mt-1">
+                        🔒 Custom URL aliases are available with Basic/Pro plans. 
+                        <Link to="/admin/subscription" className="underline hover:text-yellow-700">
+                          Upgrade now
+                        </Link>
+                      </span>
+                    )}
+                  </p>
                 </div>
 
                 {/* File Uploads */}

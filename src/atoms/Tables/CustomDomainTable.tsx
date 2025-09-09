@@ -49,7 +49,7 @@ const MobileCustomDomainItem: React.FC<{
 }> = ({ domain, onToggleStatus }) => {
   const userName = domain.vcard?.user?.name || 'N/A';
   const userEmail = domain.vcard?.user?.email || 'N/A';
-  const vcardUrl = domain.vcard?.url ? `/vcard/${domain.vcard.url}` : '#';
+  const vcardUrl = domain.vcard?.url ? `/${domain.vcard.url}` : '#';
 
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 customdomains-mobile-item-reduced mobile-card-content-reduced min-w-0 w-full" style={{maxWidth: '100%', overflow: 'hidden'}}>
