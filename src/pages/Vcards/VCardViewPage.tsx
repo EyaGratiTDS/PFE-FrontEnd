@@ -842,7 +842,18 @@ END:VCARD`;
     }
   };
 
-  // Effect pour attacher les gestionnaires d'événements de tracking
+  useEffect(() => {
+  if (pixelInitialized && vcardPixel?.metaPixelId) {
+    setTimeout(() => {
+      // Événement visible pour l'outil Meta
+      trackMetaEvent('ViewContent', {
+        content_name: vcard?.name,
+        content_type: 'vcard',
+        content_ids: [vcard?.id]
+      });
+    }, 2000); // Délai pour que l'outil puisse détecter
+  }
+}, [pixelInitialized, vcardPixel, vcard]);  // Effect pour attacher les gestionnaires d'événements de tracking
   useEffect(() => {
     if (!isTracking || !vcardPixel?.is_active) return;
 
@@ -947,35 +958,6 @@ END:VCARD`;
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={pageImage} />
-        
-        {/* Meta Pixel - Ajout dans le head via Helmet */}
-        {vcardPixel?.metaPixelId && pixelInitialized && (
-          <>
-            <script>
-              {`
-                !function(f,b,e,v,n,t,s)
-                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-                n.queue=[];t=b.createElement(e);t.async=!0;
-                t.src=v;s=b.getElementsByTagName(e)[0];
-                s.parentNode.insertBefore(t,s)}(window, document,'script',
-                'https://connect.facebook.net/en_US/fbevents.js');
-                fbq('init', '${vcardPixel.metaPixelId}');
-                fbq('track', 'PageView');
-              `}
-            </script>
-            <noscript>
-              <img
-                height="1"
-                width="1"
-                style={{ display: 'none' }}
-                src={`https://www.facebook.com/tr?id=${vcardPixel.metaPixelId}&ev=PageView&noscript=1`}
-                alt=""
-              />
-            </noscript>
-          </>
-        )}
       </Helmet>
 
       {vcard.background_type === 'custom-image' && (
