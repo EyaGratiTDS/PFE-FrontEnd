@@ -66,9 +66,9 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
     const viewportHeight = window.innerHeight;
     const spaceBelow = viewportHeight - rect.bottom;
     
-    // On mobile, prioritize having enough space
+    // On mobile, always open dropdown downward
     if (window.innerWidth < 768) {
-      setDropdownPosition(spaceBelow > 300 ? 'bottom' : 'top');
+      setDropdownPosition('bottom');
     } else {
       setDropdownPosition(spaceBelow > 200 ? 'bottom' : 'top');
     }
@@ -77,8 +77,14 @@ const CustomDomainCard: React.FC<CustomDomainCardProps> = ({
   // Get dropdown classes based on position and screen size
   const getDropdownClasses = () => {
     const baseClasses = "absolute right-0 min-w-[180px] w-48 sm:w-44 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden";
-    const zIndex = window.innerWidth < 768 ? "z-[9999]" : "z-[60]";
     
+    // Sur mobile, utiliser un z-index très élevé et forcer la position vers le bas
+    if (window.innerWidth < 768) {
+      return `${baseClasses} z-[9999] top-full mt-2`;
+    }
+    
+    // Sur desktop, utiliser la logique normale
+    const zIndex = "z-[60]";
     if (dropdownPosition === 'bottom') {
       return `${baseClasses} ${zIndex} top-full mt-2`;
     } else {

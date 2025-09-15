@@ -12,7 +12,8 @@ const ContactBlock: React.FC<ContactBlockProps> = ({ block, iconConfig, onClick 
   const { icon: Icon, gradient, shadow } = iconConfig;
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ 
@@ -43,7 +44,7 @@ const ContactBlock: React.FC<ContactBlockProps> = ({ block, iconConfig, onClick 
       </p>
       
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-0 group-hover:opacity-30 transition-opacity"></div>
-    </motion.div>
+    </motion.button>
   );
 };
 

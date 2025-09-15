@@ -198,7 +198,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="py-4 text-gray-500 dark:text-gray-400">
           <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <Link to={`${basePath}/dashboard`} className="block">
-              <NexCardLogoFinal size="md" showText={true} />
+              <div className="flex items-center justify-start w-full overflow-hidden">
+                <NexCardLogoFinal size="md" showText={true} className="transition-all duration-200 w-full max-w-none" />
+              </div>
             </Link>
           </div>
           
@@ -237,11 +239,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           leaveTo="-translate-x-full"
         >
           <div ref={sidebarRef} className="py-4 text-gray-500 dark:text-gray-400 h-full overflow-y-auto custom-scrollbar">
-            <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <Link to={`${basePath}/dashboard`} className="block" onClick={handleMobileLinkClick}>
-                <NexCardLogoFinal size="md" showText={true} />
-              </Link>
-            </div>
+          <div className="sidebar-logo-section px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <Link to={`${basePath}/dashboard`} className="block" onClick={handleMobileLinkClick}>
+              <div className="flex items-center justify-start w-full overflow-hidden">
+                <NexCardLogoFinal size="md" showText={true} className="transition-all duration-200 w-full max-w-none" />
+              </div>
+            </Link>
+          </div>
             
             <ul className="mt-6 pb-6">
               {menuItems.map(renderMenuItem)}

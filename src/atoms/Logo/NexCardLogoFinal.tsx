@@ -19,7 +19,7 @@ const NexCardLogoFinal: React.FC<NexCardLogoFinalProps> = ({
 
   return (
     <div className={`nexcard-logo-container flex items-center space-x-3 ${className}`}>
-      <div className={`${sizes[size].logo} relative flex items-center justify-center`}>
+      <div className={`${sizes[size].logo} relative flex items-center justify-center flex-shrink-0`}>
         <svg
           viewBox="0 0 52 52"
           className="w-full h-full"
@@ -140,11 +140,11 @@ const NexCardLogoFinal: React.FC<NexCardLogoFinalProps> = ({
       </div>
       
       {showText && (
-        <div className="flex flex-col">
-          <span className={`font-black ${sizes[size].text} bg-gradient-to-r from-[#06A3DA] via-[#0ea5e9] to-[#0284c7] bg-clip-text text-transparent tracking-tight`}>
+        <div className="flex flex-col flex-shrink-0 min-w-0">
+          <span className={`font-black ${sizes[size].text} tracking-tight whitespace-nowrap text-[#06A3DA] sm:bg-gradient-to-r sm:from-[#06A3DA] sm:via-[#0ea5e9] sm:to-[#0284c7] sm:bg-clip-text sm:text-transparent`}>
             NexCard
           </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400 -mt-1 font-medium tracking-wide opacity-70">
+          <span className="text-xs text-gray-500 dark:text-gray-400 -mt-1 font-medium tracking-wide opacity-70 whitespace-nowrap">
             DIGITAL EVOLUTION
           </span>
         </div>

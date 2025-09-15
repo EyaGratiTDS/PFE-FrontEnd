@@ -189,7 +189,14 @@ const ViewVCard: React.FC = () => {
 
  const initializeMetaPixel = useCallback(async (pixel: Pixel) => {
     if (!pixel?.metaPixelId || pixelInitialized) return;
-
+    const isValidDomain = !window.location.hostname.includes('localhost') && 
+                       !window.location.hostname.includes('127.0.0.1');
+  
+    if (!isValidDomain) {
+      console.warn('Meta Pixel non initialisé en développement local');
+      return;
+    }
+  
     try {
       console.log('Initializing Meta Pixel:', pixel.metaPixelId);
       
@@ -366,6 +373,52 @@ const ViewVCard: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [url]);
+
+  // Effect pour gérer le favicon spécifique à la VCard
+  useEffect(() => {
+    let originalFavicon: string | null = null;
+    
+    // Sauvegarder le favicon original de l'application
+    const currentFavicon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+    if (currentFavicon) {
+      originalFavicon = currentFavicon.href;
+    }
+    
+    // Si la VCard a un favicon, le remplacer
+    if (vcard?.favicon) {
+      // Supprimer les favicons existants
+      const existingFavicons = document.querySelectorAll("link[rel*='icon']");
+      existingFavicons.forEach(link => document.head.removeChild(link));
+      
+      // Ajouter le favicon de la VCard
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/x-icon';
+      link.href = vcard.favicon;
+      document.head.appendChild(link);
+    }
+    
+    // Fonction de nettoyage pour restaurer le favicon original
+    return () => {
+      if (vcard?.favicon && originalFavicon) {
+        // Supprimer le favicon de la VCard
+        const vcardFavicons = document.querySelectorAll("link[rel*='icon']");
+        vcardFavicons.forEach(link => {
+          const linkEl = link as HTMLLinkElement;
+          if (linkEl.href === vcard.favicon) {
+            document.head.removeChild(link);
+          }
+        });
+        
+        // Restaurer le favicon original de l'application
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        link.href = originalFavicon;
+        document.head.appendChild(link);
+      }
+    };
+  }, [vcard]);
 
   // Effect pour nettoyer les références au démontage
   useEffect(() => {
