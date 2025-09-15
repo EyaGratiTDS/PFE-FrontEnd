@@ -239,6 +239,7 @@ export const vcardService = {
 
   update: async (id: string, formData: FormData) => {
     try {
+      console.log('Updating vcard with id:', id);
       const response = await api.put(`/vcard/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

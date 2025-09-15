@@ -118,7 +118,7 @@ const EditVCard: React.FC = () => {
   // Memoized breadcrumb links
   const breadcrumbLinks = useMemo(() => [
     { name: "vCard", path: "/admin/vcard" },
-    { name: "Edit vCard", path: `/admin/vcard/edit-vcard/${id}` },
+    { name: "Edit vCard", path: `/admin/vcard/edit-vcard/${id || ''}` },
   ], [id]);
 
   // Memoized full URL with custom domain logic - minimal recalculation
@@ -353,7 +353,7 @@ const EditVCard: React.FC = () => {
     });
 
     setBackgroundFile(file);
-    setVCard(prev => ({ ...prev, background_type: 'custom-image' }));
+    setVCard(prev => ({ ...prev, background_type: 'custom-image' as const }));
   }, [validateFileType, readFileAsDataURL]);
 
   const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,10 +380,65 @@ const EditVCard: React.FC = () => {
     setSelectedGradient(preset);
     setVCard(prev => ({
       ...prev,
-      background_type: 'gradient-preset',
+      background_type: 'gradient-preset' as const,
       background_value: preset,
     }));
   }, []);
+
+  // New handlers for background settings
+  const handleSolidColorChange = useCallback((color: string) => {
+    setSolidColor(color);
+    setVCard(prev => ({
+      ...prev,
+      background_type: 'color' as const,
+      background_value: color,
+    }));
+  }, []);
+
+  const handleGradientChange = useCallback((start: string, end: string) => {
+    setGradientStart(start);
+    setGradientEnd(end);
+    const gradientValue = `linear-gradient(45deg, ${start}, ${end})`;
+    setVCard(prev => ({
+      ...prev,
+      background_type: 'gradient' as const,
+      background_value: gradientValue,
+    }));
+  }, []);
+
+  const handleBackgroundOptionChange = useCallback((option: string) => {
+    setSelectedOption(option);
+    let backgroundValue = '';
+    let backgroundType: 'color' | 'custom-image' | 'gradient' | 'gradient-preset' = 'color';
+
+    switch (option) {
+      case 'color':
+        backgroundValue = solidColor;
+        backgroundType = 'color';
+        break;
+      case 'gradient':
+        backgroundValue = `linear-gradient(45deg, ${gradientStart}, ${gradientEnd})`;
+        backgroundType = 'gradient';
+        break;
+      case 'gradient-preset':
+        backgroundValue = selectedGradient || '';
+        backgroundType = 'gradient-preset';
+        break;
+      case 'custom-image':
+        backgroundValue = vcard.background_value || '';
+        backgroundType = 'custom-image';
+        break;
+      default:
+        backgroundValue = solidColor;
+        backgroundType = 'color';
+    }
+
+    setVCard(prev => ({
+      ...prev,
+      background_type: backgroundType,
+      background_value: backgroundValue,
+    }));
+  }, [solidColor, gradientStart, gradientEnd, selectedGradient, vcard.background_value]);
 
   const copyToClipboard = useCallback(async () => {
     try {
@@ -396,52 +451,106 @@ const EditVCard: React.FC = () => {
   }, [fullUrl]);
 
   const handleBlocks = useCallback(() => {
+    if (!id) {
+      toast.error("Invalid vCard ID.");
+      return;
+    }
     navigate(`/admin/vcard/edit-vcard/${id}/blocks`);
   }, [navigate, id]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!id) {
+      toast.error("Invalid vCard ID.");
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
       const formData = new FormData();
       
-      // Add all form fields
-      const formFields = [
-        ['name', vcard.name],
-        ['description', vcard.description],
-        ['url', vcard.url],
-        ['remove_branding', vcard.remove_branding.toString()],
-        ['search_engine_visibility', vcard.search_engine_visibility.toString()],
-        ['is_share', vcard.is_share.toString()],
-        ['is_downloaded', vcard.is_downloaded.toString()],
-        ['is_active', vcard.is_active.toString()],
-        ['background_type', vcard.background_type],
-        ['background_value', vcard.background_value],
-        ['font_family', vcard.font_family],
-        ['font_size', (vcard.font_size || 16).toString()],
-        ['projectId', vcard.projectId?.toString() || ""],
-        ['pixelId', selectedPixelId || ""],
-      ] as const;
+      // Helper function to safely add form fields
+      const addFormField = (key: string, value: any) => {
+        if (value !== null && value !== undefined && value !== '') {
+          formData.append(key, String(value));
+        }
+      };
 
-      formFields.forEach(([key, value]) => {
-        formData.append(key, value);
-      });
+      // Add all form fields with proper validation
+      addFormField('name', vcard.name || '');
+      addFormField('description', vcard.description || '');
+      addFormField('url', vcard.url || '');
+      addFormField('remove_branding', vcard.remove_branding ? 'true' : 'false');
+      addFormField('search_engine_visibility', vcard.search_engine_visibility ? 'true' : 'false');
+      addFormField('is_share', vcard.is_share ? 'true' : 'false');
+      addFormField('is_downloaded', vcard.is_downloaded ? 'true' : 'false');
+      addFormField('is_active', vcard.is_active ? 'true' : 'false');
+      addFormField('background_type', vcard.background_type || 'color');
+      
+      // Handle background value based on selected option
+      let backgroundValue = '';
+      switch (selectedOption) {
+        case 'color':
+          backgroundValue = solidColor;
+          break;
+        case 'gradient':
+          backgroundValue = `linear-gradient(45deg, ${gradientStart}, ${gradientEnd})`;
+          break;
+        case 'gradient-preset':
+          backgroundValue = selectedGradient || '';
+          break;
+        case 'custom-image':
+          backgroundValue = vcard.background_value || '';
+          break;
+        default:
+          backgroundValue = vcard.background_value || solidColor;
+      }
+      addFormField('background_value', backgroundValue);
+      
+      addFormField('font_family', vcard.font_family || 'Arial, sans-serif');
+      addFormField('font_size', vcard.font_size || 16);
+      
+      // Only add projectId if it's a valid number
+      if (vcard.projectId && vcard.projectId > 0) {
+        addFormField('projectId', vcard.projectId);
+      }
+      
+      // Only add pixelId if it's selected
+      if (selectedPixelId && selectedPixelId.trim() !== '') {
+        addFormField('pixelId', selectedPixelId);
+      }
 
       // Add files if they exist
-      if (logoFile) formData.append("logoFile", logoFile);
-      if (backgroundFile) formData.append("backgroundFile", backgroundFile);
-      if (faviconFile) formData.append("faviconFile", faviconFile);
+      if (logoFile) {
+        formData.append("logoFile", logoFile);
+      }
+      if (backgroundFile) {
+        formData.append("backgroundFile", backgroundFile);
+      }
+      if (faviconFile) {
+        formData.append("faviconFile", faviconFile);
+      }
 
-      await vcardService.update(vcard.id, formData);
+      console.log('🚀 Submitting form data for vCard update:', id);
+      await vcardService.update(id, formData);
       toast.success("vCard updated successfully!");
-    } catch (error) {
-      toast.error("Failed to update vCard.");
-      console.error(error);
+      
+      // Optionally refresh the page data or navigate
+      // window.location.reload(); // Uncomment if you want to refresh
+      
+    } catch (error: any) {
+      console.error('❌ VCard update error:', error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to update vCard.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedPixelId, logoFile, backgroundFile, faviconFile]);
+  }, [
+    id, vcard, selectedPixelId, logoFile, backgroundFile, faviconFile, 
+    selectedOption, solidColor, gradientStart, gradientEnd, selectedGradient
+  ]);
 
 
 
@@ -622,13 +731,13 @@ const EditVCard: React.FC = () => {
                 {/* Background Settings */}
                 <BackgroundSettings
                   selectedOption={selectedOption}
-                  setSelectedOption={setSelectedOption}
+                  setSelectedOption={handleBackgroundOptionChange}
                   solidColor={solidColor}
-                  setSolidColor={setSolidColor}
+                  setSolidColor={handleSolidColorChange}
                   gradientStart={gradientStart}
-                  setGradientStart={setGradientStart}
+                  setGradientStart={(color) => handleGradientChange(color, gradientEnd)}
                   gradientEnd={gradientEnd}
-                  setGradientEnd={setGradientEnd}
+                  setGradientEnd={(color) => handleGradientChange(gradientStart, color)}
                   imagePreview={imagePreview}
                   handleFileUploadBackground={handleFileUploadBackground}
                   selectedGradient={selectedGradient}

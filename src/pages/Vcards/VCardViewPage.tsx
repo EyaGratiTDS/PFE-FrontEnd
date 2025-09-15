@@ -367,22 +367,6 @@ const ViewVCard: React.FC = () => {
     window.scrollTo(0, 0);
   }, [url]);
 
-  // Effect pour le favicon
-  useEffect(() => {
-    if (vcard?.favicon) {
-      const existingLinks = document.querySelectorAll("link[rel~='icon']");
-      existingLinks.forEach(link => {
-        document.head.removeChild(link);
-      });
-
-      const link = document.createElement('link');
-      link.rel = 'icon';
-      link.type = 'image/x-icon';
-      link.href = vcard.favicon;
-      document.head.appendChild(link);
-    }
-  }, [vcard]);
-
   // Effect pour nettoyer les références au démontage
   useEffect(() => {
     return () => {
