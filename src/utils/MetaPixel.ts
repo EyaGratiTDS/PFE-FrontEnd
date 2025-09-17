@@ -1,4 +1,4 @@
-// MetaPixel.ts - Version corrigée pour usage page par page
+
 
 declare global {
   interface Window {
@@ -100,13 +100,11 @@ const loadMetaPixelScript = (): Promise<void> => {
       script.id = 'meta-pixel-script';
       
       script.onload = () => {
-        console.log('Meta Pixel script loaded successfully');
         pixelManager.setScriptLoaded(true);
         resolve();
       };
       
       script.onerror = () => {
-        console.error('Failed to load Meta Pixel script');
         reject(new Error('Failed to load Meta Pixel script'));
       };
 
@@ -124,12 +122,6 @@ const loadMetaPixelScript = (): Promise<void> => {
 export const initMetaPixel = async (pixelId: string): Promise<void> => {
   if (!pixelId) {
     throw new Error('Pixel ID is required');
-  }
-
-  // Si ce pixel est déjà initialisé, ne pas réinitialiser
-  if (pixelManager.isPixelInitialized(pixelId)) {
-    console.log('Meta Pixel already initialized for this ID:', pixelId);
-    return;
   }
 
   try {
@@ -151,24 +143,6 @@ export const initMetaPixel = async (pixelId: string): Promise<void> => {
     // Ajouter le fallback noscript
     addNoscriptFallback(pixelId);
 
-    console.log('Meta Pixel initialized successfully:', pixelId);
-
-    // Diagnostic en développement
-    const isDev = window.location.hostname === 'localhost' || 
-                 window.location.hostname === '127.0.0.1' ||
-                 window.location.hostname.includes('localhost');
-                 
-    if (isDev) {
-      setTimeout(() => {
-        console.group('Meta Pixel Status');
-        console.log('Pixel ID:', pixelId);
-        console.log('Environment: Development');
-        console.log('Active Pixels:', pixelManager.getActivePixels());
-        console.warn('Note: Les erreurs 404 sur capig.datah04.com sont normales en développement');
-        console.groupEnd();
-      }, 1000);
-    }
-
   } catch (error) {
     console.error('Error initializing Meta Pixel:', error);
     throw error;
@@ -187,14 +161,6 @@ export const cleanupMetaPixel = (pixelId: string): void => {
   const existingNoscript = document.getElementById(noscriptId);
   if (existingNoscript) {
     existingNoscript.remove();
-  }
-
-  console.log('Meta Pixel cleaned up:', pixelId);
-
-  // Si c'était le dernier pixel, optionnellement nettoyer le script global
-  if (pixelManager.getActivePixels().length === 0) {
-    // Optionnel : garder le script pour de futures initialisations
-    console.log('All Meta Pixels cleaned up');
   }
 };
 
@@ -279,10 +245,8 @@ export const trackMetaEvent = (eventName: string, eventData?: Record<string, any
       try {
         if (cleanedEventData && Object.keys(cleanedEventData).length > 0) {
           window.fbq('track', eventName, cleanedEventData);
-          console.log(`Meta Pixel event tracked: ${eventName}`, cleanedEventData);
         } else {
           window.fbq('track', eventName);
-          console.log(`Meta Pixel event tracked: ${eventName}`);
         }
       } catch (error) {
         // Ignorer silencieusement les erreurs de tracking

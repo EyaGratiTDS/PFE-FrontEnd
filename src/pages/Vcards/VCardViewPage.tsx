@@ -25,7 +25,15 @@ import FloatingButtons from './../../atoms/buttons/FloatingButtons';
 import { motion, AnimatePresence } from "framer-motion";
 import usePixelTracker from '../../hooks/usePixelTracker';
 import { Pixel } from '../../services/Pixel';
-import { mapToMetaEvent, trackMetaEvent, initMetaPixel, isPixelLoaded, diagnoseMetaPixel, cleanupMetaPixel } from '../../utils/MetaPixel';
+import { 
+  PixelConfig, 
+  initializeVCardPixels, 
+  cleanupVCardPixels, 
+  trackVCardEvent,
+  getActivePixelDiagnosis 
+} from '../../utils/UniversalPixelManager';
+// Compatibilité ascendante avec MetaPixel
+import { mapToMetaEvent, trackMetaEvent } from '../../utils/MetaPixel';
 
 interface TrackingEvent {
   eventType: 'click' | 'mousemove' | 'hover' | 'scroll' | 'focus' | 'blur';
@@ -53,10 +61,10 @@ interface TrackingEvent {
 const ViewVCard: React.FC = () => {
   const { url } = useParams<{ url: string }>();
   const [vcard, setVCard] = useState<VCard | null>(null);
-  const [vcardPixel, setVcardPixel] = useState<Pixel | null>(null);
-  const [pixelInitialized, setPixelInitialized] = useState(false);
-  const pixelIdRef = useRef<string | null>(null);
-  const { trackEvent } = usePixelTracker(vcardPixel?.id || null, !!vcardPixel?.is_active);
+  const [vcardPixels, setVcardPixels] = useState<Pixel[]>([]);
+  const [pixelsInitialized, setPixelsInitialized] = useState(false);
+  const activePixelsRef = useRef<PixelConfig[]>([]);
+  const { trackEvent } = usePixelTracker(vcardPixels[0]?.id || null, vcardPixels.some(p => p.is_active));
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -187,61 +195,108 @@ const ViewVCard: React.FC = () => {
     }
   };
 
- const initializeMetaPixel = useCallback(async (pixel: Pixel) => {
-    if (!pixel?.metaPixelId || pixelInitialized) return;
-    const isValidDomain = !window.location.hostname.includes('localhost') && 
-                       !window.location.hostname.includes('127.0.0.1');
-  
-    if (!isValidDomain) {
-      console.warn('Meta Pixel non initialisé en développement local');
-      return;
-    }
-  
+  // Convertir les pixels en configuration pour le gestionnaire universel
+  const convertPixelsToConfig = useCallback((pixels: Pixel[]): PixelConfig[] => {
+    return pixels
+      .filter(pixel => pixel.is_active && !pixel.is_blocked)
+      .map(pixel => ({
+        id: pixel.id,
+        type: pixel.type || 'meta', // Default to meta for backward compatibility
+        pixelCode: pixel.pixelCode || pixel.metaPixelId || '', // Support old metaPixelId
+        isActive: pixel.is_active
+      }))
+      .filter(config => config.pixelCode); // Only include pixels with valid codes
+  }, []);
+
+  // Initialiser tous les pixels de la vCard
+  const initializeVCardPixelsHandler = useCallback(async (pixels: Pixel[]) => {
+    if (pixelsInitialized || !pixels.length) return;
+
     try {
-      console.log('Initializing Meta Pixel:', pixel.metaPixelId);
+      // Convertir les pixels en configuration
+      const pixelConfigs = convertPixelsToConfig(pixels);
       
-      // Stocker l'ID du pixel pour le cleanup
-      pixelIdRef.current = pixel.metaPixelId;
+      if (pixelConfigs.length === 0) {
+        console.log('No active pixels to initialize');
+        return;
+      }
+
+      console.log('🚀 Initializing VCard pixels:', pixelConfigs.length);
       
-      // Initialiser le pixel
-      await initMetaPixel(pixel.metaPixelId);
-      setPixelInitialized(true);
+      // Sauvegarder la référence pour le cleanup
+      activePixelsRef.current = pixelConfigs;
       
-      // Vérification avec délai
+      // Initialiser tous les pixels
+      await initializeVCardPixels(pixelConfigs);
+      setPixelsInitialized(true);
+      
+      // Attendre un peu puis tracker la vue de page
       setTimeout(() => {
-        if (pixel.metaPixelId && isPixelLoaded(pixel.metaPixelId)) {
-          console.log('Meta Pixel loaded successfully');
-          
-          // Tracker ViewContent après initialisation
-          trackMetaEvent(mapToMetaEvent('view'), { 
+        trackVCardEvent('ViewContent', {
+          vcardId: vcard?.id,
+          content_type: 'vcard',
+          content_ids: [vcard?.id].filter(Boolean),
+          pixelTypes: pixelConfigs.map(p => p.type)
+        });
+
+        // Compatibilité ascendante pour Meta Pixel
+        const metaPixels = pixelConfigs.filter(p => p.type === 'meta');
+        if (metaPixels.length > 0) {
+          trackMetaEvent(mapToMetaEvent('view'), {
             vcardId: vcard?.id,
             content_type: 'vcard',
             content_ids: [vcard?.id].filter(Boolean)
           });
-          
-          // Diagnostic en développement
-          const isDev = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1';
-          if (isDev) {
-            setTimeout(() => {
-              diagnoseMetaPixel();
-            }, 2000);
-          }
         }
       }, 1000);
+
+      // Debug information
+      if (process.env.NODE_ENV !== 'production') {
+        setTimeout(() => {
+          console.log('📊 Pixel Diagnosis:', getActivePixelDiagnosis());
+        }, 2000);
+      }
       
     } catch (error) {
-      console.error('Meta Pixel initialization error:', error);
-      setPixelInitialized(false);
+      console.error('❌ Error initializing VCard pixels:', error);
+      setPixelsInitialized(false);
     }
-  }, [pixelInitialized, vcard?.id]);
+  }, [pixelsInitialized, vcard?.id, convertPixelsToConfig]);
+
+  // Helper pour tracker les événements sur tous les pixels
+  const trackEventOnAllPixels = useCallback((eventName: string, eventData?: Record<string, any>) => {
+    // Tracker sur le nouveau système universel
+    if (activePixelsRef.current.length > 0) {
+      trackVCardEvent(eventName, {
+        ...eventData,
+        vcardId: vcard?.id,
+        pixelTypes: activePixelsRef.current.map(p => p.type)
+      });
+    }
+
+    // Compatibilité ascendante - tracker aussi avec l'ancien système Meta Pixel
+    if (vcardPixels.some(p => p.type === 'meta' && p.is_active)) {
+      trackMetaEvent(eventName, eventData);
+    }
+  }, [vcard?.id, vcardPixels]);
+
+  // Helper pour vérifier si des pixels sont actifs
+  const hasActivePixels = useCallback(() => {
+    return vcardPixels.some(p => p.is_active && !p.is_blocked);
+  }, [vcardPixels]);
+
+  // Helper pour vérifier si les pixels sont initialisés
+  const arePixelsReady = useCallback(() => {
+    return pixelsInitialized && hasActivePixels();
+  }, [pixelsInitialized, hasActivePixels]);
 
    useEffect(() => {
     return () => {
-      if (pixelIdRef.current) {
-        console.log('Cleaning up Meta Pixel:', pixelIdRef.current);
-        cleanupMetaPixel(pixelIdRef.current);
-        pixelIdRef.current = null;
+      // Nettoyer tous les pixels actifs
+      if (activePixelsRef.current.length > 0) {
+        console.log('🧹 Cleaning up VCard pixels:', activePixelsRef.current.length);
+        cleanupVCardPixels(activePixelsRef.current);
+        activePixelsRef.current = [];
       }
     };
   }, []);
@@ -269,33 +324,19 @@ const ViewVCard: React.FC = () => {
         if (vcardData.id) {
           try {
             const response = await pixelService.getPixelsByVCard(vcardData.id);
-            console.log('API Response:', response.data);
-            setVcardPixel(response.data);
+            const pixels = Array.isArray(response.data) ? response.data : response.data ? [response.data] : [];
+            setVcardPixels(pixels);
             
-            // Initialiser le Meta Pixel si disponible
-            if (response.data && response.data.metaPixelId && response.data.is_active) {
-              await initializeMetaPixel(response.data);
-              
-              // Notification en développement
-              const isDev = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1';
-              if (isDev) {
-                toast.info(
-                  'Meta Pixel initialisé ! Les erreurs réseau en console sont normales en développement.', 
-                  {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                  }
-                );
+            // Initialiser tous les pixels actifs
+            if (pixels.length > 0) {
+              const activePixels = pixels.filter((p: Pixel) => p.is_active && !p.is_blocked);
+              if (activePixels.length > 0) {
+                await initializeVCardPixelsHandler(activePixels);
               }
             }
           } catch (error) {
-            console.error("Error loading pixel:", error);
-            setVcardPixel(null);
+            console.error("Error loading pixels:", error);
+            setVcardPixels([]);
           }
 
           // Charger les informations du projet
@@ -355,20 +396,7 @@ const ViewVCard: React.FC = () => {
     };
 
     fetchData();
-  }, [url, currentPlanLimit, initializeMetaPixel]);
-
-  // Effect pour surveiller les changements de vcardPixel
-  useEffect(() => {
-    if (vcardPixel) {
-      console.log('VCard Pixel state updated:', vcardPixel);
-      if (!vcardPixel.metaPixelId) {
-        console.warn('metaPixelId is missing from vcardPixel state');
-      } else {
-        console.log('metaPixelId found in state:', vcardPixel.metaPixelId);
-      }
-    }
-  }, [vcardPixel]);
-
+  }, [url, currentPlanLimit, initializeVCardPixelsHandler]);
   // Effect pour le scroll automatique
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -487,10 +515,11 @@ const ViewVCard: React.FC = () => {
   }, [sessionId]);
 
   const sendTrackingEvent = useCallback(async (event: TrackingEvent) => {
-    if (!vcardPixel?.is_active || !isTracking) return;
+    if (!vcardPixels.some(p => p.is_active) || !isTracking) return;
 
     try {
-      if (vcardPixel?.id) {
+      // Tracker pour tous les pixels actifs
+      for (const pixel of vcardPixels.filter(p => p.is_active)) {
         const eventData = {
           eventType: event.eventType,
           blockId: event.blockId,
@@ -506,7 +535,7 @@ const ViewVCard: React.FC = () => {
           }
         };
 
-        await pixelService.trackEvent(vcardPixel.id, eventData);
+        await pixelService.trackEvent(pixel.id, eventData);
       }
 
       trackEvent({
@@ -526,7 +555,7 @@ const ViewVCard: React.FC = () => {
     } catch (error) {
       console.error('Error sending tracking event:', error);
     }
-  }, [vcardPixel?.is_active, vcardPixel?.id, isTracking, trackEvent]);
+  }, [vcardPixels, isTracking, trackEvent]);
 
   const flushTrackingBuffer = useCallback(async () => {
     if (trackingBuffer.current.length === 0) return;
@@ -554,8 +583,8 @@ const ViewVCard: React.FC = () => {
     toast.success("Link copied to clipboard!");
     
     // Track copy event
-    if (pixelInitialized && isPixelLoaded()) {
-      trackMetaEvent('Lead', {
+    if (arePixelsReady()) {
+      trackEventOnAllPixels('Lead', {
         action: 'copy_link',
         vcardId: vcard?.id
       });
@@ -563,7 +592,7 @@ const ViewVCard: React.FC = () => {
   };
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
-    if (!isTracking || !vcardPixel?.is_active) return;
+    if (!isTracking || !hasActivePixels()) return;
 
     const now = Date.now();
     if (now - lastMouseMoveTime.current < mouseMoveThrottle) return;
@@ -585,10 +614,10 @@ const ViewVCard: React.FC = () => {
     });
 
     addToTrackingBuffer(trackingEvent);
-  }, [isTracking, vcardPixel?.is_active, mouseMoveThrottle, createTrackingEvent, addToTrackingBuffer]);
+  }, [isTracking, hasActivePixels, mouseMoveThrottle, createTrackingEvent, addToTrackingBuffer]);
 
   const handleClick = useCallback((event: MouseEvent) => {
-    if (!isTracking || !vcardPixel?.is_active) return;
+    if (!isTracking || !hasActivePixels()) return;
 
     const target = event.target as HTMLElement;
     const blockElement = target.closest('[data-block-id]');
@@ -612,11 +641,11 @@ const ViewVCard: React.FC = () => {
     });
 
     sendTrackingEvent(trackingEvent);
-  }, [isTracking, vcardPixel?.is_active, createTrackingEvent, sendTrackingEvent]);
+  }, [isTracking, hasActivePixels, createTrackingEvent, sendTrackingEvent]);
 
   // Gestionnaire pour le scroll
   const handleScroll = useCallback(() => {
-    if (!isTracking || !vcardPixel?.is_active) return;
+    if (!isTracking || !hasActivePixels()) return;
 
     const trackingEvent = createTrackingEvent('scroll', undefined, {
       metadata: {
@@ -631,28 +660,28 @@ const ViewVCard: React.FC = () => {
     });
 
     addToTrackingBuffer(trackingEvent);
-  }, [isTracking, vcardPixel?.is_active, createTrackingEvent, addToTrackingBuffer]);
+  }, [isTracking, hasActivePixels, createTrackingEvent, addToTrackingBuffer]);
 
    const handleBlockHover = useCallback((blockId: string) => {
     hoverStartTime.current = Date.now();
     currentHoveredBlock.current = blockId;
 
-    // Tracking avec Meta Pixel
-    if (isTracking && vcardPixel?.is_active && pixelInitialized) {
+    // Tracking avec tous les pixels
+    if (isTracking && hasActivePixels() && pixelsInitialized) {
       const trackingEvent = createTrackingEvent('hover', undefined, {
         blockId,
         metadata: { hoverStart: true },
       });
       sendTrackingEvent(trackingEvent);
       
-      // Meta Pixel tracking
-      trackMetaEvent('Lead', {
+      // Tracking sur tous les pixels
+      trackEventOnAllPixels('Lead', {
         action: 'hover_start',
         blockId,
         content_type: 'block'
       });
     }
-  }, [isTracking, vcardPixel?.is_active, pixelInitialized, createTrackingEvent, sendTrackingEvent]);
+  }, [isTracking, hasActivePixels, pixelsInitialized, createTrackingEvent, sendTrackingEvent, trackEventOnAllPixels]);
 
   const handleBlockLeave = useCallback((blockId: string) => {
     if (hoverStartTime.current && currentHoveredBlock.current === blockId) {
@@ -667,9 +696,9 @@ const ViewVCard: React.FC = () => {
           metadata: { duration }
         });
 
-        // Tracker avec Meta Pixel si disponible
-        if (pixelInitialized && isPixelLoaded()) {
-          trackMetaEvent('Lead', {
+        // Tracker avec tous les pixels si disponibles
+        if (arePixelsReady()) {
+          trackEventOnAllPixels('Lead', {
             action: 'hover_end',
             blockId,
             duration,
@@ -681,19 +710,19 @@ const ViewVCard: React.FC = () => {
       hoverStartTime.current = null;
       currentHoveredBlock.current = null;
     }
-  }, [trackEvent, pixelInitialized]);
+  }, [trackEvent, arePixelsReady, trackEventOnAllPixels]);
 
   const handleBlockAction = (type: string, value: string, blockId?: string) => {
-    if (blockId && vcardPixel?.is_active) {
+    if (blockId && hasActivePixels()) {
       trackEvent({
         eventType: 'click',
         blockId,
         metadata: { action: type, target: value }
       });
 
-      // Meta Pixel tracking
-      if (pixelInitialized) {
-        trackMetaEvent('Contact', {
+      // Tracking sur tous les pixels
+      if (pixelsInitialized) {
+        trackEventOnAllPixels('Contact', {
           action: type.toLowerCase(),
           blockId,
           content_type: 'contact_action',
@@ -723,9 +752,9 @@ const ViewVCard: React.FC = () => {
 
     trackEvent({ eventType: 'download' });
 
-    // Tracker avec Meta Pixel
-    if (pixelInitialized && isPixelLoaded()) {
-      trackMetaEvent('Download', {
+    // Tracker avec tous les pixels
+    if (arePixelsReady()) {
+      trackEventOnAllPixels('Download', {
         action: 'download_vcf',
         vcardId: vcard.id,
         content_type: 'vcard_file'
@@ -759,9 +788,9 @@ END:VCARD`;
       metadata: { platform }
     });
 
-    // Tracker avec Meta Pixel
-    if (pixelInitialized && isPixelLoaded()) {
-      trackMetaEvent('Share', {
+    // Tracker avec tous les pixels
+    if (arePixelsReady()) {
+      trackEventOnAllPixels('Share', {
         action: 'social_share',
         platform,
         vcardId: vcard?.id,
@@ -843,19 +872,21 @@ END:VCARD`;
   };
 
   useEffect(() => {
-  if (pixelInitialized && vcardPixel?.metaPixelId) {
-    setTimeout(() => {
-      // Événement visible pour l'outil Meta
-      trackMetaEvent('ViewContent', {
-        content_name: vcard?.name,
-        content_type: 'vcard',
-        content_ids: [vcard?.id]
-      });
-    }, 2000); // Délai pour que l'outil puisse détecter
-  }
-}, [pixelInitialized, vcardPixel, vcard]);  // Effect pour attacher les gestionnaires d'événements de tracking
+    if (arePixelsReady()) {
+      setTimeout(() => {
+        // Événement visible pour tous les pixels
+        trackEventOnAllPixels('ViewContent', {
+          content_name: vcard?.name,
+          content_type: 'vcard',
+          content_ids: [vcard?.id]
+        });
+      }, 2000); // Délai pour que les outils puissent détecter
+    }
+  }, [arePixelsReady, vcard, trackEventOnAllPixels]);
+
+  // Effect pour attacher les gestionnaires d'événements de tracking
   useEffect(() => {
-    if (!isTracking || !vcardPixel?.is_active) return;
+    if (!isTracking || !hasActivePixels()) return;
 
     // Attacher les gestionnaires d'événements
     document.addEventListener('mousemove', handleMouseMove);
@@ -878,7 +909,7 @@ END:VCARD`;
       // Flush final du buffer
       flushTrackingBuffer();
     };
-  }, [isTracking, vcardPixel?.is_active, handleMouseMove, handleClick, handleScroll, flushTrackingBuffer]);
+  }, [isTracking, hasActivePixels, handleMouseMove, handleClick, handleScroll, flushTrackingBuffer]);
 
   // Effect pour le tracking de la visibilité de la page
   useEffect(() => {
@@ -1034,7 +1065,7 @@ END:VCARD`;
         )}
 
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 max-w-4xl mx-auto"
           variants={{
             hidden: { opacity: 0 },
             show: {

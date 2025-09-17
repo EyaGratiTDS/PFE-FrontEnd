@@ -1,18 +1,25 @@
 export interface Pixel {
-  id: string; 
+  id: string; // UUID
   name: string;
+  type?: 'meta' | 'ga' | 'linkedin' | 'gtm' | 'pinterest' | 'twitter' | 'quora' | null;
+  vcardId: number;
+  pixelCode?: string | null; // Stocker l'ID ou le code du pixel (ex: G-XXXX, fbq id, GTM-XXXX)
   is_active: boolean;
   is_blocked: boolean;
   created_at: string;
-  trackingUrl: string;
-  metaPixelId?: string | null;
+  
+  // Champs optionnels pour compatibilité avec l'ancien code
+  trackingUrl?: string;
+  metaPixelId?: string | null; // Déprecié, utiliser pixelCode à la place
   isDisabled?: boolean;
+  
+  // Relation avec vCard
   vcard?: {
-    id: string;
+    id: number;
     name: string;
-    url: string;
-    user: {
-      id: string;
+    url?: string;
+    user?: {
+      id: number;
       name: string;
       email: string;
     };

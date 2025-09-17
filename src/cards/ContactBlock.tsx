@@ -26,19 +26,19 @@ const ContactBlock: React.FC<ContactBlockProps> = ({ block, iconConfig, onClick 
         damping: 15
       }}
       onClick={onClick}
-      className={`relative overflow-hidden group rounded-xl p-6 bg-white shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 ${shadow}`}
+      className={`relative overflow-hidden group rounded-xl p-8 bg-white shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 ${shadow} h-48 flex flex-col justify-center`}
     >
       <div className={`absolute inset-0 bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity duration-300 ${gradient}`}></div>
       
-      <div className={`relative z-10 flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br ${gradient} ${shadow}`}>
+      <div className={`relative z-10 flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-xl bg-gradient-to-br ${gradient} ${shadow}`}>
         <Icon className="w-8 h-8 text-white" />
       </div>
       
-      <h3 className="relative z-10 text-center text-lg font-semibold text-gray-800 group-hover:text-gray-900 transition-colors">
+      <h3 className="relative z-10 text-center text-lg font-semibold text-gray-800 group-hover:text-gray-900 transition-colors mb-2">
         {block.name}
       </h3>
       
-      <p className="relative z-10 text-center text-gray-600 mt-2 text-sm">
+      <p className="relative z-10 text-center text-gray-600 text-sm leading-relaxed">
         {block.description}
       </p>
       

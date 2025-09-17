@@ -13,9 +13,10 @@ const PixelForm: React.FC = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    type: "" as "" | "meta" | "ga" | "linkedin" | "gtm" | "pinterest" | "twitter" | "quora",
     vcardId: "",
-    is_active: true,
-    metaPixelId: ""
+    pixelCode: "",
+    is_active: true
   });
 
   const [vcards, setVcards] = useState<VCard[]>([]);
@@ -58,9 +59,10 @@ const PixelForm: React.FC = () => {
 
             setFormData({
             name: domain.name,
+            type: domain.type || "",
             vcardId: domain.vcard?.id?.toString() || '', 
-            is_active: domain.is_active,
-            metaPixelId: domain.metaPixelId || ''
+            pixelCode: domain.pixelCode || domain.metaPixelId || '', // Compatibilité ascendante
+            is_active: domain.is_active
             });
         }
         } catch (error) {
@@ -92,6 +94,36 @@ const PixelForm: React.FC = () => {
       newErrors.vcardId = "vCard selection is required";
     }
 
+    // Validation conditionnelle du pixelCode selon le type
+    if (formData.type && !formData.pixelCode.trim()) {
+      newErrors.pixelCode = "Pixel Code/ID is required when type is selected";
+    } else if (formData.pixelCode.trim()) {
+      // Validation basée sur le type de pixel
+      const pixelCode = formData.pixelCode.trim();
+      switch (formData.type) {
+        case 'ga':
+          if (!pixelCode.match(/^G-[A-Z0-9]{10,}$/)) {
+            newErrors.pixelCode = "Google Analytics ID should be in format G-XXXXXXXXXX";
+          }
+          break;
+        case 'gtm':
+          if (!pixelCode.match(/^GTM-[A-Z0-9]{6,}$/)) {
+            newErrors.pixelCode = "Google Tag Manager ID should be in format GTM-XXXXXX";
+          }
+          break;
+        case 'meta':
+          if (!pixelCode.match(/^[0-9]{15,}$/)) {
+            newErrors.pixelCode = "Meta Pixel ID should be a 15+ digit number";
+          }
+          break;
+        // Pour les autres types, validation basique
+        default:
+          if (pixelCode.length < 3) {
+            newErrors.pixelCode = "Pixel Code/ID must be at least 3 characters long";
+          }
+      }
+    }
+
     if (!userId) {
       newErrors.user = "User not authenticated";
     }
@@ -110,7 +142,9 @@ const PixelForm: React.FC = () => {
       const payload = {
         ...formData,
         vcardId: Number(formData.vcardId),
-        userId: userId!
+        userId: userId!,
+        type: formData.type || null,
+        pixelCode: formData.pixelCode.trim() || null
       };
 
       let response;
@@ -258,9 +292,43 @@ const PixelForm: React.FC = () => {
                 </div>
                 {errors.vcardId && <small className="text-red-500 text-sm">{errors.vcardId}</small>}
               </div>
+
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Meta Pixel ID
+                  Pixel Type
+                </label>
+                <div className="inputForm-vcard bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <select
+                    value={formData.type}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        type: e.target.value as "" | "meta" | "ga" | "linkedin" | "gtm" | "pinterest" | "twitter" | "quora"
+                      }));
+                      if (errors.type) {
+                        setErrors(prev => ({ ...prev, type: '' }));
+                      }
+                    }}
+                    className="input-vcard w-full bg-transparent dark:bg-gray-800 dark:text-gray-300
+                              border-gray-300 dark:border-gray-600 rounded-lg focus:border-transparent
+                              dark:[color-scheme:dark]"
+                    autoComplete="off"
+                  >
+                    <option value="" className="dark:bg-gray-800 dark:text-gray-300">Select pixel type</option>
+                    <option value="meta" className="dark:bg-gray-800 dark:text-gray-300">Meta (Facebook)</option>
+                    <option value="ga" className="dark:bg-gray-800 dark:text-gray-300">Google Analytics</option>
+                    <option value="gtm" className="dark:bg-gray-800 dark:text-gray-300">Google Tag Manager</option>
+                    <option value="linkedin" className="dark:bg-gray-800 dark:text-gray-300">LinkedIn</option>
+                    <option value="pinterest" className="dark:bg-gray-800 dark:text-gray-300">Pinterest</option>
+                    <option value="twitter" className="dark:bg-gray-800 dark:text-gray-300">Twitter</option>
+                    <option value="quora" className="dark:bg-gray-800 dark:text-gray-300">Quora</option>
+                  </select>
+                </div>
+                {errors.type && <small className="text-red-500 text-sm">{errors.type}</small>}
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Pixel Code/ID
                 </label>
                 <div className="inputForm-vcard bg-gray-100 dark:bg-gray-800">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -281,12 +349,12 @@ const PixelForm: React.FC = () => {
                   <input
                     type="text"
                     className="input-vcard"
-                    placeholder="Enter Meta Pixel ID (e.g., 123456789012345)"
-                    value={formData.metaPixelId}
+                    placeholder="Enter Pixel ID (e.g., G-XXXX, 123456789012345, GTM-XXXX)"
+                    value={formData.pixelCode}
                     onChange={(e) => {
-                      setFormData(prev => ({ ...prev, metaPixelId: e.target.value }));
-                      if (errors.metaPixelId) {
-                        setErrors(prev => ({ ...prev, metaPixelId: '' }));
+                      setFormData(prev => ({ ...prev, pixelCode: e.target.value }));
+                      if (errors.pixelCode) {
+                        setErrors(prev => ({ ...prev, pixelCode: '' }));
                       }
                     }}
                     autoComplete="off"
@@ -295,7 +363,7 @@ const PixelForm: React.FC = () => {
                     spellCheck="false"
                   />
                 </div>
-                {errors.metaPixelId && <small className="text-red-500 text-sm">{errors.metaPixelId}</small>}
+                {errors.pixelCode && <small className="text-red-500 text-sm">{errors.pixelCode}</small>}
               </div>
 
               <div className="space-y-2">
