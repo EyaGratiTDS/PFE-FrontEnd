@@ -4,6 +4,7 @@ import {
   FaFileExport,
   FaFilter,
   FaTimes,
+  FaRobot,
 } from 'react-icons/fa';
 import { FiChevronRight, FiSearch } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,26 +20,8 @@ import ExportMenu from '../../cards/ExportMenu';
 import Pagination from '../../atoms/Pagination/Pagination'; 
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-interface RawVCard {
-  id?: string | number;
-  name?: string;
-  description?: string;
-  logo?: string;
-  favicon?: string;
-  background_value?: string;
-  background_type?: string;
-  font_family?: string;
-  font_size?: number;
-  is_active?: boolean;
-  is_share?: boolean;
-  is_downloaded?: boolean;
-  views?: number;
-  url?: string;
-  createdAt?: string;
-  search_engine_visibility?: boolean;
-  remove_branding?: boolean;
-}
+import AIGenerateModal from '../../modals/AIVCardModal';
+import { AIGenerateVCardFullResponse } from '../../services/api';
 
 interface DateRange {
   start: Date | undefined;
@@ -131,7 +114,9 @@ const VCardPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   const [planLimits, setPlanLimits] = useState<PlanLimit>({ current: 0, max: 1 });
+
   
   // Refs
   const exportButtonRef = useRef<HTMLDivElement>(null);
@@ -196,11 +181,11 @@ const VCardPage: React.FC = () => {
           ? vcardsResponse.data
           : [];
 
-      const sortedCards = cards.sort((a: RawVCard, b: RawVCard) =>
+      const sortedCards = cards.sort((a: VCard, b: VCard) =>
         new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
       );
 
-      const formattedCards: VCard[] = sortedCards.map((vcard: RawVCard, index: number) => ({
+      const formattedCards: VCard[] = sortedCards.map((vcard: VCard, index: number) => ({
         ...vcard,
         id: vcard.id || '',
         name: vcard.name || 'Untitled VCard',
@@ -249,11 +234,11 @@ const VCardPage: React.FC = () => {
           ? response.data
           : [];
 
-      const sortedCards = cards.sort((a: RawVCard, b: RawVCard) =>
+      const sortedCards = cards.sort((a: VCard, b: VCard) =>
         new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
       );
 
-      const formattedCards: VCard[] = sortedCards.map((vcard: RawVCard, index: number) => ({
+      const formattedCards: VCard[] = sortedCards.map((vcard: VCard, index: number) => ({
         ...vcard,
         id: vcard.id || '',
         name: vcard.name || 'Untitled VCard',
@@ -359,6 +344,46 @@ const VCardPage: React.FC = () => {
       toast.error('Error checking plan limits. Please try again.');
     }
   }, [navigate]);
+
+  // Handle AI VCard generation
+  const handleAIGenerateClick = useCallback(async () => {
+    try {
+      const { current, max } = await limitService.checkVcardLimit();
+
+      if (max !== -1 && current >= max) {
+        toast.warning(`You've reached the maximum of ${max} VCards. Upgrade your plan to create more.`);
+        return;
+      }
+
+      setShowAIModal(true);
+    } catch (error) {
+      console.error('Error checking VCard limits:', error);
+      toast.error('Error checking plan limits. Please try again.');
+    }
+  }, []);
+
+  // Handle AI generation success
+  const handleAISuccess = useCallback((result: AIGenerateVCardFullResponse) => {
+    console.log('🎯 AI VCard generated successfully:', result);
+    console.log('🎨 VCard background received:', {
+      background_type: result.vcard.background_type,
+      background_value: result.vcard.background_value,
+      vcard_id: result.vcard.id
+    });
+    
+    // Refresh the VCard list to show the new VCard
+    setRefreshTrigger(prev => prev + 1);
+    
+    // Navigate to the newly created VCard for editing
+    if (result.vcard.id) {
+      navigate(`/admin/vcard/edit-vcard/${result.vcard.id}`);
+    }
+  }, [navigate]);
+
+  // Close AI modal
+  const handleCloseAIModal = useCallback(() => {
+    setShowAIModal(false);
+  }, []);
 
   // Filter VCards based on search term and active filters
   const filteredVCards = useMemo(() => {
@@ -705,6 +730,15 @@ const VCardPage: React.FC = () => {
               )}
             </div>
 
+            {/* Generate with AI Button */}
+            <button
+              onClick={handleAIGenerateClick}
+              className="flex items-center justify-center bg-gradient-to-r from-purple-400 to-blue-50 hover:from-purple-500 hover:to-blue-50 text-white font-medium py-2 px-4 sm:py-2.5 sm:px-6 rounded-lg transition-colors h-10 sm:h-12 text-sm sm:text-base shadow-md hover:shadow-lg"
+            >
+              <FaRobot className="mr-2 text-sm sm:text-base" />
+              <span className="hidden xs:inline">Generate with AI</span>
+            </button>
+
             {/* Create Button */}
             <button
               onClick={handleCreateClick}
@@ -839,6 +873,13 @@ const VCardPage: React.FC = () => {
           </motion.div>
         )}
       </motion.div>
+
+      {/* AI Generate Modal */}
+      <AIGenerateModal
+        isOpen={showAIModal}
+        onClose={handleCloseAIModal}
+        onSuccess={handleAISuccess}
+      />
     </div>
   );
 };

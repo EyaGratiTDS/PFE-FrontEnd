@@ -30,8 +30,8 @@ const ContactBlock: React.FC<ContactBlockProps> = ({ block, iconConfig, onClick 
     >
       <div className={`absolute inset-0 bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity duration-300 ${gradient}`}></div>
       
-      <div className={`relative z-10 flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-xl bg-gradient-to-br ${gradient} ${shadow}`}>
-        <Icon className="w-8 h-8 text-white" />
+      <div className={`relative z-10 flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-xl bg-gradient-to-br ${gradient} ${shadow} flex-shrink-0`}>
+        <Icon className="w-8 h-8 text-white flex-shrink-0" />
       </div>
       
       <h3 className="relative z-10 text-center text-lg font-semibold text-gray-800 group-hover:text-gray-900 transition-colors mb-2">

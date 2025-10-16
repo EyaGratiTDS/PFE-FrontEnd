@@ -10,6 +10,56 @@ import { CustomDomain, DNSInstructions } from './CustomDomain';
 import { Quote, QuoteService as QuoteServiceEnum } from './Quote';
 import { VCard } from './vcard';
 
+// AI Service Types
+export interface AIGenerateVCardFullRequest {
+  job: string;
+  skills: string;
+  userId: number;
+}
+
+export interface AIGeneratedProject {
+  id?: number;
+  name: string;
+  description: string;
+  color: string;
+  status: 'active' | 'archived' | 'pending';
+}
+
+export interface AIGeneratedVCard {
+  id?: number;
+  name: string;
+  description: string;
+  logo: string | null;
+  favicon: string | null;
+  background_value: string;
+  background_type: 'color' | 'custom-image' | 'gradient' | 'gradient-preset';
+  font_family: string;
+  font_size: number;
+  is_active: boolean;
+  is_share: boolean;
+  is_downloaded: boolean;
+  url: string;
+  qr_code: string | null;
+  views: number;
+  status: boolean;
+  search_engine_visibility: boolean;
+  remove_branding: boolean;
+}
+
+export interface AIGeneratedBlock {
+  id?: number;
+  name: string;
+  description: string;
+  type_block: string;
+  status: boolean;
+}
+
+export interface AIGenerateVCardFullResponse {
+  project: AIGeneratedProject;
+  vcard: AIGeneratedVCard;
+  blocks: AIGeneratedBlock[];
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   timeout: 1000000,
@@ -1186,6 +1236,67 @@ export const webNotificationsService = {
       return response.data;
     } catch (error) {
       console.error('Error adding web notification:', error);
+      throw error;
+    }
+  },
+};
+
+export const aiService = {
+  /**
+   * Générer une VCard complète avec l'IA (sans sauvegarde)
+   */
+  generateVCard: async (data: AIGenerateVCardFullRequest): Promise<{
+    success: boolean;
+    data: {
+      project: AIGeneratedProject;
+      vcard: AIGeneratedVCard;
+      blocks: AIGeneratedBlock[];
+    };
+    savedToDB: boolean;
+    message?: string;
+    timestamp: string;
+  }> => {
+    try {
+      const response = await api.post('/ia/generate-vcard', {
+        job: data.job,
+        skills: data.skills,
+        userId: data.userId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error generating VCard:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Notifier le backend de l'action utilisateur (accept/regenerate)
+   */
+  notifyVCardAction: async (requestBody: {
+    action: 'accept' | 'regenerate';
+    userId: number;
+    vcardData?: AIGeneratedVCard;
+    projectData?: AIGeneratedProject;
+    blocksData?: AIGeneratedBlock[];
+    vcardId?: number;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    action: string;
+    data?: {
+      project: any;
+      vcard: any;
+      blocks: any[];
+      status: string;
+    };
+    savedToDB?: boolean;
+    timestamp: string;
+  }> => {
+    try {
+      const response = await api.post('/ia/vcard-action', requestBody);
+      return response.data;
+    } catch (error) {
+      console.error('Error notifying user action:', error);
       throw error;
     }
   },
