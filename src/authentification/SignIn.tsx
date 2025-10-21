@@ -18,7 +18,7 @@ const SignIn: React.FC = () => {
   const [tempToken, setTempToken] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const navigate = useNavigate();
-  const { isLoading, login } = useAuth();
+  const { isLoading, login, complete2FAAuthentication } = useAuth();
 
   useEffect(() => {
     const rememberedEmail = localStorage.getItem("rememberedEmail");
@@ -142,10 +142,23 @@ const SignIn: React.FC = () => {
         tempToken
       });
 
+      console.log('2FA Response:', response); // Debug log
+      
+      // La réponse doit contenir { token, user }
       const user = response.data?.user;
+      const token = response.data?.token;
+      
+      console.log('Extracted user from 2FA response:', user); // Debug log
+      console.log('Extracted token from 2FA response:', token); // Debug log
 
       if (!user?.id) {
-        throw new Error('Failed to verify 2FA code');
+        console.error('No user data found in 2FA response. Full response:', response);
+        throw new Error('Failed to verify 2FA code - no user data received');
+      }
+
+      // Utiliser la fonction complete2FAAuthentication pour mettre à jour le contexte
+      if (token) {
+        await complete2FAAuthentication(token, user);
       }
 
       localStorage.setItem("user", JSON.stringify(user));

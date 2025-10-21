@@ -117,6 +117,35 @@ export const useAuth = () => {
     }
   };
 
+  const complete2FAAuthentication = async (token: string, userData: User) => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      
+      if (!token || !userData) {
+        throw new Error('Invalid token or user data');
+      }
+      
+      // Stocker le token
+      storeToken(token, true);
+      
+      // Mettre à jour l'état d'authentification de manière synchrone
+      setState({
+        user: userData,
+        isAuthenticated: true,
+        isLoading: false
+      });
+      
+      // Attendre un peu pour s'assurer que l'état est propagé
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      return userData;
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      deleteToken();
+      throw error;
+    }
+  };
+
   const handleGoogleAuth = async (token: string, userData: User) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
@@ -154,6 +183,7 @@ export const useAuth = () => {
     login,
     logout,
     checkAuth,
+    complete2FAAuthentication,
     handleGoogleAuth
   };
 };

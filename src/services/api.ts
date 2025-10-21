@@ -197,7 +197,7 @@ export const authService = {
     api.post('/users/two-factor/disable'),
 
   verify2FALogin: (data: { token: string, tempToken: string }) =>
-    api.post('/users/two-factor/login', data),
+    api.post<{ token: string; user: User }>('/users/two-factor/login', data),
 
   deleteAccount: (data: { password: string }): Promise<ApiResponse<DeleteAccountResponse>> =>
     api.delete('/users/me', { data }).then(res => res.data),
