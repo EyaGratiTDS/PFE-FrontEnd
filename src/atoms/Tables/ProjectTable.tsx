@@ -2,7 +2,6 @@ import React from 'react';
 import { FaFolder, FaFolderOpen, FaFolderMinus, FaBan, FaCheck, FaAddressCard } from 'react-icons/fa';
 import EmptyState from '../../cards/EmptyState';
 import { Project } from '../../services/Project';
-import { API_BASE_URL } from '../../config/constants';
 
 interface ProjectTableProps {
   projects: Project[];
@@ -146,7 +145,7 @@ const MobileProjectItem: React.FC<{
       <div className="flex-shrink-0 mobile-card-logo-reduced mr-2 sm:mr-3 min-w-0">
         {project.logo ? (
           <img 
-            src={`${API_BASE_URL}${project.logo}`} 
+            src={`${project.logo}`} 
             alt={`${project.name} logo`}
             className="mobile-card-logo-reduced rounded-full object-cover border border-gray-200"
           />

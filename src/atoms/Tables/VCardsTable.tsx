@@ -3,7 +3,6 @@ import React from 'react';
 import { FaEye, FaImage, FaThLarge, FaBan, FaCheck } from 'react-icons/fa';
 import { VCardWithUser } from '../../services/api';
 import { formatDate } from '../../services/dateUtils';
-import { API_BASE_URL } from '../../config/constants';
 
 interface VCardsTableProps {
   vcards: VCardWithUser[];
@@ -155,7 +154,7 @@ const MobileVCardItem: React.FC<{
       <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3">
         {vcard.logo ? (
           <img 
-            src={`${API_BASE_URL}${vcard.logo}`} 
+            src={`${vcard.logo}`} 
             alt={`${vcard.name} logo`}
             className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover border border-gray-200"
           />
