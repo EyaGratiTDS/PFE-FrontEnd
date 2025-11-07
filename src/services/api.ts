@@ -67,6 +67,15 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Instance axios publique pour les endpoints qui n'ont pas besoin d'authentification
+const publicApi = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 1000000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 interface SignInResponse {
   token: string;
   user: User;
@@ -268,7 +277,8 @@ export const vcardService = {
 
   getByUrl: async (url: string) => {
     try {
-      const response = await api.get(`/vcard/url/${url}`);
+      // Utiliser publicApi pour permettre l'accès sans authentification
+      const response = await publicApi.get(`/vcard/url/${url}`);
       return response.data;
     } catch (error) {
       console.error(`Error getting vcard with url ${url}:`, error);
@@ -279,7 +289,8 @@ export const vcardService = {
   getByCustomDomain: async (domain: string) => {
     try {
       // Essayer d'abord avec l'endpoint spécialisé pour les domaines personnalisés
-      const response = await api.get(`/vcard/domain/${encodeURIComponent(domain)}`);
+      // Utiliser publicApi pour permettre l'accès sans authentification
+      const response = await publicApi.get(`/vcard/domain/${encodeURIComponent(domain)}`);
       return response.data;
     } catch (error) {
       console.error(`Error getting vcard with domain ${domain}:`, error);
@@ -314,7 +325,8 @@ export const vcardService = {
 
   registerView: async (id: string) => {
     try {
-      const response = await api.post<{
+      // Utiliser publicApi pour permettre l'enregistrement de vues sans authentification
+      const response = await publicApi.post<{
         views: number;
         isNewView: boolean;
         isOwner?: boolean;

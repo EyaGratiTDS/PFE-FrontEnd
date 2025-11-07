@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { vcardService, blockService, projectService, limitService, pixelService } from '../../services/api';
+import { vcardService, blockService, projectService, pixelService } from '../../services/api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -32,7 +32,6 @@ import {
   trackVCardEvent,
   getActivePixelDiagnosis 
 } from '../../utils/UniversalPixelManager';
-// Compatibilité ascendante avec MetaPixel
 import { mapToMetaEvent, trackMetaEvent } from '../../utils/MetaPixel';
 
 interface TrackingEvent {
@@ -85,7 +84,6 @@ const ViewVCard: React.FC = () => {
     color: string;
     status: 'active' | 'archived' | 'pending';
   } | null>(null);
-  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(1);
 
   const blockIcons: Record<string, BlockIconConfig> = {
     'Phone': {
@@ -301,19 +299,6 @@ const ViewVCard: React.FC = () => {
     };
   }, []);
 
-  // Effect pour l'initialisation des limites du plan
-  useEffect(() => {
-    const fetchPlanLimits = async () => {
-      try {
-        const projectLimit = await limitService.checkProjectLimit();
-        setCurrentPlanLimit(projectLimit.max === -1 ? Infinity : projectLimit.max);
-      } catch (error) {
-        console.error('Error fetching plan limits:', error);
-      }
-    };
-    fetchPlanLimits();
-  }, []);
-
   // Effect principal pour charger les données
   useEffect(() => {
     const fetchData = async () => {
@@ -345,34 +330,13 @@ const ViewVCard: React.FC = () => {
               const projectData = await projectService.getProjectById(vcardData.projectId);
 
               if (projectData.status === 'active') {
-                try {
-                  const allProjects = await projectService.getUserProjects(projectData.userId);
-                  const sortedProjects = allProjects.sort((a: any, b: any) =>
-                    new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
-                  );
-
-                  const projectIndex = sortedProjects.findIndex((p: any) => p.id === projectData.id);
-                  const isWithinPlanLimit = currentPlanLimit === Infinity || projectIndex < currentPlanLimit;
-
-                  if (isWithinPlanLimit) {
-                    setProject({
-                      id: projectData.id,
-                      name: projectData.name,
-                      description: projectData.description,
-                      color: projectData.color,
-                      status: projectData.status
-                    });
-                  }
-                } catch (limitError) {
-                  console.error("Error checking project limits:", limitError);
-                  setProject({
-                    id: projectData.id,
-                    name: projectData.name,
-                    description: projectData.description,
-                    color: projectData.color,
-                    status: projectData.status
-                  });
-                }
+                setProject({
+                  id: projectData.id,
+                  name: projectData.name,
+                  description: projectData.description,
+                  color: projectData.color,
+                  status: projectData.status
+                });
               }
             } catch (error) {
               console.error("Error loading project:", error);
@@ -396,7 +360,7 @@ const ViewVCard: React.FC = () => {
     };
 
     fetchData();
-  }, [url, currentPlanLimit, initializeVCardPixelsHandler]);
+  }, [url, initializeVCardPixelsHandler]);
   // Effect pour le scroll automatique
   useEffect(() => {
     window.scrollTo(0, 0);
